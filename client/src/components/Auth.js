@@ -15,7 +15,7 @@ const Auth = ({ login }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`http://localhost:5002/api/auth/${isRegistering ? 'register' : 'login'}`, {
+      const response = await fetch(`https://threecr-sen.onrender.com/api/auth/${isRegistering ? 'register' : 'login'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -45,7 +45,7 @@ const Auth = ({ login }) => {
     }
 
     try {
-      const response = await fetch('http://localhost:5002/api/auth/reset-password', {
+      const response = await fetch('https://threecr-sen.onrender.com/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, newPassword }),
