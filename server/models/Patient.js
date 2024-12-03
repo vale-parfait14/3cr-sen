@@ -1,0 +1,81 @@
+const mongoose = require('mongoose');
+
+const patientSchema = new mongoose.Schema({
+  pathologie: String,
+  dossierNumber: String,
+  service: String,
+  anneeDossier: String,
+  anneeIntervention: String,
+  nom: { type: String, required: true },
+  age: String,
+  genre: String,
+  ta: String,
+  fc: String,
+  spo2: String,
+  temperature: String,
+  taille: String,
+  poids: String,
+  groupeSanguin: String,
+  dateNaissance: Date,
+  nationalite: String,
+  profession: String,
+  numeroDeTelephone: String,
+  addressEmail: String,
+  addressDomicile: String,
+  salle: String,
+  lit: String,
+  correspondant: String,
+  dateEntree: Date,
+  dateSortie: Date,
+  departementTransfert: String,
+  dateDeces: Date,
+  dateDesortie: Date,
+  diagnostic: String,
+  statut: String,
+  validation: String,
+  services: String,
+  consultationReason: String,
+  traitementEntree: String,
+  traitementSortie: String,
+  simpleSuites: String,
+  complications: String,
+  geste: String,
+  operateur: [String],
+  histoire: String,
+  antecedents: String,
+  traitement: String,
+  ecrt: String,
+  ecg: String,
+  ett: String,
+  tt: String,
+  coronarographie: String,
+  autresExamens: String,
+  biologie: String,
+  cro: String,
+  rxthoraxPost: String,
+  ecgPost: String,
+  echoscopiePost: String,
+  biologiePost: String,
+  gazo: String,
+  ecp: String,
+  dsr: String,
+  suite: String,
+  suivi: String,
+  dropboxFiles: [{
+    name: String,
+    link: String,
+    timestamp: Date
+  }],
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  manageur: String
+}, {
+  timestamps: true
+});
+
+const Patient = mongoose.model('Patient', patientSchema);
+
+module.exports = Patient;
