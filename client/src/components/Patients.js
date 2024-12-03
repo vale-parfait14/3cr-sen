@@ -272,7 +272,7 @@ const [formData, setFormData] = useState({
   const handleTransferPatient = async (patientId, newService) => {
     try {
       const response = await fetch(
-        `http://localhost:5002/api/patients/${patientId}`,
+        `https://threecr-sen.onrender.com/api/patients/${patientId}`,
         {
           method: "PUT",
           headers: {
@@ -349,7 +349,7 @@ const [formData, setFormData] = useState({
 
   const fetchPatients = useCallback(async () => {
     try {
-      const response = await fetch("http://localhost:5002/api/patients", {
+      const response = await fetch("https://threecr-sen.onrender.com/api/patients", {
         headers: { Authorization: token },
       });
 
@@ -373,7 +373,7 @@ const [formData, setFormData] = useState({
   const handleDeleteFile = async (field, fileIndex) => {
     if (editing) {
       try {
-        const response = await fetch(`http://localhost:5002/api/patients/${editing}/files`, {
+        const response = await fetch(`https://threecr-sen.onrender.com/api/patients/${editing}/files`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -404,8 +404,8 @@ const [formData, setFormData] = useState({
    
     const method = editing ? "PUT" : "POST";
     const url = editing
-      ? `http://localhost:5002/api/patients/${editing}`
-      : "http://localhost:5002/api/patients";
+      ? `https://threecr-sen.onrender.com/api/patients/${editing}`
+      : "https://threecr-sen.onrender.com/api/patients";
 
     const currentDate = new Date().toLocaleString(); // Date actuelle
 
@@ -451,7 +451,7 @@ const [formData, setFormData] = useState({
       }
 
       // Envoyer l'alerte à MongoDB
-      await fetch("http://localhost:5002/api/alerts", {
+      await fetch("https://threecr-sen.onrender.com/api/alerts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -542,7 +542,7 @@ const [formData, setFormData] = useState({
     const currentDate = new Date().toLocaleString(); // Date actuelle
 
     try {
-      const response = await fetch(`http://localhost:5002/api/patients/${id}`, {
+      const response = await fetch(`https://threecr-sen.onrender.com/api/patients/${id}`, {
         method: "DELETE",
         headers: { Authorization: token },
       });
@@ -556,7 +556,7 @@ const [formData, setFormData] = useState({
         const alertMessage = `Patient ${patientToDelete.nom} supprimé par ${userName} le ${currentDate}`;
 
         // Envoyer l'alerte à MongoDB
-        await fetch("http://localhost:5002/api/alerts", {
+        await fetch("https://threecr-sen.onrender.com/api/alerts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
