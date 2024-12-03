@@ -334,7 +334,7 @@ const PatientSolvable = ({ patients }) => {
     appKey="dh9gtv3tojipp6o"
     success={handleDropboxSuccess}
     cancel={() => toast.info('Sélection annulée')}
-    multiselect={false}
+    multiselect={true}
   >
     <Button variant="outline-primary" type="button">
       Choisir un fichier depuis Dropbox
