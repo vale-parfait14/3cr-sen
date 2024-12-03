@@ -29,7 +29,7 @@ const PatientSolvable = ({ patients }) => {
   useEffect(() => {
     const fetchPayments = async () => {
       try {
-        const response = await fetch('http://localhost:5002/api/payments');
+        const response = await fetch('https://threecr-sen.onrender.com/api/payments');
         if (response.ok) {
           const data = await response.json();
           // Filtrer les paiements selon le service de l'utilisateur
@@ -87,7 +87,7 @@ useEffect(() => {
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`http://localhost:5002/api/payments/${editing}`, {
+      const response = await fetch(`https://threecr-sen.onrender.com/api/payments/${editing}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -128,7 +128,7 @@ useEffect(() => {
     }
 
     try {
-      const response = await fetch('http://localhost:5002/api/payments', {
+      const response = await fetch('https://threecr-sen.onrender.com/api/payments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -161,7 +161,7 @@ useEffect(() => {
   const handleDelete = async (paymentId) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce paiement ?')) {
       try {
-        const response = await fetch(`http://localhost:5002/api/payments/${paymentId}`, {
+        const response = await fetch(`https://threecr-sen.onrender.com/api/payments/${paymentId}`, {
           method: 'DELETE'
         });
 
