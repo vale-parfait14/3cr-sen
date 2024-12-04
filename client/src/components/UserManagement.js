@@ -274,7 +274,7 @@ const UserManagement = () => {
 
       {/* Liste des utilisateurs */}
       <h2 className="mt-5 mb-3 text-center">Liste des utilisateurs</h2>
-      <button onClick={() => navigate('/mode')} className="btn btn-secondary w-100 mt-3">Retour</button>
+      <button onClick={() => navigate('/role')} className="btn btn-secondary w-100 mt-3">Retour</button>
 
       <ul className="list-group mt-3">
   {users.length === 0 ? (
