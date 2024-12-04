@@ -1093,22 +1093,6 @@ const [formData, setFormData] = useState({
                               "Cardiologie",
                               "Réanimation",
                             ].includes(userService)) ||
-                          (userRole === "Médecin" &&
-                            userAccessLevel === "Affichage-Modification" &&
-                            [
-                              "Cuomo",
-                              "Ctcv",
-                              "Cardiologie",
-                              "Réanimation",
-                            ].includes(userService)) ||
-                          (userRole === "Infirmier(e)" &&
-                            userAccessLevel === "Affichage-Modification" &&
-                            [
-                              "Cuomo",
-                              "Ctcv",
-                              "Cardiologie",
-                              "Réanimation",
-                            ].includes(userService)) ||
                           (userRole === "Archiviste" &&
                             userAccessLevel === "Affichage-Modification" &&
                             [
@@ -1124,25 +1108,7 @@ const [formData, setFormData] = useState({
                               "Ctcv",
                               "Cardiologie",
                               "Réanimation",
-                            ].includes(userService)) ||
-                          (userRole === "Médecin" &&
-                            userAccessLevel ===
-                            "Affichage-Modification-Suppression" &&
-                            [
-                              "Cuomo",
-                              "Ctcv",
-                              "Cardiologie",
-                              "Réanimation",
-                            ].includes(userService)) ||
-                          (userRole === "Infirmier(e)" &&
-                            userAccessLevel ===
-                            "Affichage-Modification-Suppression" &&
-                            [
-                              "Cuomo",
-                              "Ctcv",
-                              "Cardiologie",
-                              "Réanimation",
-                            ].includes(userService)) ||
+                            ].includes(userService))  ||
                           (userRole === "Archiviste" &&
                             userAccessLevel ===
                             "Affichage-Modification-Suppression" &&
