@@ -108,7 +108,6 @@ const [formData, setFormData] = useState({
   suite:"",
   suivi:"",
   dateJour: "",
-  dropboxFiles: [] ,// Add this new field
   manageur: localStorage.getItem("userName") || " ",
   services:localStorage.getItem("userService") || " ",
 });
@@ -418,7 +417,6 @@ const [formData, setFormData] = useState({
           userId,
           manageur: localStorage.getItem("userName"),
           services: localStorage.getItem("userService"),
-           files: formData.dropboxFiles // The files will be saved with patient data
 
         }),
       });
@@ -525,7 +523,6 @@ const [formData, setFormData] = useState({
         dateJour: "",
         manageur: localStorage.getItem("userName") || " ",
         services: localStorage.getItem("userService") || " ",
-        dropboxFiles: [...prev.dropboxFiles, ...fileData]
 
       });
 
@@ -3164,24 +3161,7 @@ const [formData, setFormData] = useState({
     ))}
   </div>*/}
  
-<div className="selected-files-preview">
-  {formData.dropboxFiles.map((file, index) => (
-    <div key={index} className="file-item">
-      <span>{file.name}</span>
-      <button 
-        className="btn btn-sm btn-danger"
-        onClick={() => {
-          setFormData(prev => ({
-            ...prev,
-            dropboxFiles: prev.dropboxFiles.filter((_, i) => i !== index)
-          }));
-        }}
-      >
-        Retirer
-      </button>
-    </div>
-  ))}
-</div>
+
 </div>
 
 
