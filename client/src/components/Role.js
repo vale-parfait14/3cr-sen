@@ -30,7 +30,7 @@ const Role = () => {
       <div className="row g-4 mb-5 w-100 justify-content-center bg-secondary p-4 rounded-3">
         <div className="col-12 col-md-6 col-lg-3">
           <button 
-            onClick={() => navigate('/mode')}
+            onClick={() => navigate('/passwordprompt')}
             className="btn btn-primary w-100 py-3 shadow-sm"
           >
             ADMINISTRATEUR
