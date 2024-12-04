@@ -45,7 +45,7 @@ const PasswordPrompt = () => {
                 />
               </div>
               <button type="submit" className="btn btn-primary w-100">Accéder</button>
-              <button className="btn btn-secondary w-100 mt-2" onClick={() => navigate('/mode')}>Retour</button>
+              <button className="btn btn-secondary w-100 mt-2" onClick={() => navigate('/role')}>Retour</button>
             </form>
           </div>
         </div>
