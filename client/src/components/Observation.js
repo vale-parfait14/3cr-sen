@@ -128,7 +128,7 @@ const Observation = () => {
 
       <div className="text-center mb-4">
         <DropboxChooser
-          appKey="dh9gtv3tojipp6o"
+          appKey="23rlajqskcae2gk"
           success={handleDropboxSuccess}
           multiselect={true}
           extensions={['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt','.gif','.pptx','.svg','.jpeg', '.jpg', '.png']}
