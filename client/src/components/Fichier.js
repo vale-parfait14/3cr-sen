@@ -266,19 +266,16 @@ const PatientSolvable = ({ patients }) => {
                   (userRole === "Etudiant(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
 
                  (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modifcation"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
                   (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
                   (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
                   (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
 
-                (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modifcation-Suppression"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
+                  (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modifcation-Suppression"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
                   (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
                   (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
                   (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
 
-                     (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
+                  (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
                   (userRole === "Secrétaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
                   (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
                   (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) 
