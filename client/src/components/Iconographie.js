@@ -124,7 +124,7 @@ const Iconographie = () => {
               appKey={APP_KEY}
               success={handleSuccess}
               cancel={() => console.log('Cancelled')}
-              multiselect={false}
+              multiselect={true}
             >
               <button className="btn btn-primary">
                 Choisir un fichier depuis Dropbox
