@@ -26,14 +26,14 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import UserManagement from './components/UserManagement';
 import UserManagementCopy from './components/UserManagementCopy';
 import Authentifications from './components/Authentifications';
-import AuthentificationsCopy from './components/AuthentificationsCopy';
-
 import Mode from './components/Mode';
 import PasswordPrompt from './components/PasswordPrompt';
 import UserConnection from './components/UserConnection';
 import Programme from './components/Programme';
 import Observation from './components/Observation';
 import filePatient from './components/fichiersPatients';
+import Message from './components/Message';
+import Iconographie from "./components/Iconographie";
 
 const App = () => {
   const [token, setToken] = useState(null);
@@ -91,6 +91,8 @@ const App = () => {
             <Route path="/passwordauth" element={<PasswordAuth token={token} />} />
 
             {/* Routes protégées */}
+            <Route path="/iconographie" element={<ProtectedRoute element={<Iconographie token={token} />} token={token} />} />
+            <Route path="/message" element={<ProtectedRoute element={<Message token={token} />} token={token} />} />
             <Route path="/patients" element={<ProtectedRoute element={<Patients token={token} />} token={token} />} />
             <Route path="/docaccess" element={<ProtectedRoute element={<DocAccess token={token} />} token={token} />} />
             <Route path="/doctors" element={<ProtectedRoute element={<Doctors token={token} />} token={token} />} />
@@ -112,7 +114,6 @@ const App = () => {
             <Route path="/archivelist" element={<ProtectedRoute element={<ArchiveList token={token} />} token={token} />} />
             <Route path="/usermanagement" element={<ProtectedRoute element={<UserManagement token={token} />} token={token} />} />
             <Route path="/user-management" element={<ProtectedRoute element={<UserManagementCopy token={token} />} token={token} />} />
-            <Route path="/authentification" element={<ProtectedRoute element={<AuthentificationsCopy token={token} />} token={token} />} />
 
             <Route path="/authentifications" element={<ProtectedRoute element={<Authentifications token={token} />} token={token} />} />
             <Route path="/mode" element={<ProtectedRoute element={<Mode token={token} />} token={token} />} />
