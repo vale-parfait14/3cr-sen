@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DropboxChooser from 'react-dropbox-chooser';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, getDocs, query, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -18,6 +19,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const Iconographie = () => {
+  const navigate = useNavigate();
   const [tempFiles, setTempFiles] = useState([]);
   const [tempComments, setTempComments] = useState({});
   const [submittedFiles, setSubmittedFiles] = useState([]);
@@ -125,6 +127,36 @@ const Iconographie = () => {
 
   return (
     <div className="container mt-4">
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between',
+        backgroundColor: "rgb(28, 211, 211)",
+        borderRadius: "10px",
+        marginBottom: "20px"
+      }}>
+        <div>
+          <button 
+            style={{margin:"20px"}} 
+            className='btn btn-primary'
+            onClick={() => navigate('/role')}
+          >
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="30" 
+              height="30" 
+              fill="currentColor" 
+              className="bi bi-house-door-fill" 
+              viewBox="0 0 16 16"
+            >
+              <path d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5"/>
+            </svg>
+          </button>
+        </div>
+        <div>
+          <h2 style={{color:"white", margin:"20px"}}>Gestion des fichiers</h2>
+        </div>
+      </div>
+
       <div className="card mb-4">
         <div className="card-body">
           <h4>Ajouter des nouveaux fichiers</h4>
@@ -250,6 +282,11 @@ const Iconographie = () => {
         }
         .btn-group .btn {
           margin-right: 5px;
+        }
+        .btn-primary:hover {
+          background-color: #0056b3;
+          transform: scale(1.05);
+          transition: all 0.2s;
         }
       `}</style>
     </div>
