@@ -26,6 +26,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import UserManagement from './components/UserManagement';
 import UserManagementCopy from './components/UserManagementCopy';
 import Authentifications from './components/Authentifications';
+import AuthentificationsCopy from './components/AuthentificationsCopy';
+
 import Mode from './components/Mode';
 import PasswordPrompt from './components/PasswordPrompt';
 import UserConnection from './components/UserConnection';
@@ -116,6 +118,8 @@ const App = () => {
             <Route path="/user-management" element={<ProtectedRoute element={<UserManagementCopy token={token} />} token={token} />} />
 
             <Route path="/authentifications" element={<ProtectedRoute element={<Authentifications token={token} />} token={token} />} />
+             <Route path="/authentification" element={<ProtectedRoute element={<AuthentificationsCopy token={token} />} token={token} />} />
+
             <Route path="/mode" element={<ProtectedRoute element={<Mode token={token} />} token={token} />} />
             <Route path="/passwordprompt" element={<ProtectedRoute element={<PasswordPrompt token={token} />} token={token} />} />
             <Route path="/userconnection" element={<ProtectedRoute element={<UserConnection token={token} />} token={token} />} />
