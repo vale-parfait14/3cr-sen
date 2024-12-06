@@ -53,6 +53,7 @@ const Patients = ({ token, userId, refresh }) => {
 
 const [formData, setFormData] = useState({
   pathologie: "",
+  vpa: "",
   validation:"Validé",
   dossierNumber: "",
   service: "",
@@ -470,6 +471,7 @@ const [formData, setFormData] = useState({
       // Réinitialisation du formulaire
       setFormData({
         pathologie: "",
+        vpa: "",
         validation:"Validé",
         dossierNumber: "",
         service: "",
@@ -614,6 +616,7 @@ const [formData, setFormData] = useState({
       patient.diagnostic?.toLowerCase().includes(searchTermLower) ||
       patient.statut?.toLowerCase().includes(searchTermLower) ||
       patient.pathologie?.toLowerCase().includes(searchTermLower) ||
+      patient.vpa?.toLowerCase().includes(searchTermLower) ||
       patient.validation?.toLowerCase().includes(searchTermLower) ||
       patient.consultationReason?.toLowerCase().includes(searchTermLower) ||
       patient.geste?.toLowerCase().includes(searchTermLower) ||
@@ -1955,7 +1958,14 @@ const [formData, setFormData] = useState({
               <option value="la tétralogie de Fallot">T4F</option>
               <option value="la transposition des gros vaisseaux">TGV</option>
             </select>
-
+            <input
+              type="text"
+              placeholder="vpa"
+              value={formData.vpa}
+              onChange={(e) =>
+                setFormData({ ...formData, vpa: e.target.value })
+              }
+            /> 
             <select
               value={formData.validation}
               onChange={(e) =>
@@ -3481,6 +3491,7 @@ const [formData, setFormData] = useState({
               )}{" "}
               {patient.manageur && <span> → {patient.manageur}</span>}
               {patient.services && <span> → {patient.services}</span>}
+              {patient.vpa && <span> → {patient.vpa}</span>}
               {patient.validation && <span> → {patient.validation}</span>}
             </span>
             <button
@@ -3842,7 +3853,8 @@ const [formData, setFormData] = useState({
           <p><strong>Diagnostic:</strong> {selectedPatientForCuomo.diagnostic}</p>
           <p><strong>Statut:</strong> {selectedPatientForCuomo.statut}</p>
           <p><strong>Pathologie:</strong> {selectedPatientForCuomo.pathologie}</p>
-          <p><strong>Validation:</strong> {selectedPatientForCuomo.validation}</p>
+          <p><strong>Vpa:</strong> {selectedPatientForCuomo.pathologie}</p>
+          <p><strong>Validation:</strong> {selectedPatientForCuomo.vpa}</p>
           <p><strong>Raison de consultation:</strong> {selectedPatientForCuomo.consultationReason}</p>
           <p><strong>Traitement à l'entrée:</strong> {selectedPatientForCuomo.traitementEntree}</p>
           <p><strong>Traitement à la sortie:</strong> {selectedPatientForCuomo.traitementSortie}</p>
