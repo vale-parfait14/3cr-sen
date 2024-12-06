@@ -280,7 +280,7 @@ const ChatComponent = () => {
                         className="rounded-pill w-100"
                         style={{ backgroundColor: "#0061fe", border: "none" }}
                       >
-                        📁
+                        choisir un fichier
                       </Button>
                     </DropboxChooser>
                   </Col>
@@ -291,7 +291,7 @@ const ChatComponent = () => {
                       className="rounded-pill w-80"
                       style={{ backgroundColor: "rgb(28, 211, 211)", border: "none" }}
                     >
-                      ✉️
+                      envoyer
                     </Button>
                   </Col>
                 </Row>
