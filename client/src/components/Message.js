@@ -4,6 +4,7 @@ import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import DropboxChooser from 'react-dropbox-chooser';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -14,6 +15,9 @@ const firebaseConfig = {
   messagingSenderId: "919766148380",
   appId: "1:919766148380:web:30db9986fa2cd8bb7106d9"
 };
+
+// Dropbox configuration
+const APP_KEY = '23rlajqskcae2gk'; // Replace with your Dropbox app key
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -41,12 +45,35 @@ const ChatComponent = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [dropboxFile, setDropboxFile] = useState(null);
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState({
     userName: localStorage.getItem('userName') || '',
     userService: localStorage.getItem('userService') || ''
   });
+
+  const handleDropboxSuccess = async (files) => {
+    try {
+      const file = files[0];
+      await addDoc(collection(db, 'messages'), {
+        text: `Dropbox file shared: ${file.name}`,
+        fileURL: file.link,
+        fileName: file.name,
+        timestamp: new Date().toISOString(),
+        sender: 'user',
+        createdAt: new Date(),
+        userName: userInfo.userName,
+        userService: userInfo.userService,
+        expiresAt: new Date(Date.now() + 60000)
+      });
+      
+      setDropboxFile(null);
+    } catch (error) {
+      console.error("Error sharing Dropbox file:", error);
+      alert('Error sharing file');
+    }
+  };
 
   const deleteMessage = async (messageId) => {
     try {
@@ -87,9 +114,6 @@ const ChatComponent = () => {
       setMessages(messageList);
       setIsLoading(false);
       scrollToBottom();
-    }, (error) => {
-      console.error("Error fetching messages:", error);
-      setIsLoading(false);
     });
 
     return () => unsubscribe();
@@ -129,7 +153,6 @@ const ChatComponent = () => {
             <Card.Header style={{ backgroundColor: "rgb(28, 211, 211)" }} className="text-white">
               <div className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">Chat en direct</h5>
-               
               </div>
             </Card.Header>
             
@@ -151,6 +174,13 @@ const ChatComponent = () => {
                         <small>{message.userName} - {message.userService}</small>
                       </div>
                       <div className="message-text">{message.text}</div>
+                      {message.fileURL && (
+                        <div className="file-attachment">
+                          <a href={message.fileURL} target="_blank" rel="noopener noreferrer">
+                            📎 {message.fileName}
+                          </a>
+                        </div>
+                      )}
                       <div className="message-footer">
                         <small className="message-time">
                           {new Date(message.timestamp).toLocaleTimeString()}
@@ -167,7 +197,7 @@ const ChatComponent = () => {
             <Card.Footer className="bg-white">
               <Form onSubmit={handleSendMessage}>
                 <Row className="g-2">
-                  <Col xs={7} sm={10}>
+                  <Col xs={7} sm={8}>
                     <Form.Control
                       type="text"
                       value={newMessage}
@@ -177,9 +207,25 @@ const ChatComponent = () => {
                     />
                   </Col>
                   <Col xs={3} sm={2}>
+                    <DropboxChooser 
+                      appKey={APP_KEY}
+                      success={handleDropboxSuccess}
+                      cancel={() => console.log('Cancelled')}
+                      multiselect={false}
+                    >
+                      <Button
+                        variant="secondary"
+                        className="rounded-pill w-100"
+                        style={{ backgroundColor: "#0061fe", border: "none" }}
+                      >
+                        <i className="bi bi-dropbox">📁</i>
+                      </Button>
+                    </DropboxChooser>
+                  </Col>
+                  <Col xs={2} sm={2}>
                     <Button
                       type="submit"
-                      variant="primary"
+                      variant="primary" 
                       className="rounded-pill w-80"
                       style={{ backgroundColor: "rgb(28, 211, 211)", border: "none" }}
                     >
@@ -242,6 +288,25 @@ const ChatComponent = () => {
           background-color: rgb(25, 190, 190) !important;
           transform: scale(1.05);
           transition: all 0.2s;
+        }
+        .dropbox-button {
+          background-color: #0061fe;
+          color: white;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 20px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .dropbox-button:hover {
+          background-color: #0052d9;
+          transform: scale(1.05);
+        }
+        .file-attachment {
+          margin-top: 8px;
+          padding: 4px 8px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
         }
       `}</style>
     </Container>
