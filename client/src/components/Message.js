@@ -17,13 +17,12 @@ const firebaseConfig = {
 };
 
 // Dropbox configuration
-const APP_KEY = '23rlajqskcae2gk'; // Replace with your Dropbox app key
+const APP_KEY = '23rlajqskcae2gk';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Message Countdown Component
 const MessageCountdown = ({ expiresAt }) => {
   const [timeLeft, setTimeLeft] = useState(60000);
 
@@ -46,6 +45,8 @@ const ChatComponent = () => {
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [dropboxFile, setDropboxFile] = useState(null);
+  const [commentText, setCommentText] = useState('');
+  const [showCommentInput, setShowCommentInput] = useState(null);
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState({
@@ -57,7 +58,7 @@ const ChatComponent = () => {
     try {
       const file = files[0];
       await addDoc(collection(db, 'messages'), {
-        text: `Fichier partager: ${file.name}`,
+        text: `Fichier partagé: ${file.name}`,
         fileURL: file.link,
         fileName: file.name,
         timestamp: new Date().toISOString(),
@@ -65,13 +66,33 @@ const ChatComponent = () => {
         createdAt: new Date(),
         userName: userInfo.userName,
         userService: userInfo.userService,
-        expiresAt: new Date(Date.now() + 60000)
+        expiresAt: new Date(Date.now() + 60000),
+        comments: []
       });
-      
       setDropboxFile(null);
     } catch (error) {
-      console.error("Error sharing Dropbox file:", error);
-      alert('Error sharing file');
+      console.error("Erreur d'envoi du fichier:", error);
+      alert("Erreur lors du partage du fichier");
+    }
+  };
+
+  const handleAddComment = async (messageId) => {
+    try {
+      await addDoc(collection(db, 'messages'), {
+        text: commentText,
+        parentMessageId: messageId,
+        timestamp: new Date().toISOString(),
+        sender: 'user',
+        userName: userInfo.userName,
+        userService: userInfo.userService,
+        isComment: true,
+        expiresAt: new Date(Date.now() + 60000)
+      });
+      setCommentText('');
+      setShowCommentInput(null);
+    } catch (error) {
+      console.error("Erreur d'ajout de commentaire:", error);
+      alert("Erreur lors de l'ajout du commentaire");
     }
   };
 
@@ -79,7 +100,20 @@ const ChatComponent = () => {
     try {
       await deleteDoc(doc(db, 'messages', messageId));
     } catch (error) {
-      console.error("Error deleting message:", error);
+      console.error("Erreur de suppression:", error);
+    }
+  };
+
+  const handleDeleteMessage = async (message) => {
+    if (message.userName === userInfo.userName) {
+      try {
+        await deleteMessage(message.id);
+      } catch (error) {
+        console.error("Erreur de suppression:", error);
+        alert("Erreur lors de la suppression");
+      }
+    } else {
+      alert('Vous ne pouvez supprimer que vos propres messages');
     }
   };
 
@@ -130,7 +164,8 @@ const ChatComponent = () => {
           createdAt: new Date(),
           userName: userInfo.userName,
           userService: userInfo.userService,
-          expiresAt: new Date(Date.now() + 60000)
+          expiresAt: new Date(Date.now() + 60000),
+          comments: []
         });
         
         setTimeout(() => {
@@ -139,8 +174,8 @@ const ChatComponent = () => {
         
         setNewMessage('');
       } catch (error) {
-        console.error("Error sending message:", error);
-        alert('Error sending message');
+        console.error("Erreur d'envoi:", error);
+        alert("Erreur lors de l'envoi du message");
       }
     }
   };
@@ -165,29 +200,70 @@ const ChatComponent = () => {
                 </div>
               ) : (
                 messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`d-flex ${message.sender === 'user' ? 'justify-content-end' : 'justify-content-start'}`}
-                  >
-                    <div className={`message-bubble ${message.sender === 'user' ? 'sent' : 'received'} mb-2`}>
-                      <div className="message-user-info">
-                        <small>{message.userName} - {message.userService}</small>
-                      </div>
-                      <div className="message-text">{message.text}</div>
-                      {message.fileURL && (
-                        <div className="file-attachment">
-                          <a href={message.fileURL} target="_blank" rel="noopener noreferrer">
-                            📎 {message.fileName}
-                          </a>
+                  <div key={message.id}>
+                    <div className={`d-flex ${message.sender === 'user' ? 'justify-content-end' : 'justify-content-start'}`}>
+                      <div className={`message-bubble ${message.sender === 'user' ? 'sent' : 'received'} mb-2`}>
+                        <div className="message-user-info">
+                          <small>{message.userName} - {message.userService}</small>
                         </div>
-                      )}
-                      <div className="message-footer">
-                        <small className="message-time">
-                          {new Date(message.timestamp).toLocaleTimeString()}
-                        </small>
-                        <MessageCountdown expiresAt={message.expiresAt} />
+                        <div className="message-text">{message.text}</div>
+                        {message.fileURL && (
+                          <div className="file-attachment">
+                            <a href={message.fileURL} target="_blank" rel="noopener noreferrer">
+                              📎 {message.fileName}
+                            </a>
+                            <Button
+                              variant="link"
+                              size="sm"
+                              onClick={() => setShowCommentInput(message.id)}
+                            >
+                              💬 Commenter
+                            </Button>
+                          </div>
+                        )}
+                        {message.userName === userInfo.userName && (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="delete-button"
+                            onClick={() => handleDeleteMessage(message)}
+                          >
+                            🗑️ Supprimer
+                          </Button>
+                        )}
+                        <div className="message-footer">
+                          <small className="message-time">
+                            {new Date(message.timestamp).toLocaleTimeString()}
+                          </small>
+                          <MessageCountdown expiresAt={message.expiresAt} />
+                        </div>
                       </div>
                     </div>
+                    
+                    {showCommentInput === message.id && (
+                      <div className="comment-input-container">
+                        <Form onSubmit={(e) => {
+                          e.preventDefault();
+                          handleAddComment(message.id);
+                        }}>
+                          <Form.Control
+                            type="text"
+                            value={commentText}
+                            onChange={(e) => setCommentText(e.target.value)}
+                            placeholder="Ajouter un commentaire..."
+                            className="rounded-pill"
+                          />
+                          <Button 
+                            type="submit" 
+                            variant="primary" 
+                            size="sm"
+                            className="mt-2"
+                          >
+                            Ajouter
+                          </Button>
+                        </Form>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
@@ -207,10 +283,10 @@ const ChatComponent = () => {
                     />
                   </Col>
                   <Col xs={3} sm={2}>
-                    <DropboxChooser 
+                    <DropboxChooser
                       appKey={APP_KEY}
                       success={handleDropboxSuccess}
-                      cancel={() => console.log('Cancelled')}
+                      cancel={() => console.log('Annulé')}
                       multiselect={false}
                     >
                       <Button
@@ -225,7 +301,7 @@ const ChatComponent = () => {
                   <Col xs={2} sm={2}>
                     <Button
                       type="submit"
-                      variant="primary" 
+                      variant="primary"
                       className="rounded-pill w-80"
                       style={{ backgroundColor: "rgb(28, 211, 211)", border: "none" }}
                     >
@@ -251,6 +327,7 @@ const ChatComponent = () => {
           border-radius: 15px;
           margin-bottom: 10px;
           word-wrap: break-word;
+          position: relative;
         }
         .sent {
           background-color: rgb(28, 211, 211);
@@ -307,6 +384,23 @@ const ChatComponent = () => {
           padding: 4px 8px;
           background: rgba(255, 255, 255, 0.1);
           border-radius: 8px;
+        }
+        .comment-input-container {
+          margin-top: 8px;
+          padding: 8px;
+          background: #f8f9fa;
+          border-radius: 8px;
+        }
+        .delete-button {
+          color: #dc3545;
+          padding: 0;
+          margin-left: 8px;
+          position: absolute;
+          top: 5px;
+          right: 5px;
+        }
+        .delete-button:hover {
+          color: #bd2130;
         }
       `}</style>
     </Container>
