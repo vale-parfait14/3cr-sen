@@ -86,6 +86,23 @@ const Role = () => {
             ETUDIANT(E)
           </button>
         </div>
+
+        <div className="col-12 col-md-6 col-lg-3">
+          <button 
+            onClick={() => navigate('/message')}
+            className="btn btn-danger w-100 py-3 shadow-sm"
+          >
+            MESSAGE(s)
+          </button>
+        </div>
+        <div className="col-12 col-md-6 col-lg-3">
+          <button 
+            onClick={() => navigate("/iconographie")}
+            className="btn btn-danger w-100 py-3 shadow-sm"
+          >
+            ICONOGRAPHIE
+          </button>
+        </div>
       </div>
 
       <button 
