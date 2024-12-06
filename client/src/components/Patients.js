@@ -14,6 +14,8 @@ import { FaBookReader } from "react-icons/fa";
 import PatientSolvable from "./PatientSolvable";
 import Fichier from "./Fichier";
 import Archive from "./Archive";
+import Message from "./Message";
+import { MdMessage } from "react-icons/md";
 import Solvabilite from "./Solvabilite";
 import Modal from "react-modal"; // Assurez-vous d'installer cette bibliothèque
 import PatientShare from "./PatientShare";
@@ -135,6 +137,8 @@ const [formData, setFormData] = useState({
   const [fileGroups, setFileGroups] = useState({});
   const [prev, setPrev] = useState(null);
   const [fileData, setFileData] = useState(null);
+  const [showMessage,setShowMessage] = useState(false);
+
   
   {
     /*const Alert = ({ message }) => (
@@ -1134,6 +1138,132 @@ const [formData, setFormData] = useState({
                   >
                     <FaBookReader  style={{ height: "30px", width: "30px" }} />
                   </button>
+<button
+                    className="btn3"
+                    onClick={() => setShowMessage(!showMessage)}
+                    title="Message"
+                    style={{
+                      display:
+                        localStorage.getItem("userName") === "Ad" ||
+                          (userRole === "Médecin" &&
+                            userAccessLevel === "Affichage" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                          (userRole === "Infirmier(e)" &&
+                            userAccessLevel === "Affichage" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                          (userRole === "Archiviste" &&
+                            userAccessLevel === "Affichage" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                          (userRole === "Gestionnaire" &&
+                            userAccessLevel === "Affichage" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                          (userRole === "Etudiant(e)" &&
+                            userAccessLevel === "Affichage" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                          (userRole === "Médecin" &&
+                            userAccessLevel === "Affichage-Modification" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                          (userRole === "Infirmier(e)" &&
+                            userAccessLevel === "Affichage-Modification" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                          (userRole === "Archiviste" &&
+                            userAccessLevel === "Affichage-Modification" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                          (userRole === "Etudiant(e)" &&
+                            userAccessLevel === "Affichage-Modification" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                          (userRole === "Médecin" &&
+                            userAccessLevel ===
+                            "Affichage-Modification-Suppression" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                          (userRole === "Infirmier(e)" &&
+                            userAccessLevel ===
+                            "Affichage-Modification-Suppression" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                          (userRole === "Archiviste" &&
+                            userAccessLevel ===
+                            "Affichage-Modification-Suppression" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService))  ||
+                          (userRole === "Etudiant(e)" &&
+                            userAccessLevel ===
+                            "Affichage-Modification-Suppression" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                      (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
+                      (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
+                      (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) 
+                       
+                          ? "none"
+                          : "block",
+                    }}
+                  >
+                    <MdMessage   style={{ height: "30px", width: "30px" }} />
+                   
+                  </button>
                   {/*
                   <button
                     className="btn3"
@@ -1300,6 +1430,7 @@ const [formData, setFormData] = useState({
 
       {showPaiement && <PatientSolvable patients={patients || []} />}
       {showfichier && <Fichier patients={patients || []} />}
+      {showMessage && <Message />}
       {showArchive && <Archive />}
       {showAdditionalFields && (
         <>
