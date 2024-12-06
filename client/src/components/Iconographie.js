@@ -18,8 +18,8 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const Iconographie = () => {
-  const [tempComment, setTempComment] = useState('');
-  const [tempFile, setTempFile] = useState(null);
+  const [tempFiles, setTempFiles] = useState([]);
+  const [tempComments, setTempComments] = useState({});
   const [submittedFiles, setSubmittedFiles] = useState([]);
   const [editingFile, setEditingFile] = useState(null);
   const [editingComment, setEditingComment] = useState('');
@@ -44,35 +44,45 @@ const Iconographie = () => {
   }, []);
 
   const handleSuccess = (files) => {
-    const file = files[0];
-    setTempFile({
+    const newFiles = files.map(file => ({
       name: file.name,
       link: file.link,
       timestamp: new Date().toISOString()
-    });
+    }));
+    setTempFiles(newFiles);
+  };
+
+  const handleTempComment = (fileName, comment) => {
+    setTempComments(prev => ({
+      ...prev,
+      [fileName]: comment
+    }));
   };
 
   const handleSubmit = async () => {
-    if (!tempFile) {
-      alert('Veuillez sélectionner un fichier');
+    if (tempFiles.length === 0) {
+      alert('Veuillez sélectionner des fichiers');
       return;
     }
 
     try {
-      const fileWithComment = {
-        ...tempFile,
-        comment: tempComment
-      };
+      const newFiles = [];
+      for (const file of tempFiles) {
+        const fileWithComment = {
+          ...file,
+          comment: tempComments[file.name] || ''
+        };
 
-      const docRef = await addDoc(collection(db, 'iconographie'), fileWithComment);
-      const newFile = { id: docRef.id, ...fileWithComment };
-      
-      setSubmittedFiles(prev => [newFile, ...prev]);
-      setTempFile(null);
-      setTempComment('');
+        const docRef = await addDoc(collection(db, 'iconographie'), fileWithComment);
+        newFiles.push({ id: docRef.id, ...fileWithComment });
+      }
+
+      setSubmittedFiles(prev => [...newFiles, ...prev]);
+      setTempFiles([]);
+      setTempComments({});
     } catch (error) {
-      console.error("Error submitting file:", error);
-      alert('Erreur lors de la soumission du fichier');
+      console.error("Error submitting files:", error);
+      alert('Erreur lors de la soumission des fichiers');
     }
   };
 
@@ -117,7 +127,7 @@ const Iconographie = () => {
     <div className="container mt-4">
       <div className="card mb-4">
         <div className="card-body">
-          <h4>Ajouter un nouveau fichier</h4>
+          <h4>Ajouter des nouveaux fichiers</h4>
           
           <div className="mb-3">
             <DropboxChooser
@@ -127,25 +137,32 @@ const Iconographie = () => {
               multiselect={true}
             >
               <button className="btn btn-primary">
-                Choisir un fichier depuis Dropbox
+                Choisir des fichiers depuis Dropbox
               </button>
             </DropboxChooser>
           </div>
 
-          {tempFile && (
+          {tempFiles.length > 0 && (
             <div className="mb-3">
-              <p>Fichier sélectionné: {tempFile.name}</p>
-              <textarea
-                className="form-control"
-                placeholder="Ajouter un commentaire"
-                value={tempComment}
-                onChange={(e) => setTempComment(e.target.value)}
-              />
+              <h5>Fichiers sélectionnés:</h5>
+              {tempFiles.map((file, index) => (
+                <div key={index} className="card mb-2">
+                  <div className="card-body">
+                    <p className="mb-2">{file.name}</p>
+                    <textarea
+                      className="form-control mb-2"
+                      placeholder="Ajouter un commentaire"
+                      value={tempComments[file.name] || ''}
+                      onChange={(e) => handleTempComment(file.name, e.target.value)}
+                    />
+                  </div>
+                </div>
+              ))}
               <button 
                 className="btn btn-success mt-2"
                 onClick={handleSubmit}
               >
-                Soumettre
+                Soumettre tous les fichiers
               </button>
             </div>
           )}
