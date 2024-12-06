@@ -1958,7 +1958,9 @@ const [formData, setFormData] = useState({
               <option value="la tétralogie de Fallot">T4F</option>
               <option value="la transposition des gros vaisseaux">TGV</option>
             </select>
-            <input
+            <label>
+              Numéro VPA:
+              <input
               type="text"
               placeholder="vpa"
               value={formData.vpa}
@@ -1966,6 +1968,7 @@ const [formData, setFormData] = useState({
                 setFormData({ ...formData, vpa: e.target.value })
               }
             /> 
+                </label>    
             <select
               value={formData.validation}
               onChange={(e) =>
