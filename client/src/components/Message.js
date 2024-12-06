@@ -3,7 +3,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -19,6 +19,24 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// Message Countdown Component
+const MessageCountdown = ({ expiresAt }) => {
+  const [timeLeft, setTimeLeft] = useState(60000);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      const expiration = new Date(expiresAt);
+      const secondsLeft = Math.max(0, Math.floor((expiration - now) / 60000));
+      setTimeLeft(secondsLeft);
+    }, 60000);
+
+    return () => clearInterval(timer);
+  }, [expiresAt]);
+
+  return <small className="message-countdown">{timeLeft}s</small>;
+};
+
 const ChatComponent = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -29,6 +47,14 @@ const ChatComponent = () => {
     userName: localStorage.getItem('userName') || '',
     userService: localStorage.getItem('userService') || ''
   });
+
+  const deleteMessage = async (messageId) => {
+    try {
+      await deleteDoc(doc(db, 'messages', messageId));
+    } catch (error) {
+      console.error("Error deleting message:", error);
+    }
+  };
 
   useEffect(() => {
     const handlePopState = (e) => {
@@ -51,7 +77,12 @@ const ChatComponent = () => {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const messageList = [];
       snapshot.forEach((doc) => {
-        messageList.push({ id: doc.id, ...doc.data() });
+        const message = { id: doc.id, ...doc.data() };
+        if (message.expiresAt && new Date(message.expiresAt) < new Date()) {
+          deleteMessage(doc.id);
+        } else {
+          messageList.push(message);
+        }
       });
       setMessages(messageList);
       setIsLoading(false);
@@ -68,14 +99,20 @@ const ChatComponent = () => {
     e.preventDefault();
     if (newMessage.trim()) {
       try {
-        await addDoc(collection(db, 'messages'), {
+        const docRef = await addDoc(collection(db, 'messages'), {
           text: newMessage,
           timestamp: new Date().toISOString(),
           sender: 'user',
           createdAt: new Date(),
           userName: userInfo.userName,
-          userService: userInfo.userService
+          userService: userInfo.userService,
+          expiresAt: new Date(Date.now() + 60000)
         });
+        
+        setTimeout(() => {
+          deleteMessage(docRef.id);
+        }, 60000);
+        
         setNewMessage('');
       } catch (error) {
         console.error("Error sending message:", error);
@@ -92,21 +129,7 @@ const ChatComponent = () => {
             <Card.Header style={{ backgroundColor: "rgb(28, 211, 211)" }} className="text-white">
               <div className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">Chat en direct</h5>
-                <button
-                  className="btn btn-light btn-sm"
-                  onClick={() => navigate("/role")}
-                >
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    width="16" 
-                    height="16" 
-                    fill="currentColor" 
-                    className="bi bi-house-door-fill" 
-                    viewBox="0 0 16 16"
-                  >
-                    <path d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5"/>
-                  </svg>
-                </button>
+               
               </div>
             </Card.Header>
             
@@ -128,9 +151,12 @@ const ChatComponent = () => {
                         <small>{message.userName} - {message.userService}</small>
                       </div>
                       <div className="message-text">{message.text}</div>
-                      <small className="message-time">
-                        {new Date(message.timestamp).toLocaleTimeString()}
-                      </small>
+                      <div className="message-footer">
+                        <small className="message-time">
+                          {new Date(message.timestamp).toLocaleTimeString()}
+                        </small>
+                        <MessageCountdown expiresAt={message.expiresAt} />
+                      </div>
                     </div>
                   </div>
                 ))
@@ -141,7 +167,7 @@ const ChatComponent = () => {
             <Card.Footer className="bg-white">
               <Form onSubmit={handleSendMessage}>
                 <Row className="g-2">
-                  <Col xs={9} sm={10}>
+                  <Col xs={7} sm={10}>
                     <Form.Control
                       type="text"
                       value={newMessage}
@@ -154,10 +180,10 @@ const ChatComponent = () => {
                     <Button
                       type="submit"
                       variant="primary"
-                      className="rounded-pill w-100"
+                      className="rounded-pill w-80"
                       style={{ backgroundColor: "rgb(28, 211, 211)", border: "none" }}
                     >
-                      <i className="bi bi-send-fill">→</i>
+                      <i className="bi bi-send-fill">Envoyer</i>
                     </Button>
                   </Col>
                 </Row>
@@ -190,8 +216,6 @@ const ChatComponent = () => {
         .message-time {
           font-size: 0.75rem;
           opacity: 0.8;
-          display: block;
-          margin-top: 5px;
         }
         .message-user-info {
           font-size: 0.8rem;
@@ -203,6 +227,16 @@ const ChatComponent = () => {
         }
         .received .message-user-info {
           color: #666;
+        }
+        .message-footer {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 5px;
+        }
+        .message-countdown {
+          font-size: 0.75rem;
+          opacity: 0.8;
         }
         .btn-primary:hover {
           background-color: rgb(25, 190, 190) !important;
