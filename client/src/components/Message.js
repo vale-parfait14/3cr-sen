@@ -6,10 +6,11 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import DropboxChooser from 'react-dropbox-chooser';
 import { FaTrashArrowUp } from "react-icons/fa6";
+
 // Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
-  authDomain: "basecenterdb.firebaseapp.com",
+  authDomain: "basecenterdb.firebaseapp.com", 
   projectId: "basecenterdb",
   storageBucket: "basecenterdb.firebasestorage.app",
   messagingSenderId: "919766148380",
@@ -19,8 +20,6 @@ const firebaseConfig = {
 const APP_KEY = '23rlajqskcae2gk';
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-
-
 
 const CommentModal = ({ show, onClose, onSubmit, message, commentText, setCommentText }) => {
   return (
@@ -74,10 +73,9 @@ const ChatComponent = () => {
         fileURL: file.link,
         fileName: file.name,
         timestamp: new Date().toISOString(),
-        sender: 'user',
+        sender: userInfo.userName,
         userName: userInfo.userName,
         userService: userInfo.userService
-        
       });
     } catch (error) {
       console.error("Erreur d'envoi du fichier:", error);
@@ -87,7 +85,6 @@ const ChatComponent = () => {
 
   const handleAddComment = async () => {
     if (!commentText.trim()) return;
-    
     try {
       await addDoc(collection(db, 'messages'), {
         text: commentText,
@@ -95,10 +92,10 @@ const ChatComponent = () => {
         originalMessage: selectedMessage.text,
         originalFileName: selectedMessage.fileName || null,
         timestamp: new Date().toISOString(),
-        sender: 'user',
+        sender: userInfo.userName,
         userName: userInfo.userName,
         userService: userInfo.userService,
-        isComment: true,
+        isComment: true
       });
       setCommentText('');
       setShowCommentModal(false);
@@ -147,22 +144,15 @@ const ChatComponent = () => {
 
   useEffect(() => {
     const q = query(collection(db, 'messages'), orderBy('timestamp', 'asc'));
-    
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const messageList = [];
       snapshot.forEach((doc) => {
-        const message = { id: doc.id, ...doc.data() };
-        if (message.expiresAt && new Date(message.expiresAt) < new Date()) {
-          deleteMessage(doc.id);
-        } else {
-          messageList.push(message);
-        }
+        messageList.push({ id: doc.id, ...doc.data() });
       });
       setMessages(messageList);
       setIsLoading(false);
       scrollToBottom();
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -173,9 +163,9 @@ const ChatComponent = () => {
         await addDoc(collection(db, 'messages'), {
           text: newMessage,
           timestamp: new Date().toISOString(),
-          sender: 'user',
+          sender: userInfo.userName,
           userName: userInfo.userName,
-          userService: userInfo.userService,
+          userService: userInfo.userService
         });
         setNewMessage('');
       } catch (error) {
@@ -186,14 +176,13 @@ const ChatComponent = () => {
   };
 
   return (
-    <Container fluid className="py-4">
+    <Container fluid className="py-1">
       <Row className="justify-content-center">
-        <Col xs={12} sm={10} md={8} lg={6}>
+        <Col xs={12} sm={10} md={8} lg={12}>
           <Card className="chat-card shadow">
             <Card.Header style={{ backgroundColor: "rgb(28, 211, 211)" }} className="text-white">
               <h5 className="mb-0">Chat en direct</h5>
             </Card.Header>
-            
             <Card.Body className="chat-messages p-3">
               {isLoading ? (
                 <div className="text-center">
@@ -204,12 +193,11 @@ const ChatComponent = () => {
               ) : (
                 messages.map((message) => (
                   <div key={message.id}>
-                    <div className={`d-flex ${message.sender === 'user' ? 'justify-content-end' : 'justify-content-start'}`}>
-                      <div className={`message-bubble ${message.sender === 'user' ? 'sent' : 'received'} mb-2`}>
+                    <div className={`d-flex ${message.userName === userInfo.userName ? 'justify-content-end' : 'justify-content-start'}`}>
+                      <div className={`message-bubble ${message.userName === userInfo.userName ? 'sent' : 'received'} mb-2`}>
                         <div className="message-user-info">
                           <small>{message.userName} - {message.userService}</small>
                         </div>
-                        
                         {message.isComment ? (
                           <div className="comment-container">
                             <div className="commented-content">
@@ -231,7 +219,6 @@ const ChatComponent = () => {
                             )}
                           </>
                         )}
-                        
                         <div className="message-actions">
                           {!message.isComment && (
                             <Button
@@ -242,7 +229,7 @@ const ChatComponent = () => {
                                 setShowCommentModal(true);
                               }}
                             >
-                              💬 Commenter
+                              💬
                             </Button>
                           )}
                           {message.userName === userInfo.userName && (
@@ -256,7 +243,6 @@ const ChatComponent = () => {
                             </Button>
                           )}
                         </div>
-                        
                         <div className="message-footer">
                           <small className="message-time">
                             {new Date(message.timestamp).toLocaleTimeString()}
@@ -345,9 +331,14 @@ const ChatComponent = () => {
         .sent {
           background-color: rgb(28, 211, 211);
           color: white;
+          margin-left: auto;
+          border-bottom-right-radius: 5px;
         }
         .received {
           background-color: #e9ecef;
+          color: black;
+          margin-right: auto;
+          border-bottom-left-radius: 5px;
         }
         .message-time {
           font-size: 0.75rem;
@@ -358,10 +349,17 @@ const ChatComponent = () => {
           margin-bottom: 4px;
           opacity: 0.8;
         }
+        .sent .message-user-info {
+          text-align: right;
+        }
+        .received .message-user-info {
+          text-align: left;
+        }
         .message-actions {
           display: flex;
           gap: 8px;
           margin-top: 4px;
+          justify-content: flex-end;
         }
         .comment-container {
           background: rgba(255, 255, 255, 0.1);
@@ -380,6 +378,16 @@ const ChatComponent = () => {
         }
         .delete-button:hover {
           color: #bd2130;
+        }
+        .file-attachment {
+          margin-top: 8px;
+          padding: 4px 8px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+        }
+        .file-attachment a {
+          color: inherit;
+          text-decoration: none;
         }
       `}</style>
     </Container>
