@@ -32,6 +32,7 @@ const patientSchema = new mongoose.Schema({
   dateDesortie: Date,
   diagnostic: String,
   statut: String,
+  vpa: String,
   validation: String,
   services: String,
   consultationReason: String,
@@ -61,11 +62,6 @@ const patientSchema = new mongoose.Schema({
   dsr: String,
   suite: String,
   suivi: String,
-  dropboxFiles: [{
-    name: String,
-    link: String,
-    timestamp: Date
-  }],
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
