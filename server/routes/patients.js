@@ -33,8 +33,7 @@ router.post('/', authenticate, async (req, res) => {
       histoire, antecedents, traitement, ecrt, ecg, ett, tt,
       coronarographie, autresExamens, biologie, cro, rxthoraxPost,
       ecgPost, echoscopiePost, biologiePost, gazo, ecp, dsr, suite, suivi, manageur,
-      dropboxFiles
-    } = req.body;
+      
 
     if (!nom) {
       return res.status(400).send({ error: 'Name field is required' });
@@ -54,7 +53,6 @@ router.post('/', authenticate, async (req, res) => {
       ett, tt, coronarographie, autresExamens, biologie, cro,
       rxthoraxPost, ecgPost, echoscopiePost, biologiePost, gazo, ecp,
       dsr, suite, suivi,
-      dropboxFiles: dropboxFiles || [],
       userId: req.userId, 
       manageur,
     });
