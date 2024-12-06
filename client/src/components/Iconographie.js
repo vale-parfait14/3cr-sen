@@ -21,7 +21,7 @@ const Iconographie = () => {
   const [tempComment, setTempComment] = useState('');
   const [tempFile, setTempFile] = useState(null);
   const [submittedFiles, setSubmittedFiles] = useState([]);
-  const APP_KEY = "36k1onl9bo1w0bd";
+  const APP_KEY = "23rlajqskcae2gk";
 
   useEffect(() => {
     const fetchSubmittedFiles = async () => {
