@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
+import { Container, Row, Col, Form, Button, Card, Modal } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import DropboxChooser from 'react-dropbox-chooser';
-
+import { FaTrashArrowUp } from "react-icons/fa6";
 // Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
@@ -16,37 +16,49 @@ const firebaseConfig = {
   appId: "1:919766148380:web:30db9986fa2cd8bb7106d9"
 };
 
-// Dropbox configuration
 const APP_KEY = '23rlajqskcae2gk';
-
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const MessageCountdown = ({ expiresAt }) => {
-  const [timeLeft, setTimeLeft] = useState(60000);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date();
-      const expiration = new Date(expiresAt);
-      const secondsLeft = Math.max(0, Math.floor((expiration - now) / 60000));
-      setTimeLeft(secondsLeft);
-    }, 60000);
 
-    return () => clearInterval(timer);
-  }, [expiresAt]);
-
-  return <small className="message-countdown">{timeLeft}s</small>;
+const CommentModal = ({ show, onClose, onSubmit, message, commentText, setCommentText }) => {
+  return (
+    <Modal show={show} onHide={onClose} centered>
+      <Modal.Header closeButton>
+        <Modal.Title>Ajouter un commentaire</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <div className="original-content mb-3 p-3 bg-light rounded">
+          {message?.fileName ? (
+            <p className="mb-0"><strong>Fichier:</strong> {message.fileName}</p>
+          ) : (
+            <p className="mb-0"><strong>Message:</strong> {message?.text}</p>
+          )}
+        </div>
+        <Form.Control
+          as="textarea"
+          rows={3}
+          value={commentText}
+          onChange={(e) => setCommentText(e.target.value)}
+          placeholder="Votre commentaire..."
+        />
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={onClose}>Annuler</Button>
+        <Button variant="primary" onClick={onSubmit}>Commenter</Button>
+      </Modal.Footer>
+    </Modal>
+  );
 };
 
 const ChatComponent = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [dropboxFile, setDropboxFile] = useState(null);
+  const [selectedMessage, setSelectedMessage] = useState(null);
   const [commentText, setCommentText] = useState('');
-  const [showCommentInput, setShowCommentInput] = useState(null);
+  const [showCommentModal, setShowCommentModal] = useState(false);
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState({
@@ -63,33 +75,34 @@ const ChatComponent = () => {
         fileName: file.name,
         timestamp: new Date().toISOString(),
         sender: 'user',
-        createdAt: new Date(),
         userName: userInfo.userName,
-        userService: userInfo.userService,
-        expiresAt: new Date(Date.now() + 60000),
-        comments: []
+        userService: userInfo.userService
+        
       });
-      setDropboxFile(null);
     } catch (error) {
       console.error("Erreur d'envoi du fichier:", error);
       alert("Erreur lors du partage du fichier");
     }
   };
 
-  const handleAddComment = async (messageId) => {
+  const handleAddComment = async () => {
+    if (!commentText.trim()) return;
+    
     try {
       await addDoc(collection(db, 'messages'), {
         text: commentText,
-        parentMessageId: messageId,
+        parentMessageId: selectedMessage.id,
+        originalMessage: selectedMessage.text,
+        originalFileName: selectedMessage.fileName || null,
         timestamp: new Date().toISOString(),
         sender: 'user',
         userName: userInfo.userName,
         userService: userInfo.userService,
         isComment: true,
-        expiresAt: new Date(Date.now() + 60000)
       });
       setCommentText('');
-      setShowCommentInput(null);
+      setShowCommentModal(false);
+      setSelectedMessage(null);
     } catch (error) {
       console.error("Erreur d'ajout de commentaire:", error);
       alert("Erreur lors de l'ajout du commentaire");
@@ -157,21 +170,13 @@ const ChatComponent = () => {
     e.preventDefault();
     if (newMessage.trim()) {
       try {
-        const docRef = await addDoc(collection(db, 'messages'), {
+        await addDoc(collection(db, 'messages'), {
           text: newMessage,
           timestamp: new Date().toISOString(),
           sender: 'user',
-          createdAt: new Date(),
           userName: userInfo.userName,
           userService: userInfo.userService,
-          expiresAt: new Date(Date.now() + 60000),
-          comments: []
         });
-        
-        setTimeout(() => {
-          deleteMessage(docRef.id);
-        }, 60000);
-        
         setNewMessage('');
       } catch (error) {
         console.error("Erreur d'envoi:", error);
@@ -186,9 +191,7 @@ const ChatComponent = () => {
         <Col xs={12} sm={10} md={8} lg={6}>
           <Card className="chat-card shadow">
             <Card.Header style={{ backgroundColor: "rgb(28, 211, 211)" }} className="text-white">
-              <div className="d-flex justify-content-between align-items-center">
-                <h5 className="mb-0">Chat en direct</h5>
-              </div>
+              <h5 className="mb-0">Chat en direct</h5>
             </Card.Header>
             
             <Card.Body className="chat-messages p-3">
@@ -206,64 +209,61 @@ const ChatComponent = () => {
                         <div className="message-user-info">
                           <small>{message.userName} - {message.userService}</small>
                         </div>
-                        <div className="message-text">{message.text}</div>
-                        {message.fileURL && (
-                          <div className="file-attachment">
-                            <a href={message.fileURL} target="_blank" rel="noopener noreferrer">
-                              📎 {message.fileName}
-                            </a>
+                        
+                        {message.isComment ? (
+                          <div className="comment-container">
+                            <div className="commented-content">
+                              <small className="text-muted">
+                                Re: {message.originalFileName || message.originalMessage}
+                              </small>
+                            </div>
+                            <div className="comment-text">{message.text}</div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="message-text">{message.text}</div>
+                            {message.fileURL && (
+                              <div className="file-attachment">
+                                <a href={message.fileURL} target="_blank" rel="noopener noreferrer">
+                                  📎 {message.fileName}
+                                </a>
+                              </div>
+                            )}
+                          </>
+                        )}
+                        
+                        <div className="message-actions">
+                          {!message.isComment && (
                             <Button
                               variant="link"
                               size="sm"
-                              onClick={() => setShowCommentInput(message.id)}
+                              onClick={() => {
+                                setSelectedMessage(message);
+                                setShowCommentModal(true);
+                              }}
                             >
                               💬 Commenter
                             </Button>
-                          </div>
-                        )}
-                        {message.userName === userInfo.userName && (
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="delete-button"
-                            onClick={() => handleDeleteMessage(message)}
-                          >
-                            🗑️ Supprimer
-                          </Button>
-                        )}
+                          )}
+                          {message.userName === userInfo.userName && (
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="delete-button"
+                              onClick={() => handleDeleteMessage(message)}
+                            >
+                              <FaTrashArrowUp />
+                            </Button>
+                          )}
+                        </div>
+                        
                         <div className="message-footer">
                           <small className="message-time">
                             {new Date(message.timestamp).toLocaleTimeString()}
                           </small>
-                          <MessageCountdown expiresAt={message.expiresAt} />
                         </div>
                       </div>
                     </div>
-                    
-                    {showCommentInput === message.id && (
-                      <div className="comment-input-container">
-                        <Form onSubmit={(e) => {
-                          e.preventDefault();
-                          handleAddComment(message.id);
-                        }}>
-                          <Form.Control
-                            type="text"
-                            value={commentText}
-                            onChange={(e) => setCommentText(e.target.value)}
-                            placeholder="Ajouter un commentaire..."
-                            className="rounded-pill"
-                          />
-                          <Button 
-                            type="submit" 
-                            variant="primary" 
-                            size="sm"
-                            className="mt-2"
-                          >
-                            Ajouter
-                          </Button>
-                        </Form>
-                      </div>
-                    )}
                   </div>
                 ))
               )}
@@ -294,7 +294,7 @@ const ChatComponent = () => {
                         className="rounded-pill w-100"
                         style={{ backgroundColor: "#0061fe", border: "none" }}
                       >
-                        <i className="bi bi-dropbox">📁</i>
+                        📁
                       </Button>
                     </DropboxChooser>
                   </Col>
@@ -305,7 +305,7 @@ const ChatComponent = () => {
                       className="rounded-pill w-80"
                       style={{ backgroundColor: "rgb(28, 211, 211)", border: "none" }}
                     >
-                      <i className="bi bi-send-fill">Envoyer</i>
+                      ✉️
                     </Button>
                   </Col>
                 </Row>
@@ -314,6 +314,19 @@ const ChatComponent = () => {
           </Card>
         </Col>
       </Row>
+
+      <CommentModal
+        show={showCommentModal}
+        onClose={() => {
+          setShowCommentModal(false);
+          setSelectedMessage(null);
+          setCommentText('');
+        }}
+        onSubmit={handleAddComment}
+        message={selectedMessage}
+        commentText={commentText}
+        setCommentText={setCommentText}
+      />
 
       <style jsx>{`
         .chat-messages {
@@ -345,59 +358,25 @@ const ChatComponent = () => {
           margin-bottom: 4px;
           opacity: 0.8;
         }
-        .sent .message-user-info {
-          color: #fff;
-        }
-        .received .message-user-info {
-          color: #666;
-        }
-        .message-footer {
+        .message-actions {
           display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: 5px;
+          gap: 8px;
+          margin-top: 4px;
         }
-        .message-countdown {
-          font-size: 0.75rem;
-          opacity: 0.8;
-        }
-        .btn-primary:hover {
-          background-color: rgb(25, 190, 190) !important;
-          transform: scale(1.05);
-          transition: all 0.2s;
-        }
-        .dropbox-button {
-          background-color: #0061fe;
-          color: white;
-          border: none;
-          padding: 8px 16px;
-          border-radius: 20px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .dropbox-button:hover {
-          background-color: #0052d9;
-          transform: scale(1.05);
-        }
-        .file-attachment {
-          margin-top: 8px;
-          padding: 4px 8px;
+        .comment-container {
           background: rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
-        }
-        .comment-input-container {
-          margin-top: 8px;
           padding: 8px;
-          background: #f8f9fa;
-          border-radius: 8px;
+          border-radius: 4px;
+          margin-top: 4px;
+        }
+        .commented-content {
+          border-left: 2px solid rgba(255, 255, 255, 0.5);
+          padding-left: 8px;
+          margin-bottom: 4px;
         }
         .delete-button {
           color: #dc3545;
           padding: 0;
-          margin-left: 8px;
-          position: absolute;
-          top: 5px;
-          right: 5px;
         }
         .delete-button:hover {
           color: #bd2130;
