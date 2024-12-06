@@ -57,7 +57,7 @@ const ChatComponent = () => {
     try {
       const file = files[0];
       await addDoc(collection(db, 'messages'), {
-        text: `Dropbox file shared: ${file.name}`,
+        text: `Fichier partager: ${file.name}`,
         fileURL: file.link,
         fileName: file.name,
         timestamp: new Date().toISOString(),
