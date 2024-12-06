@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DropboxChooser from 'react-dropbox-chooser';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -21,6 +21,8 @@ const Iconographie = () => {
   const [tempComment, setTempComment] = useState('');
   const [tempFile, setTempFile] = useState(null);
   const [submittedFiles, setSubmittedFiles] = useState([]);
+  const [editingFile, setEditingFile] = useState(null);
+  const [editingComment, setEditingComment] = useState('');
   const APP_KEY = "23rlajqskcae2gk";
 
   useEffect(() => {
@@ -74,9 +76,45 @@ const Iconographie = () => {
     }
   };
 
+  const handleDelete = async (fileId) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) {
+      try {
+        await deleteDoc(doc(db, 'iconographie', fileId));
+        setSubmittedFiles(prev => prev.filter(file => file.id !== fileId));
+      } catch (error) {
+        console.error("Error deleting file:", error);
+        alert('Erreur lors de la suppression');
+      }
+    }
+  };
+
+  const handleEdit = (file) => {
+    setEditingFile(file);
+    setEditingComment(file.comment || '');
+  };
+
+  const handleUpdate = async () => {
+    try {
+      await updateDoc(doc(db, 'iconographie', editingFile.id), {
+        comment: editingComment
+      });
+      
+      setSubmittedFiles(prev => prev.map(file => 
+        file.id === editingFile.id 
+          ? { ...file, comment: editingComment }
+          : file
+      ));
+      
+      setEditingFile(null);
+      setEditingComment('');
+    } catch (error) {
+      console.error("Error updating file:", error);
+      alert('Erreur lors de la mise à jour');
+    }
+  };
+
   return (
     <div className="container mt-4">
-      {/* File Selection Section */}
       <div className="card mb-4">
         <div className="card-body">
           <h4>Ajouter un nouveau fichier</h4>
@@ -114,7 +152,6 @@ const Iconographie = () => {
         </div>
       </div>
 
-      {/* Submitted Files Section */}
       <div className="card">
         <div className="card-body">
           <h4>Fichiers soumis</h4>
@@ -130,18 +167,58 @@ const Iconographie = () => {
                       Ajouté le: {new Date(file.timestamp).toLocaleString()}
                     </small>
                   </p>
-                  <a
-                    href={file.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-sm btn-secondary"
-                  >
-                    Voir le fichier
-                  </a>
-                  {file.comment && (
+                  
+                  <div className="btn-group mb-2">
+                    <a
+                      href={file.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-sm btn-secondary"
+                    >
+                      Voir le fichier
+                    </a>
+                    <button 
+                      className="btn btn-sm btn-primary"
+                      onClick={() => handleEdit(file)}
+                    >
+                      Modifier
+                    </button>
+                    <button 
+                      className="btn btn-sm btn-danger"
+                      onClick={() => handleDelete(file.id)}
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+
+                  {editingFile?.id === file.id ? (
                     <div className="mt-2">
-                      <strong>Commentaire:</strong> {file.comment}
+                      <textarea
+                        className="form-control mb-2"
+                        value={editingComment}
+                        onChange={(e) => setEditingComment(e.target.value)}
+                      />
+                      <div className="btn-group">
+                        <button 
+                          className="btn btn-success btn-sm"
+                          onClick={handleUpdate}
+                        >
+                          Sauvegarder
+                        </button>
+                        <button 
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setEditingFile(null)}
+                        >
+                          Annuler
+                        </button>
+                      </div>
                     </div>
+                  ) : (
+                    file.comment && (
+                      <div className="mt-2">
+                        <strong>Commentaire:</strong> {file.comment}
+                      </div>
+                    )
                   )}
                 </div>
               </div>
@@ -149,6 +226,15 @@ const Iconographie = () => {
           )}
         </div>
       </div>
+
+      <style jsx>{`
+        .btn-group {
+          gap: 5px;
+        }
+        .btn-group .btn {
+          margin-right: 5px;
+        }
+      `}</style>
     </div>
   );
 };
