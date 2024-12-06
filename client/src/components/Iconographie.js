@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DropboxChooser from 'react-dropbox-chooser';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, deleteDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 
 // Firebase configuration
@@ -25,24 +25,26 @@ const Iconographie = () => {
   const [submittedFiles, setSubmittedFiles] = useState([]);
   const [editingFile, setEditingFile] = useState(null);
   const [editingComment, setEditingComment] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const APP_KEY = "23rlajqskcae2gk";
 
   useEffect(() => {
-    const fetchSubmittedFiles = async () => {
-      try {
-        const q = query(collection(db, 'iconographie'), orderBy('timestamp', 'desc'));
-        const querySnapshot = await getDocs(q);
-        const files = [];
-        querySnapshot.forEach((doc) => {
-          files.push({ id: doc.id, ...doc.data() });
-        });
-        setSubmittedFiles(files);
-      } catch (error) {
-        console.error("Error fetching files:", error);
-      }
-    };
+    const q = query(collection(db, 'iconographie'), orderBy('timestamp', 'desc'));
+    
+    setIsLoading(true);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const files = [];
+      snapshot.forEach((doc) => {
+        files.push({ id: doc.id, ...doc.data() });
+      });
+      setSubmittedFiles(files);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Error listening to files:", error);
+      setIsLoading(false);
+    });
 
-    fetchSubmittedFiles();
+    return () => unsubscribe();
   }, []);
 
   const handleSuccess = (files) => {
@@ -68,18 +70,13 @@ const Iconographie = () => {
     }
 
     try {
-      const newFiles = [];
       for (const file of tempFiles) {
         const fileWithComment = {
           ...file,
           comment: tempComments[file.name] || ''
         };
-
-        const docRef = await addDoc(collection(db, 'iconographie'), fileWithComment);
-        newFiles.push({ id: docRef.id, ...fileWithComment });
+        await addDoc(collection(db, 'iconographie'), fileWithComment);
       }
-
-      setSubmittedFiles(prev => [...newFiles, ...prev]);
       setTempFiles([]);
       setTempComments({});
     } catch (error) {
@@ -92,7 +89,6 @@ const Iconographie = () => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) {
       try {
         await deleteDoc(doc(db, 'iconographie', fileId));
-        setSubmittedFiles(prev => prev.filter(file => file.id !== fileId));
       } catch (error) {
         console.error("Error deleting file:", error);
         alert('Erreur lors de la suppression');
@@ -110,13 +106,6 @@ const Iconographie = () => {
       await updateDoc(doc(db, 'iconographie', editingFile.id), {
         comment: editingComment
       });
-      
-      setSubmittedFiles(prev => prev.map(file => 
-        file.id === editingFile.id 
-          ? { ...file, comment: editingComment }
-          : file
-      ));
-      
       setEditingFile(null);
       setEditingComment('');
     } catch (error) {
@@ -204,7 +193,13 @@ const Iconographie = () => {
       <div className="card">
         <div className="card-body">
           <h4>Fichiers soumis</h4>
-          {submittedFiles.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center">
+              <div className="spinner-border" role="status">
+                <span className="visually-hidden">Chargement...</span>
+              </div>
+            </div>
+          ) : submittedFiles.length === 0 ? (
             <p>Aucun fichier soumis</p>
           ) : (
             submittedFiles.map((file) => (
