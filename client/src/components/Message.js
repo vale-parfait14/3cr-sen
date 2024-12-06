@@ -25,9 +25,12 @@ const ChatComponent = () => {
   const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
+  const [userInfo, setUserInfo] = useState({
+    userName: localStorage.getItem('userName') || '',
+    userService: localStorage.getItem('userService') || ''
+  });
 
   useEffect(() => {
-    // Prevent back navigation
     const handlePopState = (e) => {
       window.history.pushState(null, "", window.location.href);
     };
@@ -69,7 +72,9 @@ const ChatComponent = () => {
           text: newMessage,
           timestamp: new Date().toISOString(),
           sender: 'user',
-          createdAt: new Date()
+          createdAt: new Date(),
+          userName: userInfo.userName,
+          userService: userInfo.userService
         });
         setNewMessage('');
       } catch (error) {
@@ -119,6 +124,9 @@ const ChatComponent = () => {
                     className={`d-flex ${message.sender === 'user' ? 'justify-content-end' : 'justify-content-start'}`}
                   >
                     <div className={`message-bubble ${message.sender === 'user' ? 'sent' : 'received'} mb-2`}>
+                      <div className="message-user-info">
+                        <small>{message.userName} - {message.userService}</small>
+                      </div>
                       <div className="message-text">{message.text}</div>
                       <small className="message-time">
                         {new Date(message.timestamp).toLocaleTimeString()}
@@ -184,6 +192,17 @@ const ChatComponent = () => {
           opacity: 0.8;
           display: block;
           margin-top: 5px;
+        }
+        .message-user-info {
+          font-size: 0.8rem;
+          margin-bottom: 4px;
+          opacity: 0.8;
+        }
+        .sent .message-user-info {
+          color: #fff;
+        }
+        .received .message-user-info {
+          color: #666;
         }
         .btn-primary:hover {
           background-color: rgb(25, 190, 190) !important;
