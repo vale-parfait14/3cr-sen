@@ -18,13 +18,13 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const Iconographie = () => {
-  const [selectedFiles, setSelectedFiles] = useState([]);
-  const [comments, setComments] = useState({});
+  const [tempComment, setTempComment] = useState('');
+  const [tempFile, setTempFile] = useState(null);
+  const [submittedFiles, setSubmittedFiles] = useState([]);
   const APP_KEY = "36k1onl9bo1w0bd";
 
-  // Fetch existing files from Firebase on component mount
   useEffect(() => {
-    const fetchFiles = async () => {
+    const fetchSubmittedFiles = async () => {
       try {
         const q = query(collection(db, 'iconographie'), orderBy('timestamp', 'desc'));
         const querySnapshot = await getDocs(q);
@@ -32,105 +32,122 @@ const Iconographie = () => {
         querySnapshot.forEach((doc) => {
           files.push({ id: doc.id, ...doc.data() });
         });
-        setSelectedFiles(files);
+        setSubmittedFiles(files);
       } catch (error) {
         console.error("Error fetching files:", error);
       }
     };
-    fetchFiles();
+
+    fetchSubmittedFiles();
   }, []);
 
-  const handleSuccess = async (files) => {
-    try {
-      const filesWithTimestamp = files.map(file => ({
-        name: file.name,
-        link: file.link,
-        timestamp: new Date().toISOString(),
-        comment: ''
-      }));
-
-      // Add files to Firebase
-      for (const file of filesWithTimestamp) {
-        const docRef = await addDoc(collection(db, 'iconographie'), file);
-        file.id = docRef.id;
-      }
-
-      setSelectedFiles(prevFiles => [...filesWithTimestamp, ...prevFiles]);
-    } catch (error) {
-      console.error("Error adding files to Firebase:", error);
-    }
+  const handleSuccess = (files) => {
+    const file = files[0];
+    setTempFile({
+      name: file.name,
+      link: file.link,
+      timestamp: new Date().toISOString()
+    });
   };
 
-  const handleComment = async (fileId, comment) => {
-    try {
-      // Update comment in Firebase
-      await addDoc(collection(db, 'comments'), {
-        fileId,
-        comment,
-        timestamp: new Date().toISOString()
-      });
+  const handleSubmit = async () => {
+    if (!tempFile) {
+      alert('Veuillez sélectionner un fichier');
+      return;
+    }
 
-      setComments({
-        ...comments,
-        [fileId]: comment
-      });
+    try {
+      const fileWithComment = {
+        ...tempFile,
+        comment: tempComment
+      };
+
+      const docRef = await addDoc(collection(db, 'iconographie'), fileWithComment);
+      const newFile = { id: docRef.id, ...fileWithComment };
+      
+      setSubmittedFiles(prev => [newFile, ...prev]);
+      setTempFile(null);
+      setTempComment('');
     } catch (error) {
-      console.error("Error saving comment:", error);
+      console.error("Error submitting file:", error);
+      alert('Erreur lors de la soumission du fichier');
     }
   };
 
   return (
     <div className="container mt-4">
-      <div className="mb-4">
-        <DropboxChooser
-          appKey={APP_KEY}
-          success={handleSuccess}
-          cancel={() => console.log('Cancelled')}
-          multiselect={true}
-        >
-          <button className="btn btn-primary">
-            Choisir des fichiers depuis Dropbox
-          </button>
-        </DropboxChooser>
+      {/* File Selection Section */}
+      <div className="card mb-4">
+        <div className="card-body">
+          <h4>Ajouter un nouveau fichier</h4>
+          
+          <div className="mb-3">
+            <DropboxChooser
+              appKey={APP_KEY}
+              success={handleSuccess}
+              cancel={() => console.log('Cancelled')}
+              multiselect={false}
+            >
+              <button className="btn btn-primary">
+                Choisir un fichier depuis Dropbox
+              </button>
+            </DropboxChooser>
+          </div>
+
+          {tempFile && (
+            <div className="mb-3">
+              <p>Fichier sélectionné: {tempFile.name}</p>
+              <textarea
+                className="form-control"
+                placeholder="Ajouter un commentaire"
+                value={tempComment}
+                onChange={(e) => setTempComment(e.target.value)}
+              />
+              <button 
+                className="btn btn-success mt-2"
+                onClick={handleSubmit}
+              >
+                Soumettre
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="selected-files mt-4">
-        <h3>Fichiers sélectionnés:</h3>
-        {selectedFiles.map((file) => (
-          <div key={file.id} className="card mb-3">
-            <div className="card-body">
-              <h5 className="card-title">{file.name}</h5>
-              <p className="card-text">
-                <small className="text-muted">
-                  Ajouté le: {new Date(file.timestamp).toLocaleString()}
-                </small>
-              </p>
-              <a 
-                href={file.link} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="btn btn-sm btn-secondary"
-              >
-                Voir le fichier
-              </a>
-              
-              <div className="mt-2">
-                <textarea
-                  className="form-control"
-                  placeholder="Ajouter un commentaire"
-                  value={comments[file.id] || file.comment || ''}
-                  onChange={(e) => handleComment(file.id, e.target.value)}
-                />
-              </div>
-              
-              {(comments[file.id] || file.comment) && (
-                <div className="mt-2">
-                  <strong>Commentaire:</strong> {comments[file.id] || file.comment}
+      {/* Submitted Files Section */}
+      <div className="card">
+        <div className="card-body">
+          <h4>Fichiers soumis</h4>
+          {submittedFiles.length === 0 ? (
+            <p>Aucun fichier soumis</p>
+          ) : (
+            submittedFiles.map((file) => (
+              <div key={file.id} className="card mb-3">
+                <div className="card-body">
+                  <h5 className="card-title">{file.name}</h5>
+                  <p className="card-text">
+                    <small className="text-muted">
+                      Ajouté le: {new Date(file.timestamp).toLocaleString()}
+                    </small>
+                  </p>
+                  <a
+                    href={file.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-sm btn-secondary"
+                  >
+                    Voir le fichier
+                  </a>
+                  {file.comment && (
+                    <div className="mt-2">
+                      <strong>Commentaire:</strong> {file.comment}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-        ))}
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
