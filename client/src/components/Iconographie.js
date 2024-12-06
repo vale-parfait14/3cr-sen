@@ -20,7 +20,7 @@ const db = getFirestore(app);
 const Iconographie = () => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [comments, setComments] = useState({});
-  const APP_KEY = "36k1onl9bo1w0bd";
+  const APP_KEY = "23rlajqskcae2gk";
 
   // Fetch existing files from Firebase on component mount
   useEffect(() => {
