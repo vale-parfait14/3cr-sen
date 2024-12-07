@@ -6,11 +6,13 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import DropboxChooser from 'react-dropbox-chooser';
 import { FaTrashArrowUp } from "react-icons/fa6";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
-  authDomain: "basecenterdb.firebaseapp.com", 
+  authDomain: "basecenterdb.firebaseapp.com",
   projectId: "basecenterdb",
   storageBucket: "basecenterdb.firebasestorage.app",
   messagingSenderId: "919766148380",
@@ -58,6 +60,7 @@ const ChatComponent = () => {
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [commentText, setCommentText] = useState('');
   const [showCommentModal, setShowCommentModal] = useState(false);
+  const [lastMessageId, setLastMessageId] = useState(null);
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState({
@@ -149,12 +152,27 @@ const ChatComponent = () => {
       snapshot.forEach((doc) => {
         messageList.push({ id: doc.id, ...doc.data() });
       });
+
+      // Check for new messages and show notification
+      const lastMessage = messageList[messageList.length - 1];
+      if (lastMessage && lastMessage.id !== lastMessageId && lastMessage.userName !== userInfo.userName) {
+        toast.info(`Nouveau message de ${lastMessage.userName}: ${lastMessage.text.substring(0, 50)}...`, {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        setLastMessageId(lastMessage.id);
+      }
+
       setMessages(messageList);
       setIsLoading(false);
       scrollToBottom();
     });
     return () => unsubscribe();
-  }, []);
+  }, [lastMessageId, userInfo.userName]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -177,6 +195,7 @@ const ChatComponent = () => {
 
   return (
     <Container fluid className="py-1">
+      <ToastContainer />
       <Row className="justify-content-center">
         <Col xs={12} sm={10} md={8} lg={12}>
           <Card className="chat-card shadow">
@@ -258,8 +277,8 @@ const ChatComponent = () => {
 
             <Card.Footer className="bg-white">
               <Form onSubmit={handleSendMessage}>
-                <Row className="g-2">
-                  <Col xs={7} sm={8}>
+                <Row className="g-1">
+                  <Col xs={7} sm={7}>
                     <Form.Control
                       type="text"
                       value={newMessage}
@@ -273,11 +292,11 @@ const ChatComponent = () => {
                       appKey={APP_KEY}
                       success={handleDropboxSuccess}
                       cancel={() => console.log('Annulé')}
-                      multiselect={false}
+                      multiselect={true}
                     >
                       <Button
                         variant="secondary"
-                        className="rounded-pill w-100"
+                        className="rounded-pill w-90"
                         style={{ backgroundColor: "#0061fe", border: "none" }}
                       >
                         choisir un fichier
