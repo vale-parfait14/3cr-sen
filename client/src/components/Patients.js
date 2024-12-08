@@ -1156,6 +1156,15 @@ const [formData, setFormData] = useState({
                               "Cardiologie",
                               "Réanimation",
                             ].includes(userService)) ||
+                         (userRole === "Secrétaire" &&
+                            userAccessLevel ===
+                            "Affichage" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
                           (userRole === "Infirmier(e)" &&
                             userAccessLevel === "Affichage" &&
                             [
@@ -1188,7 +1197,17 @@ const [formData, setFormData] = useState({
                               "Cardiologie",
                               "Réanimation",
                             ].includes(userService)) ||
-                          
+
+
+                         (userRole === "Secrétaire" &&
+                            userAccessLevel ===
+                            "Affichage-Modification" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
                           (userRole === "Infirmier(e)" &&
                             userAccessLevel === "Affichage-Modification" &&
                             [
@@ -1205,6 +1224,15 @@ const [formData, setFormData] = useState({
                               "Cardiologie",
                               "Réanimation",
                             ].includes(userService)) ||
+                         (userRole === "Gestionnaire" &&
+                            userAccessLevel ===
+                            "Affichage-Modification" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
                           (userRole === "Etudiant(e)" &&
                             userAccessLevel === "Affichage-Modification" &&
                             [
@@ -1213,8 +1241,37 @@ const [formData, setFormData] = useState({
                               "Cardiologie",
                               "Réanimation",
                             ].includes(userService)) ||
+
+                        
+                        (userRole === "Secrétaire" &&
+                            userAccessLevel ===
+                            "Affichage-Modification-Suppression" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
                           
                           (userRole === "Infirmier(e)" &&
+                            userAccessLevel ===
+                            "Affichage-Modification-Suppression" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                         (userRole === "Secrétaire" &&
+                            userAccessLevel ===
+                            "Affichage-Modification-Suppression" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                         (userRole === "Gestionnaire" &&
                             userAccessLevel ===
                             "Affichage-Modification-Suppression" &&
                             [
@@ -1241,6 +1298,11 @@ const [formData, setFormData] = useState({
                               "Cardiologie",
                               "Réanimation",
                             ].includes(userService)) ||
+
+                      (userRole === "Secrétaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
+
+                       (userRole === "Gestionnaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
+
                       (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
                       (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
                       (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) 
