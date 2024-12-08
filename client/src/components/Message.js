@@ -340,7 +340,7 @@ const ChatComponent = () => {
                       className="rounded-pill w-80"
                       style={{ backgroundColor: "rgb(28, 211, 211)", border: "none" }}
                     >
-                      envoyer
+                      Envoyer
                     </Button>
                   </Col>
                 </Row>
