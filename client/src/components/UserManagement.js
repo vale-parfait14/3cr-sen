@@ -96,10 +96,10 @@ const UserManagement = () => {
     try {
       await axios.delete(`https://threecr-sen.onrender.com/users/${id}`); // API DELETE
       setUsers(users.filter(user => user._id !== id));
-      toast.info('Utilisateur supprimé avec succès');
+      toast.info(`${userName} supprimé avec succès`);
       fetchUsers(); // Recharger la liste des utilisateurs après suppression
     } catch (error) {
-      toast.error('Erreur lors de la suppression de l\'utilisateur');
+      toast.error(`Erreur lors de la suppression de ${useName}`);
     }
   };
 
