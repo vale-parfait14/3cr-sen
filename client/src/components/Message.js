@@ -176,38 +176,6 @@ const ChatComponent = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-useEffect(() => {
-  const currentUser = localStorage.getItem("userName");
-  const q = query(collection(db, 'messages'), orderBy('timestamp', 'desc'));
-  
-  const unsubscribe = onSnapshot(q, (snapshot) => {
-    const count = snapshot.docs.filter(doc => {
-      const message = doc.data();
-      return message.userName !== currentUser && !message.read;
-    }).length;
-    
-    setUnreadCount(count);
-  });
-
-  return () => unsubscribe();
-}, []);
-
-  const markMessagesAsRead = async () => {
-  const currentUser = localStorage.getItem("userName");
-  const q = query(collection(db, 'messages'), where('read', '==', false));
-  
-  const querySnapshot = await getDocs(q);
-  querySnapshot.forEach(async (doc) => {
-    const message = doc.data();
-    if (message.userName !== currentUser) {
-      await updateDoc(doc.ref, {
-        read: true
-      });
-    }
-  });
-};
-
-  
   useEffect(() => {
     const q = query(collection(db, 'messages'), orderBy('timestamp', 'asc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -242,7 +210,6 @@ useEffect(() => {
       try {
         await addDoc(collection(db, 'messages'), {
           text: newMessage,
-          read: false,
           timestamp: new Date().toISOString(),
           sender: userInfo.userName,
           userName: userInfo.userName,
