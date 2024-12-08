@@ -139,6 +139,7 @@ const [formData, setFormData] = useState({
   const [prev, setPrev] = useState(null);
   const [fileData, setFileData] = useState(null);
   const [showMessage,setShowMessage] = useState(false);
+const [unreadCount, setUnreadCount] = useState(0);
 
   
   {
@@ -166,6 +167,28 @@ const [formData, setFormData] = useState({
   const [showUserServices, setShowUserServices] = useState(false);
   // État pour le service choisi
   ///dfghjk
+useEffect(() => {
+  const currentUser = localStorage.getItem("userName");
+  
+  // Create query for messages
+  const messagesQuery = query(
+    collection(db, 'messages'),
+    orderBy('timestamp', 'desc')
+  );
+
+  // Set up real-time listener
+  const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+    const count = snapshot.docs.filter(doc => {
+      const message = doc.data();
+      return message.userName !== currentUser && !message.read;
+    }).length;
+    
+    setUnreadCount(count);
+  });
+
+  // Cleanup listener on unmount
+  return () => unsubscribe();
+}, []);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "filesOb"), (snapshot) => {
@@ -1143,7 +1166,12 @@ const [formData, setFormData] = useState({
                   </button>
 <button
                     className="btn3"
-                    onClick={() => setShowMessage(!showMessage)}
+                    onClick={() => {
+  setShowMessage(!showMessage);
+  if (!showMessage) {
+    markMessagesAsRead();
+  }
+}}
                     title="Message"
                     style={{
                       display:
@@ -1310,8 +1338,28 @@ const [formData, setFormData] = useState({
                           ? "none"
                           : "block",
                     }}
+position: 'relative' // Add this
                   >
-                    <MdMessage   style={{ height: "30px", width: "30px" }} />
+                    <MdMessage style={{ height: "30px", width: "30px" }} />
+  {unreadCount > 0 && (
+    <span
+      style={{
+        position: 'absolute',
+        top: '-8px',
+        right: '-8px',
+        background: 'red',
+        color: 'white',
+        borderRadius: '50%',
+        padding: '2px 6px',
+        fontSize: '12px',
+        minWidth: '20px',
+        textAlign: 'center'
+      }}
+    >
+      {unreadCount}
+    </span>
+        
+  )}
                    
                   </button>
                   {/*
