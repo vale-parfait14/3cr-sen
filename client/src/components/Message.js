@@ -8,6 +8,7 @@ import DropboxChooser from 'react-dropbox-chooser';
 import { FaTrashArrowUp } from "react-icons/fa6";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { MdFilePresent } from "react-icons/md";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -299,7 +300,7 @@ const ChatComponent = () => {
                         className="rounded-pill w-90"
                         style={{ backgroundColor: "#0061fe", border: "none" }}
                       >
-                        choisir un fichier
+                        <MdFilePresent />
                       </Button>
                     </DropboxChooser>
                   </Col>
