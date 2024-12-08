@@ -31,7 +31,7 @@ const UserManagement = () => {
     
     const interval = setInterval(() => {
       fetchUsers(); // Refresh every 5 seconds
-    }, 5000);
+    }, 1000);
   
     return () => clearInterval(interval); // Cleanup on unmount
   }, []);
@@ -58,22 +58,22 @@ const UserManagement = () => {
       // Modifier un utilisateur existant
       try {
         await axios.put(`https://threecr-sen.onrender.com/users/${users[editUserId]._id}`, userData); // API PUT
-        toast.info('Utilisateur modifié avec succès');
+        toast.info(`${userData.name} modifié avec succès`);
         setEditUserId(null);
         setUserData({ name: '', password: '', role: '', accessLevel: '', service: '' });
         fetchUsers(); // Recharger la liste des utilisateurs après modification
       } catch (error) {
-        toast.error('Erreur lors de la modification de l\'utilisateur');
+        toast.error(`Erreur lors de la modification de ${userData.name}`);
       }
     } else {
       // Ajouter un nouvel utilisateur
       try {
         await axios.post('https://threecr-sen.onrender.com/users', userData); // API POST
-        toast.info('Utilisateur ajouté avec succès');
+        toast.info(`${userData.name} ajouté avec succès`);
         setUserData({ name: '', password: '', role: '', accessLevel: '', service: '' });
         fetchUsers(); // Recharger la liste des utilisateurs après ajout
       } catch (error) {
-        toast.error('Erreur lors de l\'ajout de l\'utilisateur');
+        toast.error(`Erreur lors de l\'ajout de ${userData.name }`);
       }
     }
   };
