@@ -31,7 +31,7 @@ const UserManagement = () => {
     
     const interval = setInterval(() => {
       fetchUsers(); // Refresh every 5 seconds
-    }, 1000);
+    }, 5000);
   
     return () => clearInterval(interval); // Cleanup on unmount
   }, []);
@@ -58,18 +58,18 @@ const UserManagement = () => {
       // Modifier un utilisateur existant
       try {
         await axios.put(`https://threecr-sen.onrender.com/users/${users[editUserId]._id}`, userData); // API PUT
-        toast.info(`${userData.name} modifié avec succès`);
+        toast.info(`${userData.name } modifié avec succès`);
         setEditUserId(null);
         setUserData({ name: '', password: '', role: '', accessLevel: '', service: '' });
         fetchUsers(); // Recharger la liste des utilisateurs après modification
       } catch (error) {
-        toast.error(`Erreur lors de la modification de ${userData.name}`);
+        toast.error('Erreur lors de la modification de l\'utilisateur');
       }
     } else {
       // Ajouter un nouvel utilisateur
       try {
         await axios.post('https://threecr-sen.onrender.com/users', userData); // API POST
-        toast.info(`${userData.name} ajouté avec succès`);
+        toast.info(`${userData.name } ajouté avec succès`);
         setUserData({ name: '', password: '', role: '', accessLevel: '', service: '' });
         fetchUsers(); // Recharger la liste des utilisateurs après ajout
       } catch (error) {
@@ -88,20 +88,30 @@ const UserManagement = () => {
   };
 
   // Supprimer un utilisateur
-  const handleDelete = async (id,userName) => {
-    const confirmation = window.confirm(`Voulez-vous vraiment supprimé ${userName} ?`);
+  const handleDelete = async (id, userName) => {
+  // Demander une confirmation avant de supprimer l'utilisateur
+  const confirmation = window.confirm(`Voulez-vous vraiment supprimer ${userName} ?`);
   if (!confirmation) {
     return; // Si l'utilisateur annule, on ne fait rien
   }
-    try {
-      await axios.delete(`https://threecr-sen.onrender.com/users/${id}`); // API DELETE
-      setUsers(users.filter(user => user._id !== id));
-      toast.info(`${userName} supprimé avec succès`);
-      fetchUsers(); // Recharger la liste des utilisateurs après suppression
-    } catch (error) {
-      toast.error(`Erreur lors de la suppression de ${useName}`);
-    }
-  };
+
+  try {
+    // Envoi de la requête DELETE à l'API
+    await axios.delete(`https://threecr-sen.onrender.com/users/${id}`);
+    
+    // Mise à jour de la liste des utilisateurs en supprimant celui avec l'ID correspondant
+    setUsers(users.filter(user => user._id !== id));
+    
+    // Affichage du message de succès avec le nom de l'utilisateur supprimé
+    toast.info(`${userName} supprimé avec succès`);
+    
+    // Si nécessaire, vous pouvez appeler fetchUsers() pour recharger la liste depuis l'API, sinon omettez-le
+    fetchUsers(); // Cette ligne est optionnelle si setUsers suffit
+  } catch (error) {
+    // Affichage d'un message d'erreur si une erreur survient lors de la suppression
+    toast.error('Erreur lors de la suppression de l\'utilisateur');
+  }
+};
 
   // Gérer la connexion
   const handleLogin = async (e) => {
@@ -258,7 +268,7 @@ const UserManagement = () => {
                 Connectez-vous directement !{' '}
                 <button
                   type="button"
-                  onClick={() => navigate('/authentification')}
+                  onClick={() => navigate('/authentifications')}
                   className="btn btn-link"
                 >
                   Se connecter
@@ -278,7 +288,7 @@ const UserManagement = () => {
 
       {/* Liste des utilisateurs */}
       <h2 className="mt-5 mb-3 text-center">Liste des utilisateurs</h2>
-      <button onClick={() => navigate('/role')} className="btn btn-secondary w-100 mt-3">Retour</button>
+      <button onClick={() => navigate('/mode')} className="btn btn-secondary w-100 mt-3">Retour</button>
 
       <ul className="list-group mt-3">
   {users.length === 0 ? (
@@ -301,7 +311,7 @@ const UserManagement = () => {
 
           {/* Actions Modifier et Supprimer */}
           <div className="d-flex flex-column align-items-center mt-2 mt-md-0  w-md-auto">
-            <button onClick={() => handleEdit(index)} className="btn btn-warning btn-sm mb-2 mb-md-0 w-100 w-md-auto ">Modifier</button>
+            <button onClick={() => handleEdit(index,user.name)} className="btn btn-warning btn-sm mb-2 mb-md-0 w-100 w-md-auto ">Modifier</button>
             <button onClick={() => handleDelete(user._id,user.name)} className="btn btn-danger btn-sm w-100 w-md-auto mt-2">Supprimer</button>
           </div>
         </div>
