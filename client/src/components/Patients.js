@@ -3903,8 +3903,8 @@ const [formData, setFormData] = useState({
           <p><strong>Diagnostic:</strong> {selectedPatientForCuomo.diagnostic}</p>
           <p><strong>Statut:</strong> {selectedPatientForCuomo.statut}</p>
           <p><strong>Pathologie:</strong> {selectedPatientForCuomo.pathologie}</p>
-          <p><strong>Vpa:</strong> {selectedPatientForCuomo.pathologie}</p>
-          <p><strong>Validation:</strong> {selectedPatientForCuomo.vpa}</p>
+          <p><strong>Vpa:</strong> {selectedPatientForCuomo.vpa}</p>
+          <p><strong>Validation:</strong> {selectedPatientForCuomo.validation}</p>
           <p><strong>Raison de consultation:</strong> {selectedPatientForCuomo.consultationReason}</p>
           <p><strong>Traitement à l'entrée:</strong> {selectedPatientForCuomo.traitementEntree}</p>
           <p><strong>Traitement à la sortie:</strong> {selectedPatientForCuomo.traitementSortie}</p>
