@@ -299,7 +299,7 @@ const ChatComponent = () => {
                         className="rounded-pill w-90"
                         style={{ backgroundColor: "#0061fe", border: "none" }}
                       >
-                        choisir un fichier
+                       fichier
                       </Button>
                     </DropboxChooser>
                   </Col>
