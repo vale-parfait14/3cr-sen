@@ -139,7 +139,6 @@ const [formData, setFormData] = useState({
   const [prev, setPrev] = useState(null);
   const [fileData, setFileData] = useState(null);
   const [showMessage,setShowMessage] = useState(false);
-const [unreadCount, setUnreadCount] = useState(0);
 
   
   {
@@ -176,19 +175,7 @@ useEffect(() => {
     orderBy('timestamp', 'desc')
   );
 
-  // Set up real-time listener
-  const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-    const count = snapshot.docs.filter(doc => {
-      const message = doc.data();
-      return message.userName !== currentUser && !message.read;
-    }).length;
-    
-    setUnreadCount(count);
-  });
-
-  // Cleanup listener on unmount
-  return () => unsubscribe();
-}, []);
+ 
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "filesOb"), (snapshot) => {
@@ -1166,12 +1153,7 @@ useEffect(() => {
                   </button>
 <button
                     className="btn3"
-                    onClick={() => {
-  setShowMessage(!showMessage);
-  if (!showMessage) {
-    markMessagesAsRead();
-  }
-}}
+                    onClick={() =>  setShowMessage(!showMessage)}
                     title="Message"
                     style={{
                       display:
@@ -1338,30 +1320,10 @@ useEffect(() => {
                           ? "none"
                           : "block",
                     }}
-position: 'relative' // Add this
+
                   >
                     <MdMessage style={{ height: "30px", width: "30px" }} />
-  {unreadCount > 0 && (
-    <span
-      style={{
-        position: 'absolute',
-        top: '-8px',
-        right: '-8px',
-        background: 'red',
-        color: 'white',
-        borderRadius: '50%',
-        padding: '2px 6px',
-        fontSize: '12px',
-        minWidth: '20px',
-        textAlign: 'center'
-      }}
-    >
-      {unreadCount}
-    </span>
-        
-  )}
-                   
-                  </button>
+  </button>
                   {/*
                   <button
                     className="btn3"
