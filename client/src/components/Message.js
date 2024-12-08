@@ -326,10 +326,11 @@ const ChatComponent = () => {
                     >
                       <Button
                         variant="secondary"
+                        title="Ajoutes un Fichier"
                         className="rounded-pill w-90"
                         style={{ backgroundColor: "#0061fe", border: "none" }}
                       >
-                        <MdFilePresent />
+                        📁 (Fichier)
                       </Button>
                     </DropboxChooser>
                   </Col>
