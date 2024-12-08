@@ -166,16 +166,6 @@ const [formData, setFormData] = useState({
   const [showUserServices, setShowUserServices] = useState(false);
   // État pour le service choisi
   ///dfghjk
-useEffect(() => {
-  const currentUser = localStorage.getItem("userName");
-  
-  // Create query for messages
-  const messagesQuery = query(
-    collection(db, 'messages'),
-    orderBy('timestamp', 'desc')
-  );
-
- 
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "filesOb"), (snapshot) => {
@@ -286,7 +276,7 @@ useEffect(() => {
   const handleTransferPatient = async (patientId, newService) => {
     try {
       const response = await fetch(
-        `https://threecr-sen.onrender.com/api/patients/${patientId}`,
+        `http://localhost:5002/api/patients/${patientId}`,
         {
           method: "PUT",
           headers: {
@@ -363,7 +353,7 @@ useEffect(() => {
 
   const fetchPatients = useCallback(async () => {
     try {
-      const response = await fetch("https://threecr-sen.onrender.com/api/patients", {
+      const response = await fetch("http://localhost:5002/api/patients", {
         headers: { Authorization: token },
       });
 
@@ -387,7 +377,7 @@ useEffect(() => {
   const handleDeleteFile = async (field, fileIndex) => {
     if (editing) {
       try {
-        const response = await fetch(`https://threecr-sen.onrender.com/api/patients/${editing}/files`, {
+        const response = await fetch(`http://localhost:5002/api/patients/${editing}/files`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -418,8 +408,8 @@ useEffect(() => {
    
     const method = editing ? "PUT" : "POST";
     const url = editing
-      ? `https://threecr-sen.onrender.com/api/patients/${editing}`
-      : "https://threecr-sen.onrender.com/api/patients";
+      ? `http://localhost:5002/api/patients/${editing}`
+      : "http://localhost:5002/api/patients";
 
     const currentDate = new Date().toLocaleString(); // Date actuelle
 
@@ -464,7 +454,7 @@ useEffect(() => {
       }
 
       // Envoyer l'alerte à MongoDB
-      await fetch("https://threecr-sen.onrender.com/api/alerts", {
+      await fetch("http://localhost:5002/api/alerts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -555,7 +545,7 @@ useEffect(() => {
     const currentDate = new Date().toLocaleString(); // Date actuelle
 
     try {
-      const response = await fetch(`https://threecr-sen.onrender.com/api/patients/${id}`, {
+      const response = await fetch(`http://localhost:5002/api/patients/${id}`, {
         method: "DELETE",
         headers: { Authorization: token },
       });
@@ -569,7 +559,7 @@ useEffect(() => {
         const alertMessage = `Patient ${patientToDelete.nom} supprimé par ${userName} le ${currentDate}`;
 
         // Envoyer l'alerte à MongoDB
-        await fetch("https://threecr-sen.onrender.com/api/alerts", {
+        await fetch("http://localhost:5002/api/alerts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1151,7 +1141,7 @@ useEffect(() => {
                   >
                     <FaBookReader  style={{ height: "30px", width: "30px" }} />
                   </button>
-<button
+                  <button
                     className="btn3"
                     onClick={() =>  setShowMessage(!showMessage)}
                     title="Message"
@@ -2025,7 +2015,7 @@ useEffect(() => {
                 setFormData({ ...formData, vpa: e.target.value })
               }
             /> 
-                </label>    
+                </label> 
             <select
               value={formData.validation}
               onChange={(e) =>
