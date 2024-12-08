@@ -88,7 +88,7 @@ const UserManagement = () => {
   };
 
   // Supprimer un utilisateur
-  const handleDelete = async (id) => {
+  const handleDelete = async (id,userName) => {
     const confirmation =window.confirm(`Voulez vous vraiment supprimé ${userName} ?`);
     try {
       await axios.delete(`https://threecr-sen.onrender.com/users/${id}`); // API DELETE
@@ -299,7 +299,7 @@ const UserManagement = () => {
           {/* Actions Modifier et Supprimer */}
           <div className="d-flex flex-column align-items-center mt-2 mt-md-0  w-md-auto">
             <button onClick={() => handleEdit(index)} className="btn btn-warning btn-sm mb-2 mb-md-0 w-100 w-md-auto ">Modifier</button>
-            <button onClick={() => handleDelete(user._id)} className="btn btn-danger btn-sm w-100 w-md-auto mt-2">Supprimer</button>
+            <button onClick={() => handleDelete(user._id,user.name)} className="btn btn-danger btn-sm w-100 w-md-auto mt-2">Supprimer</button>
           </div>
         </div>
       </li>
