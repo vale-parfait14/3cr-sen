@@ -58,7 +58,7 @@ const UserManagement = () => {
       // Modifier un utilisateur existant
       try {
         await axios.put(`https://threecr-sen.onrender.com/users/${users[editUserId]._id}`, userData); // API PUT
-        alert('Utilisateur modifié avec succès');
+        toast.info('Utilisateur modifié avec succès');
         setEditUserId(null);
         setUserData({ name: '', password: '', role: '', accessLevel: '', service: '' });
         fetchUsers(); // Recharger la liste des utilisateurs après modification
@@ -69,7 +69,7 @@ const UserManagement = () => {
       // Ajouter un nouvel utilisateur
       try {
         await axios.post('https://threecr-sen.onrender.com/users', userData); // API POST
-        alert('Utilisateur ajouté avec succès');
+        toast.info('Utilisateur ajouté avec succès');
         setUserData({ name: '', password: '', role: '', accessLevel: '', service: '' });
         fetchUsers(); // Recharger la liste des utilisateurs après ajout
       } catch (error) {
@@ -89,10 +89,11 @@ const UserManagement = () => {
 
   // Supprimer un utilisateur
   const handleDelete = async (id) => {
+    const confirmation =window.confirm(`Voulez vous vraiment supprimé ${userName} ?`);
     try {
       await axios.delete(`https://threecr-sen.onrender.com/users/${id}`); // API DELETE
       setUsers(users.filter(user => user._id !== id));
-      alert('Utilisateur supprimé avec succès');
+      toast.info('Utilisateur supprimé avec succès');
       fetchUsers(); // Recharger la liste des utilisateurs après suppression
     } catch (error) {
       toast.error('Erreur lors de la suppression de l\'utilisateur');
@@ -109,7 +110,7 @@ const UserManagement = () => {
       localStorage.setItem('userAccessLevel', user.accessLevel);
       localStorage.setItem('userService', user.service);
       localStorage.setItem('userName', user.name);
-      alert('Connexion réussie');
+      console.log('Connexion réussie');
       setLoginData({ name: '', password: '' });
       navigate('/patients');
     } else {
