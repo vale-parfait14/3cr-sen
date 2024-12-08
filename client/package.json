@@ -55,6 +55,7 @@
     "styled-components": "^6.1.13",
     "toastify": "^2.0.1",
     "util": "^0.12.5",
+    "tsutils": "^3.20.0",
     "uuid": "^11.0.3",
     "web-vitals": "^4.2.4",
     "webpack": "^5.96.1",
