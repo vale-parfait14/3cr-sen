@@ -307,8 +307,8 @@ const ChatComponent = () => {
 
             <Card.Footer className="bg-white">
               <Form onSubmit={handleSendMessage}>
-                <Row className="g-1">
-                  <Col xs={7} sm={7}>
+                <Row className="text">
+                  <Col xs={5} sm={7}>
                     <Form.Control
                       type="text"
                       value={newMessage}
