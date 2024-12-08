@@ -89,7 +89,10 @@ const UserManagement = () => {
 
   // Supprimer un utilisateur
   const handleDelete = async (id,userName) => {
-    const confirmation =window.confirm(`Voulez vous vraiment supprimé ${userName} ?`);
+    const confirmation = window.confirm(`Voulez-vous vraiment supprimé ${userName} ?`);
+  if (!confirmation) {
+    return; // Si l'utilisateur annule, on ne fait rien
+  }
     try {
       await axios.delete(`https://threecr-sen.onrender.com/users/${id}`); // API DELETE
       setUsers(users.filter(user => user._id !== id));
