@@ -9,7 +9,6 @@ import { FaTrashArrowUp } from "react-icons/fa6";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { MdFilePresent } from "react-icons/md";
-
 // Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
