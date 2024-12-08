@@ -8,7 +8,6 @@ import DropboxChooser from 'react-dropbox-chooser';
 import { FaTrashArrowUp } from "react-icons/fa6";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { MdFilePresent } from "react-icons/md";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -23,27 +22,6 @@ const firebaseConfig = {
 const APP_KEY = '23rlajqskcae2gk';
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-
-const DeleteConfirmationModal = ({ show, onClose, onConfirm }) => {
-  return (
-    <Modal show={show} onHide={onClose} centered>
-      <Modal.Header closeButton>
-        <Modal.Title>Confirmer la suppression</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        Êtes-vous sûr de vouloir supprimer ce message ?
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onClose}>
-          Annuler
-        </Button>
-        <Button variant="danger" onClick={onConfirm}>
-          Supprimer
-        </Button>
-      </Modal.Footer>
-    </Modal>
-  );
-};
 
 const CommentModal = ({ show, onClose, onSubmit, message, commentText, setCommentText }) => {
   return (
@@ -83,8 +61,6 @@ const ChatComponent = () => {
   const [commentText, setCommentText] = useState('');
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [lastMessageId, setLastMessageId] = useState(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [messageToDelete, setMessageToDelete] = useState(null);
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState({
@@ -141,23 +117,16 @@ const ChatComponent = () => {
     }
   };
 
-  const handleDeleteMessage = (message) => {
+  const handleDeleteMessage = async (message) => {
     if (message.userName === userInfo.userName) {
-      setMessageToDelete(message);
-      setShowDeleteModal(true);
+      try {
+        await deleteMessage(message.id);
+      } catch (error) {
+        console.error("Erreur de suppression:", error);
+        alert("Erreur lors de la suppression");
+      }
     } else {
       alert('Vous ne pouvez supprimer que vos propres messages');
-    }
-  };
-
-  const handleConfirmDelete = async () => {
-    try {
-      await deleteMessage(messageToDelete.id);
-      setShowDeleteModal(false);
-      setMessageToDelete(null);
-    } catch (error) {
-      console.error("Erreur de suppression:", error);
-      alert("Erreur lors de la suppression");
     }
   };
 
@@ -184,6 +153,7 @@ const ChatComponent = () => {
         messageList.push({ id: doc.id, ...doc.data() });
       });
 
+      // Check for new messages and show notification
       const lastMessage = messageList[messageList.length - 1];
       if (lastMessage && lastMessage.id !== lastMessageId && lastMessage.userName !== userInfo.userName) {
         toast.info(`Nouveau message de ${lastMessage.userName}: ${lastMessage.text.substring(0, 50)}...`, {
@@ -329,7 +299,7 @@ const ChatComponent = () => {
                         className="rounded-pill w-90"
                         style={{ backgroundColor: "#0061fe", border: "none" }}
                       >
-                        <MdFilePresent />
+                        choisir un fichier
                       </Button>
                     </DropboxChooser>
                   </Col>
@@ -361,15 +331,6 @@ const ChatComponent = () => {
         message={selectedMessage}
         commentText={commentText}
         setCommentText={setCommentText}
-      />
-
-      <DeleteConfirmationModal
-        show={showDeleteModal}
-        onClose={() => {
-          setShowDeleteModal(false);
-          setMessageToDelete(null);
-        }}
-        onConfirm={handleConfirmDelete}
       />
 
       <style jsx>{`
