@@ -21,6 +21,7 @@ const GardeAstreinte = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const APP_KEY = '23rlajqskcae2gk';
+  const navigate= useNavigate();
 
   useEffect(() => {
     const filesQuery = query(
@@ -95,6 +96,9 @@ const GardeAstreinte = () => {
   return (
     <div className="container mt-5">
       <h2 className="text-center mb-4">Garde Astreinte - Documents</h2>
+      <button className="btn btn-primary mb-3" onClick={() => navigate('/role')}>
+        Retour à la page d'accueil
+      </button>
       
       <div className="row mb-4">
         <div className="col">
