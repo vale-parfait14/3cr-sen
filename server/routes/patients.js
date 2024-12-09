@@ -6,6 +6,7 @@ const { authenticate } = require('../middleware/auth');
 const multer = require('multer');
 const path = require('path');
 const router = express.Router();
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/');
@@ -25,13 +26,13 @@ router.post('/', authenticate, async (req, res) => {
       nom, age, genre, ta, fc, spo2, temperature, taille, poids, groupeSanguin, dateNaissance,
       nationalite, profession, numeroDeTelephone, addressEmail,
       addressDomicile, salle, lit, correspondant, dateEntree, dateSortie,
-      departementTransfert, dateDeces, dateDesortie, diagnostic, statut,vpa,
+      departementTransfert, dateDeces, dateDesortie, diagnostic, statut, vpa,
       validation, services, consultationReason, traitementEntree,
       traitementSortie, simpleSuites, complications, geste, operateur,
       histoire, antecedents, traitement, ecrt, ecg, ett, tt,
       coronarographie, autresExamens, biologie, cro, rxthoraxPost,
-      ecgPost, echoscopiePost, biologiePost, gazo, ecp, dsr, suite, suivi, manageur,
-      
+      ecgPost, echoscopiePost, biologiePost, gazo, ecp, dsr, suite, suivi, manageur
+    } = req.body;
 
     if (!nom) {
       return res.status(400).send({ error: 'Name field is required' });
@@ -42,7 +43,7 @@ router.post('/', authenticate, async (req, res) => {
       nom, age, genre, ta, fc, spo2, temperature, taille, poids, groupeSanguin, dateNaissance,
       nationalite, profession, numeroDeTelephone, addressEmail,
       addressDomicile, salle, lit, correspondant, dateEntree, dateSortie,
-      diagnostic, statut, vpa,validation, services,
+      diagnostic, statut, vpa, validation, services,
       departementTransfert, dateDeces, dateDesortie, consultationReason,
       traitementEntree, traitementSortie, simpleSuites, complications,
       geste,
@@ -51,8 +52,8 @@ router.post('/', authenticate, async (req, res) => {
       ett, tt, coronarographie, autresExamens, biologie, cro,
       rxthoraxPost, ecgPost, echoscopiePost, biologiePost, gazo, ecp,
       dsr, suite, suivi,
-      userId: req.userId, 
-      manageur,
+      userId: req.userId,
+      manageur
     });
 
     await patient.save();
