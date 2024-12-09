@@ -20,7 +20,7 @@ const GardeAstreinte = () => {
   const [files, setFiles] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
-  const APP_KEY = '23rlajqskcae2gk';
+  const APP_KEY = 'gmhp5s9h3aup35v';
   const navigate= useNavigate();
 
   useEffect(() => {
