@@ -102,7 +102,7 @@ const Role = () => {
             onClick={() => navigate("/garde")}
             className="btn btn-danger w-100 py-3 shadow-sm"
           >
-            GARDE ET ASTRINTE
+            GARDES ET ASTREINTES
           </button>
         </div>
       </div>
