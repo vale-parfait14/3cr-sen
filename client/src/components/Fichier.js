@@ -383,7 +383,7 @@ const PatientSolvable = ({ patients }) => {
 
       <Row>
         <Col>
-          <h3 className="text-center">Liste des Patients</h3>
+          <h3 className="text-center">Liste des Patients et Documents</h3>
           <Button variant="success" onClick={exportToExcel} className="mb-3"
            style={{
             display:
