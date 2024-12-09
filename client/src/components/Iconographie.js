@@ -26,7 +26,7 @@ const Iconographie = () => {
   const [editingFile, setEditingFile] = useState(null);
   const [editingComment, setEditingComment] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const APP_KEY = "23rlajqskcae2gk";
+  const APP_KEY = "gmhp5s9h3aup35v";
 
   useEffect(() => {
     const q = query(collection(db, 'iconographie'), orderBy('timestamp', 'desc'));
