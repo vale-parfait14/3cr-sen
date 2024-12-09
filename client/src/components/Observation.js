@@ -147,7 +147,7 @@ const Observation = () => {
           appKey="23rlajqskcae2gk"
           success={handleDropboxSuccess}
           multiselect={true}
-          extensions={['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt','.gif','.pptx','.svg','.jpeg', '.jpg', '.png']}
+          extensions={['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt','.gif','.pptx','.svg','.jpeg', '.jpg', '.png','.mp4','.mp3']}
         >
           <button className="btn btn-primary">
             Choisir les fichiers
