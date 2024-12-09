@@ -282,7 +282,7 @@ const PatientSolvable = ({ patients }) => {
                   : "block",
                   
             }}
-          >L'ajout des fichiers des patients</h2>
+          >Ajout des fichiers patients</h2>
           <Form onSubmit={handleSubmit}
                style={{
                 display:
