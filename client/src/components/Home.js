@@ -51,7 +51,7 @@ const Home = () => {
       <div className="row justify-content-center mt-5 bg-light rounded-5 shadow-lg ms-2 me-2">
         <div className="col-12 text-center">
           <h1 className="display-4 text-secondary">BIENVENUE AU CENTRE HOSPITALIER NATIONAL FANN</h1>
-          <p className="lead text-secondary">Choisissez un service à visiter !:</p>
+          <p className="lead text-secondary">Choisissez un service à visiter :</p>
         </div>
       </div>
 
