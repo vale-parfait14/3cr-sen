@@ -36,6 +36,7 @@ import Observation from './components/Observation';
 import filePatient from './components/fichiersPatients';
 import Message from './components/Message';
 import Iconographie from "./components/Iconographie";
+import Garde from "./components/Garde";
 
 const App = () => {
   const [token, setToken] = useState(null);
@@ -94,6 +95,8 @@ const App = () => {
 
             {/* Routes protégées */}
             <Route path="/iconographie" element={<ProtectedRoute element={<Iconographie token={token} />} token={token} />} />
+            <Route path="/garde" element={<ProtectedRoute element={<Garde token={token} />} token={token} />} />
+
             <Route path="/message" element={<ProtectedRoute element={<Message token={token} />} token={token} />} />
             <Route path="/patients" element={<ProtectedRoute element={<Patients token={token} />} token={token} />} />
             <Route path="/docaccess" element={<ProtectedRoute element={<DocAccess token={token} />} token={token} />} />
@@ -118,8 +121,7 @@ const App = () => {
             <Route path="/user-management" element={<ProtectedRoute element={<UserManagementCopy token={token} />} token={token} />} />
 
             <Route path="/authentifications" element={<ProtectedRoute element={<Authentifications token={token} />} token={token} />} />
-             <Route path="/authentification" element={<ProtectedRoute element={<Authentification token={token} />} token={token} />} />
-
+            <Route path="/authentification" element={<ProtectedRoute element={<Authentification token={token} />} token={token} />} />
             <Route path="/mode" element={<ProtectedRoute element={<Mode token={token} />} token={token} />} />
             <Route path="/passwordprompt" element={<ProtectedRoute element={<PasswordPrompt token={token} />} token={token} />} />
             <Route path="/userconnection" element={<ProtectedRoute element={<UserConnection token={token} />} token={token} />} />
