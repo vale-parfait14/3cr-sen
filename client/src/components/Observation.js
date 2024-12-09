@@ -8,8 +8,6 @@ import { GlobalWorkerOptions, version } from 'pdfjs-dist';
 
 GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.js`;
 
-
-
 const firebaseConfig = {
   apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
   authDomain: "basecenterdb.firebaseapp.com",
@@ -24,11 +22,12 @@ const db = getFirestore(app);
 
 const Observation = () => {
   const [filesObs, setFilesObs] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
   const [userAccessLevel, setUserAccessLevel] = useState(null);
-  // Écoute en temps réel des changements dans Firestore
+
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "filesObs"), (snapshot) => {
       const filesObsData = snapshot.docs.map(doc => ({
@@ -41,22 +40,19 @@ const Observation = () => {
 
     return () => unsubscribe();
   }, []);
+
   useEffect(() => {
-    // Intercepter la tentative de retour arrière
     const handlePopState = (e) => {
-      // Empêcher la navigation en arrière
       window.history.pushState(null, "", window.location.href);
     };
 
-    // Ajouter un événement 'popstate' pour empêcher l'utilisateur de revenir en arrière
-    window.history.pushState(null, "", window.location.href); // Empêche de revenir en arrière
+    window.history.pushState(null, "", window.location.href);
     window.addEventListener("popstate", handlePopState);
 
-    // Nettoyer l'écouteur d'événements lors du démontage du composant
     return () => {
       window.removeEventListener("popstate", handlePopState);
     };
-  }, []); // L'effet se déclenche une seule fois, lors du montage du composant
+  }, []);
 
   const handleDropboxSuccess = async (selectedFilesObs) => {
     const newFilesObs = selectedFilesObs.map(file => ({
@@ -103,6 +99,16 @@ const Observation = () => {
     window.open(link, '_blank');
   };
 
+  // Tri et filtrage des fichiers
+  const sortedAndFilteredFiles = [...filesObs]
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    .filter(file => 
+      file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      file.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      file.comment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      new Date(file.timestamp).toLocaleString().toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
   if (loading) {
     return (
       <div className="d-flex justify-content-center align-items-center vh-100">
@@ -126,6 +132,16 @@ const Observation = () => {
         Retour à la page d'enregistrement
       </button>
 
+      <div className="mb-4 mt-4">
+        <input
+          type="text"
+          className="form-control"
+          placeholder="Rechercher par nom, titre, commentaire ou date..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
       <div className="text-center mb-4">
         <DropboxChooser
           appKey="23rlajqskcae2gk"
@@ -140,7 +156,7 @@ const Observation = () => {
       </div>
 
       <div className="row">
-        {filesObs.map(file => (
+        {sortedAndFilteredFiles.map(file => (
           <div key={file.id} className="col-12 col-md-6 col-lg-4 mb-4">
             <div className="card shadow-sm">
               <div className="card-body">
@@ -153,38 +169,32 @@ const Observation = () => {
                     className="form-control form-control-sm"
                   />
                   <div>
-                    
-                    <button onClick={() => handleDelete(file.id)} className="btn btn-danger btn-sm"
-                        style={{
-                          display:
-                            localStorage.getItem("userName") === "Ad" ||
-                            (userRole === "Infirmier(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Archiviste" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Gestionnaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Etudiant(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-                            (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Gestionnaire" && userAccessLevel === "Affichage-Modification"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-                            (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification-Suppression"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Gestionnaire" && userAccessLevel === "Affichage-Modification-Suppression"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-                            (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Archiviste" && userAccessLevel === "Administrateur"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Gestionnaire" && userAccessLevel === "Administrateur"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] )
-                            
-                         
+                    <button 
+                      onClick={() => handleDelete(file.id)} 
+                      className="btn btn-danger btn-sm"
+                      style={{
+                        display:
+                          localStorage.getItem("userName") === "Ad" ||
+                          (userRole === "Infirmier(e)" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
+                          (userRole === "Archiviste" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
+                          (userRole === "Gestionnaire" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
+                          (userRole === "Etudiant(e)" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
+                          (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
+                          (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
+                          (userRole === "Gestionnaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
+                          (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
+                          (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
+                          (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
+                          (userRole === "Gestionnaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
+                          (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
+                          (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
+                          (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
+                          (userRole === "Gestionnaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
+                          (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"])
                           ? "none"
                           : "block",
-                              
-                        }}
-                      
-                      >
+                      }}
+                    >
                       Supprimer
                     </button>
                   </div>
@@ -193,14 +203,13 @@ const Observation = () => {
                 <div className="file-info text-muted small">
                   <p><strong>Nom:</strong> {file.name}</p>
                   <p><strong>Date:</strong> {new Date(file.timestamp).toLocaleString()}</p>
-                  <p><strong>Lien:</strong> <a href={file.link} target="_blank" rel="noopener noreferrer">{file.link}</a></p>
                 </div>
 
                 <button
                   className="btn btn-info btn-sm"
                   onClick={() => handleOpenLink(file.link)}
                 >
-                  Staff
+                  Voir le Staff
                 </button>
               </div>
             </div>
