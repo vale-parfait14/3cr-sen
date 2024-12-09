@@ -3,6 +3,7 @@ import DropboxChooser from 'react-dropbox-chooser';
 import { useNavigate } from 'react-router-dom';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+
 const firebaseConfig = {
   apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
   authDomain: "basecenterdb.firebaseapp.com",
@@ -21,7 +22,6 @@ const GardeAstreinte = () => {
   const [loading, setLoading] = useState(true);
   const APP_KEY = '23rlajqskcae2gk';
 
-  // Récupération des fichiers depuis Firebase
   useEffect(() => {
     const filesQuery = query(
       collection(db, 'gardeAstreinte'), 
@@ -55,8 +55,22 @@ const GardeAstreinte = () => {
     }
   };
 
-  const handleCancel = () => {
-    console.log('Sélection annulée');
+  const handleDelete = async (fileId) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) {
+      try {
+        await deleteDoc(doc(db, 'gardeAstreinte', fileId));
+      } catch (error) {
+        console.error("Erreur lors de la suppression:", error);
+      }
+    }
+  };
+
+  const formatDateTime = (timestamp) => {
+    const date = new Date(timestamp);
+    return {
+      date: date.toLocaleDateString(),
+      time: date.toLocaleTimeString()
+    };
   };
 
   const filteredFiles = files.filter(file => {
@@ -69,7 +83,13 @@ const GardeAstreinte = () => {
   });
 
   if (loading) {
-    return <div>Chargement...</div>;
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100">
+        <div className="spinner-border" role="status">
+          <span className="visually-hidden">Chargement...</span>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -81,9 +101,9 @@ const GardeAstreinte = () => {
           <DropboxChooser 
             appKey={APP_KEY}
             success={handleSuccess}
-            cancel={handleCancel}
+            cancel={() => {}}
             multiselect={true}
-            extensions={['.pdf', '.doc', '.docx']}
+            extensions={['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt','.gif','.pptx','.svg','.jpeg', '.jpg', '.png','.mp4','.mp3']}
           >
             <button className="btn btn-primary">
               Sélectionner des fichiers Dropbox
@@ -105,28 +125,40 @@ const GardeAstreinte = () => {
       </div>
 
       <div className="row">
-        {filteredFiles.map((file) => (
-          <div key={file.id} className="col-md-4 mb-3">
-            <div className="card">
-              <div className="card-body">
-                <h5 className="card-title">{file.name}</h5>
-                <p className="card-text">
-                  <small className="text-muted">
-                    Date: {new Date(file.timestamp).toLocaleDateString()}
-                  </small>
-                </p>
-                <a 
-                  href={file.link} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="btn btn-primary btn-sm"
-                >
-                  Voir le document
-                </a>
+        {filteredFiles.map((file) => {
+          const datetime = formatDateTime(file.timestamp);
+          return (
+            <div key={file.id} className="col-md-4 mb-3">
+              <div className="card">
+                <div className="card-body">
+                  <h5 className="card-title">{file.name}</h5>
+                  <p className="card-text">
+                    <small className="text-muted">
+                      Date: {datetime.date}<br/>
+                      Heure: {datetime.time}
+                    </small>
+                  </p>
+                  <div className="d-flex justify-content-between">
+                    <a 
+                      href={file.link} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="btn btn-primary btn-sm"
+                    >
+                      Voir le document
+                    </a>
+                    <button 
+                      onClick={() => handleDelete(file.id)}
+                      className="btn btn-danger btn-sm"
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
