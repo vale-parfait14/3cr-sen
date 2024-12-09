@@ -20,7 +20,7 @@ const firebaseConfig = {
   appId: "1:919766148380:web:30db9986fa2cd8bb7106d9"
 };
 
-const APP_KEY = '23rlajqskcae2gk';
+const APP_KEY = 'gmhp5s9h3aup35v';
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
