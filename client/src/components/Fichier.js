@@ -357,7 +357,7 @@ const PatientSolvable = ({ patients }) => {
             <Form.Group className="mb-3">
   <Form.Label>Document(Dropbox)</Form.Label>
   <DropboxChooser 
-    appKey="23rlajqskcae2gk"
+    appKey="gmhp5s9h3aup35v"
     success={handleDropboxSuccess}
     cancel={() => toast.info('Sélection annulée')}
     multiselect={true}
