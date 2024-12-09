@@ -96,6 +96,14 @@ const Role = () => {
             ICONOGRAPHIE
           </button>
         </div>
+        <div className="col-12 col-md-6 col-lg-3">
+          <button 
+            onClick={() => navigate("/garde")}
+            className="btn btn-danger w-100 py-3 shadow-sm"
+          >
+            GARDE ET ASTRINTE
+          </button>
+        </div>
       </div>
 
       <button 
