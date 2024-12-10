@@ -41,31 +41,24 @@ const Observation = () => {
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const handlePopState = (e) => {
-      window.history.pushState(null, "", window.location.href);
-    };
-
-    window.history.pushState(null, "", window.location.href);
-    window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, []);
-
   const handleDropboxSuccess = async (selectedFilesObs) => {
     const newFilesObs = selectedFilesObs.map(file => ({
       name: file.name,
       link: file.link,
       title: '',
       comment: '',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      order: 0 // Initial order value
     }));
 
     for (const file of newFilesObs) {
       await addDoc(collection(db, "filesObs"), file);
     }
+  };
+
+  const handleOrderChange = async (id, newOrder) => {
+    const fileRef = doc(db, "filesObs", id);
+    await updateDoc(fileRef, { order: parseInt(newOrder) });
   };
 
   const handleTitleChange = async (id, newTitle) => {
@@ -99,9 +92,9 @@ const Observation = () => {
     window.open(link, '_blank');
   };
 
-  // Tri et filtrage des fichiers
+  // Tri des fichiers uniquement par le numéro d'ordre
   const sortedAndFilteredFiles = [...filesObs]
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    .sort((a, b) => a.order - b.order) // Tri par ordre uniquement
     .filter(file => 
       file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       file.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -144,10 +137,10 @@ const Observation = () => {
 
       <div className="text-center mb-4">
         <DropboxChooser
-          appKey="gmhp5s9h3aup35v"
+          appKey="23rlajqskcae2gk"
           success={handleDropboxSuccess}
           multiselect={true}
-          extensions={['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt','.gif','.pptx','.svg','.jpeg', '.jpg', '.png','.mp4','.mp3']}
+          extensions={['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt','.gif','.pptx','.svg','.jpeg', '.jpg', '.png']}
         >
           <button className="btn btn-primary">
             Choisir les fichiers
@@ -172,28 +165,6 @@ const Observation = () => {
                     <button 
                       onClick={() => handleDelete(file.id)} 
                       className="btn btn-danger btn-sm"
-                      style={{
-                        display:
-                          localStorage.getItem("userName") === "Ad" ||
-                          (userRole === "Infirmier(e)" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Archiviste" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Gestionnaire" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Etudiant(e)" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Gestionnaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Gestionnaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Gestionnaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"])
-                          ? "none"
-                          : "block",
-                      }}
                     >
                       Supprimer
                     </button>
@@ -201,8 +172,20 @@ const Observation = () => {
                 </div>
 
                 <div className="file-info text-muted small">
-                  <p><strong>Nom:</strong> {file.name}</p>
-                  <p><strong>Date:</strong> {new Date(file.timestamp).toLocaleString()}</p>
+                  <p><strong>{file.name}</strong> </p>
+                    {/*<p><strong>Date:</strong> {new Date(file.timestamp).toLocaleString()}</p>*/}
+                  </div>
+
+                {/* Champ pour l'ordre */}
+                <div className="mb-3">
+                  Ordre du fichier :
+                  <input
+                    type="number"
+                    className="form-control form-control-sm w-50"
+                    placeholder="Ordre d'affichage"
+                    value={file.order || 0}
+                    onChange={(e) => handleOrderChange(file.id, e.target.value)}
+                  />
                 </div>
 
                 <button
