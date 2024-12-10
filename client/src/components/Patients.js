@@ -405,14 +405,25 @@ const [formData, setFormData] = useState({
   
   const handleSubmit = async (e) => {
     e.preventDefault();
-   
+  
+    // Vérifier si le dossierNumber existe déjà chez un autre patient
+    const existingPatient = patients.find(
+      (p) => p.dossierNumber === formData.dossierNumber && p._id !== editing
+    );
+  
+    if (existingPatient) {
+      // Afficher une alerte si le dossierNumber existe déjà
+      toast.error(`Le numéro de dossier ${formData.dossierNumber} existe déjà pour le  patient ${(existingPatient.nom).toUpperCase()}. Rentrez un autre Numéro de dossier s'il vous plait !`);
+      return; // Arrêter l'exécution de la soumission du formulaire
+    }
+  
     const method = editing ? "PUT" : "POST";
     const url = editing
-      ? `https://threecr-sen.onrender.com/api/patients/${editing}`
-      : "https://threecr-sen.onrender.com/api/patients";
-
+      ? `http://localhost:5002/api/patients/${editing}`
+      : "http://localhost:5002/api/patients";
+  
     const currentDate = new Date().toLocaleString(); // Date actuelle
-
+  
     try {
       const response = await fetch(url, {
         method,
@@ -422,39 +433,37 @@ const [formData, setFormData] = useState({
           userId,
           manageur: localStorage.getItem("userName"),
           services: localStorage.getItem("userService"),
-
         }),
       });
-
+  
       if (!response.ok) {
         throw new Error("Erreur lors de l'enregistrement du patient");
       }
-
+  
       const newPatient = { ...formData, userId };
-
+  
       let alertMessage = "";
       if (editing) {
         // Si modification
         const oldPatient = patients.find((p) => p._id === editing);
         const changes = [];
-
+  
         Object.keys(formData).forEach((key) => {
           if (oldPatient[key] !== formData[key]) {
             changes.push(`${key}: ${oldPatient[key]} → ${formData[key]}`);
           }
         });
-
-        alertMessage = `Patient ${formData.nom
-          } modifié par ${userName} le ${currentDate}.\nModifications: ${changes.join(
-            ", "
-          )}`;
+  
+        alertMessage = `Patient ${formData.nom} modifié par ${userName} le ${currentDate}.\nModifications: ${changes.join(
+          ", "
+        )}`;
       } else {
         // Si ajout d'un nouveau patient
         alertMessage = `Nouveau patient ${formData.nom} ajouté par ${userName} le ${currentDate}`;
       }
-
+  
       // Envoyer l'alerte à MongoDB
-      await fetch("https://threecr-sen.onrender.com/api/alerts", {
+      await fetch("http://localhost:5002/api/alerts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -462,17 +471,16 @@ const [formData, setFormData] = useState({
           user: userName, // Utilisateur ayant effectué l'action
         }),
       });
-
+  
       // Affichage de l'alerte dans l'UI
       setAlerts((prevAlerts) => [...prevAlerts, alertMessage]);
       toast.success(alertMessage);
-
-     
+  
       // Réinitialisation du formulaire
       setFormData({
         pathologie: "",
         vpa: "",
-        validation:"Validé",
+        validation: "Validé",
         dossierNumber: "",
         service: "",
         anneeDossier: "",
@@ -529,15 +537,18 @@ const [formData, setFormData] = useState({
         dateJour: "",
         manageur: localStorage.getItem("userName") || " ",
         services: localStorage.getItem("userService") || " ",
-
       });
-
+  
       setEditing(null);
     } catch (error) {
       console.error("Erreur:", error.message);
       setAlerts((prevAlerts) => [...prevAlerts, error.message]);
     }
   };
+
+
+
+  
   const handleDelete = async (id) => {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce patient ?"))
       return;
