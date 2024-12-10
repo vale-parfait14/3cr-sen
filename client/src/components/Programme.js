@@ -45,34 +45,25 @@ const FileManager = () => {
   useEffect(() => {
     let filtered = [...files];
     
-    // Filter based on search term
+    // Filtrer selon le terme de recherche
     if (searchTerm) {
       filtered = filtered.filter(file => 
-        file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         file.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        file.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         file.comment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        new Date(file.timestamp).toLocaleString().toLowerCase().includes(searchTerm.toLowerCase())
+        new Date(file.timestamp).toLocaleString().includes(searchTerm)
       );
     }
     
-    // Sort by date
-    filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    
+    // Trier uniquement par `order`
+    filtered.sort((a, b) => {
+      const orderA = a.order || 0; // Utiliser 0 si `order` n'est pas défini
+      const orderB = b.order || 0;
+      return orderA - orderB; // Tri croissant basé uniquement sur `order`
+    });
+
     setSortedFiles(filtered);
   }, [files, searchTerm]);
-
-  useEffect(() => {
-    const handlePopState = (e) => {
-      window.history.pushState(null, "", window.location.href);
-    };
-
-    window.history.pushState(null, "", window.location.href);
-    window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, []);
 
   const handleDropboxSuccess = async (selectedFiles) => {
     const newFiles = selectedFiles.map(file => ({
@@ -80,7 +71,8 @@ const FileManager = () => {
       link: file.link,
       title: '',
       comment: '',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      order: 0 // Ajouter l'attribut order
     }));
 
     for (const file of newFiles) {
@@ -96,6 +88,11 @@ const FileManager = () => {
   const handleCommentChange = async (id, newComment) => {
     const fileRef = doc(db, "files", id);
     await updateDoc(fileRef, { comment: newComment });
+  };
+
+  const handleOrderChange = async (id, newOrder) => {
+    const fileRef = doc(db, "files", id);
+    await updateDoc(fileRef, { order: newOrder });
   };
 
   const handleDelete = async (id) => {
@@ -155,7 +152,7 @@ const FileManager = () => {
 
       <div className="text-center mb-4">
         <DropboxChooser
-          appKey="gmhp5s9h3aup35v"
+          appKey="23rlajqskcae2gk"
           success={handleDropboxSuccess}
           multiselect={true}
           extensions={['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt','.gif','.pptx','.svg','.jpeg', '.jpg', '.png','.mp3','.mp4']}
@@ -183,28 +180,6 @@ const FileManager = () => {
                     <button 
                       onClick={() => handleDelete(file.id)} 
                       className="btn btn-danger btn-sm"
-                      style={{
-                        display:
-                          localStorage.getItem("userName") === "Ad" ||
-                          (userRole === "Infirmier(e)" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Archiviste" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Gestionnaire" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Etudiant(e)" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Gestionnaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Gestionnaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Gestionnaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]) ||
-                          (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"])
-                            ? "none"
-                            : "block",
-                      }}
                     >
                       Supprimer
                     </button>
@@ -212,8 +187,21 @@ const FileManager = () => {
                 </div>
 
                 <div className="file-info text-muted small">
-                  <p><strong>Nom:</strong> {file.name}</p>
-                  <p><strong>Date:</strong> {new Date(file.timestamp).toLocaleString()}</p>
+                  <p><strong> {file.name}</strong> </p>
+                 {/* <p><strong>Date:</strong> {new Date(file.timestamp).toLocaleString()}</p>*/}
+                </div>
+
+                {/* Champ pour saisir l'ordre d'affichage */}
+                <div className="mb-3">
+                Ordre du fichier :
+
+                  <input
+                    type="number"
+                    value={file.order || 0}
+                    onChange={(e) => handleOrderChange(file.id, parseInt(e.target.value, 10))}
+                    placeholder="Ordre d'affichage"
+                    className="form-control form-control-sm w-50"
+                  />
                 </div>
 
                 <button
