@@ -2025,6 +2025,7 @@ const [formData, setFormData] = useState({
               onChange={(e) =>
                 setFormData({ ...formData, vpa: e.target.value })
               }
+                required
             /> 
                 </label> 
             <select
