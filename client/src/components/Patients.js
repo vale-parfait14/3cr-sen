@@ -419,8 +419,8 @@ const [formData, setFormData] = useState({
   
     const method = editing ? "PUT" : "POST";
     const url = editing
-      ? `http://localhost:5002/api/patients/${editing}`
-      : "http://localhost:5002/api/patients";
+      ? `https://threecr-sen.onrender.com/api/patients/${editing}`
+      : "https://threecr-sen.onrender.com/api/patients";
   
     const currentDate = new Date().toLocaleString(); // Date actuelle
   
@@ -463,7 +463,7 @@ const [formData, setFormData] = useState({
       }
   
       // Envoyer l'alerte à MongoDB
-      await fetch("http://localhost:5002/api/alerts", {
+      await fetch("https://threecr-sen.onrender.com/api/alerts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
