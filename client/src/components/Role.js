@@ -39,7 +39,7 @@ const Role = () => {
         </div>
         <div className="col-12 col-md-6 col-lg-3">
           <button 
-            onClick={() => navigate('/patients')}
+            onClick={() => navigate('/authentifications')}
             className="btn btn-success w-100 py-3 shadow-sm"
           >
             MEDECIN
