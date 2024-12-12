@@ -268,7 +268,7 @@ const UserManagement = () => {
                 Connectez-vous directement !{' '}
                 <button
                   type="button"
-                  onClick={() => navigate('/authentifications')}
+                  onClick={() => navigate('/authentification')}
                   className="btn btn-link"
                 >
                   Se connecter
