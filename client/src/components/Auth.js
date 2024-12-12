@@ -29,7 +29,7 @@ const Auth = ({ login }) => {
       const data = await response.json();
       localStorage.setItem('token', data.token);
       login(data.token);
-      toast.success('Création réussie !'); 
+      console.log('Création réussie !'); 
       navigate('/role');
     } catch (error) {
       console.error("Erreur lors de la requête :", error);
