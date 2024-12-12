@@ -1,47 +1,46 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#000000" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
     
-    <!-- Description pour le SEO -->
+    <!-- SEO -->
     <meta name="description" content="3CR-EYO - est une application de traitement des données médicales et facilite le suivi des patients." />
-    
-    <!-- Vérification de propriété pour Google Search Console -->
     <meta name="google-site-verification" content="7CUMt9X7lAdze97sFK4aEQOcDvsMTlFpX40DKN9xnF4" />
-    
-    <!-- Lien vers le favicon avec différentes tailles -->
-    
-    <link rel="icon" href="https://img.icons8.com/3d-fluency/94/hospital.png">
-    
-    <!-- Lien vers le manifest pour PWA -->
-    <link rel="manifest" href="https://img.icons8.com/3d-fluency/94/hospital.png" />
-    <link rel="apple-touch-icon" href="https://img.icons8.com/3d-fluency/94/hospital.png">
-    
-    <!-- Ajouter les balises de Robots (pour l'indexation) -->
     <meta name="robots" content="index, follow" />
     
-    <!-- Lien vers les styles CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <!-- Icons -->
+    <link rel="icon" href="https://img.icons8.com/3d-fluency/94/hospital.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="https://img.icons8.com/3d-fluency/94/hospital.png" />
     
-    <!-- Title du site (important pour le SEO) -->
-    <title>3CR</title>
+    <!-- Styles -->
+    <link 
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" 
+      rel="stylesheet" 
+      integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" 
+      crossorigin="anonymous"
+    />
+    
+    <title>3CR - Application de suivi médical des patients</title>
 
     <!-- Sitemap -->  
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://threecr.onrender.com/sitemap.xml" />
 
-    <!-- Lien vers le script de Google API -->
-    <script type="text/javascript" src="https://apis.google.com/js/api.js"></script>
-    
-    <!-- Script pour le SDK Mega (si utilisé) -->
-    <script src="https://cdn.rawgit.com/meganz/sdk/master/megajs.min.js"></script>
-    
-    <!-- Lien vers le script de Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <!-- Scripts -->
+    <script defer type="text/javascript" src="https://apis.google.com/js/api.js"></script>
+    <script defer src="https://cdn.rawgit.com/meganz/sdk/master/megajs.min.js"></script>
+    <script 
+      defer 
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" 
+      integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" 
+      crossorigin="anonymous"
+    ></script>
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <noscript>Vous devez activer JavaScript pour utiliser cette application.</noscript>
     <div id="root"></div>
   </body>
 </html>
