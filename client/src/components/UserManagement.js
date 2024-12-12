@@ -4,14 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import 'react-toastify/dist/ReactToastify.css';
 
-const roles = ['Admin','Médecin', 'Secrétaire', 'Infirmier(e)', 'Archiviste', 'Gestionnaire', 'Etudiant(e)'];
+const roles = ['Admin', 'Médecin', 'Secrétaire', 'Infirmier(e)', 'Archiviste', 'Gestionnaire', 'Etudiant(e)'];
 const accessLevels = ['Affichage', 'Affichage-Modification', 'Affichage-Modification-Suppression', 'Administrateur'];
 const services = ["Cuomo", "Ctcv", "Cardiologie", "Réanimation"];
 
 const UserManagement = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
-  const [userData, setUserData] = useState({ name: '', password: '', role: '', accessLevel: '' });
+  const [userData, setUserData] = useState({ name: '', password: '', role: '', accessLevel: '', service: '' });
   const [loginData, setLoginData] = useState({ name: '', password: '' });
   const [editUserId, setEditUserId] = useState(null);
   const [isLoginMode, setIsLoginMode] = useState(false);
@@ -41,7 +41,7 @@ const UserManagement = () => {
   // Ajouter ou modifier un utilisateur
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!userData.name || !userData.password || !userData.role || !userData.accessLevel) {
+    if (!userData.name || !userData.password || !userData.role || !userData.accessLevel || !userData.service) {
       toast.error('Veuillez remplir tous les champs');
       return;
     }
@@ -52,7 +52,7 @@ const UserManagement = () => {
         await axios.put(`https://threecr-sen.onrender.com/users/${users[editUserId]._id}`, userData); // API PUT
         toast.success('Utilisateur modifié avec succès');
         setEditUserId(null);
-        setUserData({ name: '', password: '', role: '', accessLevel: '' });
+        setUserData({ name: '', password: '', role: '', accessLevel: '', service: '' });
       } catch (error) {
         toast.error('Erreur lors de la modification de l\'utilisateur');
       }
@@ -61,7 +61,7 @@ const UserManagement = () => {
       try {
         await axios.post('https://threecr-sen.onrender.com/users', userData); // API POST
         toast.success('Utilisateur ajouté avec succès');
-        setUserData({ name: '', password: '', role: '', accessLevel: '' });
+        setUserData({ name: '', password: '', role: '', accessLevel: '', service: '' });
       } catch (error) {
         toast.error('Erreur lors de l\'ajout de l\'utilisateur');
       }
@@ -208,12 +208,27 @@ const UserManagement = () => {
                   ))}
                 </select>
               </div>
+              <div className="mb-3">
+                <label className="form-label">Service</label>
+                <select
+                  name="service"
+                  value={userData.service}
+                  onChange={handleChange}
+                  className="form-select"
+                  required
+                >
+                  <option value="">Sélectionner un service</option>
+                  {services.map((service) => (
+                    <option key={service} value={service}>{service}</option>
+                  ))}
+                </select>
+              </div>
               <button type="submit" className="btn btn-success w-100">
                 {editUserId !== null ? 'Modifier' : 'Ajouter'} l'utilisateur
               </button>
-              <button  onClick={()=> navigate('/role')} className="btn btn-secondary w-100 mt-3">Retour</button>
+              <button onClick={() => navigate('/role')} className="btn btn-secondary w-100 mt-3">Retour</button>
               <p className="text-center mt-3">
-                Connectez vous directement ! <button type="button" onClick={() => setIsLoginMode(true)} className="btn btn-link">Se connecter</button>
+                Connectez-vous directement ! <button type="button" onClick={() => setIsLoginMode(true)} className="btn btn-link">Se connecter</button>
               </p>
             </form>
           </div>
@@ -222,7 +237,7 @@ const UserManagement = () => {
 
       {/* Liste des utilisateurs */}
       <h2 className="mt-5 mb-3 text-center">Liste des utilisateurs</h2>
-      <button  onClick={()=> navigate('/role')} className="btn btn-secondary w-100 mt-3">Retour</button>
+      <button onClick={() => navigate('/role')} className="btn btn-secondary w-100 mt-3">Retour</button>
 
       <ul className="list-group">
         {users.length === 0 ? (
@@ -230,7 +245,7 @@ const UserManagement = () => {
         ) : (
           users.map((user, index) => (
             <li key={user.id} className="list-group-item d-flex justify-content-between align-items-center">
-              {user.name} ({user.role}, {user.accessLevel})
+              {user.name} ({user.role}, {user.accessLevel}, {user.service})
               <div>
                 <button onClick={() => handleEdit(index)} className="btn btn-warning btn-sm me-2">Modifier</button>
                 <button onClick={() => handleDelete(user._id)} className="btn btn-danger btn-sm">Supprimer</button>
