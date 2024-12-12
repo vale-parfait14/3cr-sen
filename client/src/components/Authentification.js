@@ -7,12 +7,12 @@ import ConnectionHistory from './ConnectionHistory';
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
+  authDomain: "basecenterdb.firebaseapp.com",
+  projectId: "basecenterdb",
+  storageBucket: "basecenterdb.firebasestorage.app",
+  messagingSenderId: "919766148380",
+  appId: "1:919766148380:web:30db9986fa2cd8bb7106d9"
 };
 
 // Initialize Firebase
