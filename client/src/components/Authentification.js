@@ -3,7 +3,6 @@ import { ToastContainer, toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
-import ConnectionHistory from './ConnectionHistory';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -25,6 +24,7 @@ const Authentification = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Memoize the date format to avoid recalculating on each render
   const formatDateTime = useMemo(() => (date) => {
     const options = {
       weekday: 'short',
@@ -39,6 +39,7 @@ const Authentification = () => {
     return new Date(date).toLocaleString('fr-FR', options);
   }, []);
 
+  // Fetch users from Firestore
   const fetchUsers = useCallback(async () => {
     try {
       const querySnapshot = await getDocs(collection(db, 'users'));
@@ -48,16 +49,19 @@ const Authentification = () => {
       }));
       setUsers(usersList);
     } catch (error) {
+      console.error('Erreur lors de la récupération des utilisateurs:', error);
       toast.error('Erreur lors de la récupération des utilisateurs');
     }
   }, []);
 
+  // Fetch users once when the component mounts
   useEffect(() => {
     fetchUsers();
     const timer = setTimeout(() => setLoading(false), 1000);
     return () => clearTimeout(timer);
   }, [fetchUsers]);
 
+  // Prevent browser back navigation (popstate)
   useEffect(() => {
     const handlePopState = () => {
       window.history.pushState(null, "", window.location.href);
@@ -67,11 +71,13 @@ const Authentification = () => {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
+  // Handle form input changes
   const handleLoginChange = useCallback((e) => {
     const { name, value } = e.target;
     setLoginData(prev => ({ ...prev, [name]: value }));
   }, []);
 
+  // Handle user login
   const handleLogin = useCallback(async (e) => {
     e.preventDefault();
     const user = users.find(u => u.name === loginData.name && u.password === loginData.password);
@@ -84,6 +90,7 @@ const Authentification = () => {
         service: user.service
       };
 
+      // Store user data in localStorage
       Object.entries(userData).forEach(([key, value]) => 
         localStorage.setItem(`user${key.charAt(0).toUpperCase() + key.slice(1)}`, value)
       );
@@ -109,6 +116,7 @@ const Authentification = () => {
     }
   }, [users, loginData, navigate, formatDateTime]);
 
+  // Loader during the loading state
   if (loading) {
     return (
       <div className="d-flex justify-content-center align-items-center vh-100">
