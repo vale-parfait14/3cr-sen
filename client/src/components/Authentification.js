@@ -6,7 +6,7 @@ import axios from 'axios';
 import ConnectionHistory from './ConnectionHistory';
 
 
-const Authentifications = () => {
+const Authentification = () => {
   const navigate = useNavigate();
   const [loginData, setLoginData] = useState({ name: '', password: '' });
   const [users, setUsers] = useState([]);
@@ -192,4 +192,4 @@ const handleLogin = async (e) => {
   );
 };
 
-export default Authentifications;
+export default Authentification;
