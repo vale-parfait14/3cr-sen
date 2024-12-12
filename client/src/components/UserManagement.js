@@ -4,8 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import 'react-toastify/dist/ReactToastify.css';
 
-const roles = ['Médecin', 'Secrétaire', 'Infirmier(e)', 'Archiviste', 'Gestionnaire financier(e)', 'Etudiant(e)'];
-const accessLevels = ['Limité', 'Moyen', 'Complet'];
+const roles = ['Admin','Médecin', 'Secrétaire', 'Infirmier(e)', 'Archiviste', 'Gestionnaire', 'Etudiant(e)'];
+const accessLevels = ['Affichage', 'Affichage-Modification', 'Affichage-Modification-Suppression', 'Administrateur'];
+const services = ["Cuomo", "Ctcv", "Cardiologie", "Réanimation"];
 
 const UserManagement = () => {
   const navigate = useNavigate();
