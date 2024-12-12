@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 // Importation des modules Firebase
 import { initializeApp } from "firebase/app";
@@ -37,7 +37,7 @@ const UserManagement = () => {
   });
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const history = useHistory();
+  const navigate = useNavigate();
 
   // Récupérer tous les utilisateurs
   const fetchUsers = async () => {
@@ -91,7 +91,7 @@ const UserManagement = () => {
     try {
       await signInWithEmailAndPassword(auth, formData.nom, formData.password); // Utiliser `nom` comme identifiant pour la connexion
       setIsLoggedIn(true);
-      history.push('/patients'); // Rediriger vers la page "patients" après la connexion
+      navigate.push('/patients'); // Rediriger vers la page "patients" après la connexion
     } catch (error) {
       console.error("Erreur de connexion: ", error);
       alert("Erreur de connexion");
