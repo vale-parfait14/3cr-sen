@@ -1,17 +1,30 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, getDocs } from 'firebase/firestore';
 import ConnectionHistory from './ConnectionHistory';
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 const Authentification = () => {
   const navigate = useNavigate();
   const [loginData, setLoginData] = useState({ name: '', password: '' });
   const [users, setUsers] = useState([]);
-  const [isLoginMode] = useState(true);
   const [loading, setLoading] = useState(true);
 
-  // Memoized formatDateTime function
   const formatDateTime = useMemo(() => (date) => {
     const options = {
       weekday: 'short',
@@ -26,11 +39,14 @@ const Authentification = () => {
     return new Date(date).toLocaleString('fr-FR', options);
   }, []);
 
-  // Memoized API call
   const fetchUsers = useCallback(async () => {
     try {
-      const response = await axios.get('https://threecr-sen.onrender.com/users');
-      setUsers(response.data);
+      const querySnapshot = await getDocs(collection(db, 'users'));
+      const usersList = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setUsers(usersList);
     } catch (error) {
       toast.error('Erreur lors de la récupération des utilisateurs');
     }
@@ -46,7 +62,6 @@ const Authentification = () => {
     const handlePopState = () => {
       window.history.pushState(null, "", window.location.href);
     };
-
     window.history.pushState(null, "", window.location.href);
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
@@ -62,18 +77,17 @@ const Authentification = () => {
     const user = users.find(u => u.name === loginData.name && u.password === loginData.password);
 
     if (user) {
-      // Store user data
       const userData = {
         role: user.role,
         accessLevel: user.accessLevel,
         name: user.name,
         service: user.service
       };
+
       Object.entries(userData).forEach(([key, value]) => 
         localStorage.setItem(`user${key.charAt(0).toUpperCase() + key.slice(1)}`, value)
       );
 
-      // Update connection history
       const now = new Date();
       const formattedDate = formatDateTime(now);
       const [date, time] = formattedDate.split(',');
