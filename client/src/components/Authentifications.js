@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import ConnectionHistory from './ConnectionHistory';
 
 const Authentifications = () => {
   const navigate = useNavigate();
@@ -10,53 +9,27 @@ const Authentifications = () => {
   const [users, setUsers] = useState([]);
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [cachedUsers, setCachedUsers] = useState(() => {
-    const cached = localStorage.getItem('cachedUsers');
-    return cached ? JSON.parse(cached) : [];
-  });
+  const [cachedUsers, setCachedUsers] = useState([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        // Utilise d'abord les utilisateurs en cache
-        if (cachedUsers.length > 0) {
-          setUsers(cachedUsers);
-          setLoading(false);
-        }
-        
-        // Puis met à jour depuis l'API
         const response = await axios.get('https://threecr-sen.onrender.com/users');
         setUsers(response.data);
-        // Met à jour le cache
-        localStorage.setItem('cachedUsers', JSON.stringify(response.data));
+        sessionStorage.setItem('cachedUsers', JSON.stringify(response.data));
         setCachedUsers(response.data);
         setLoading(false);
       } catch (error) {
-        if (cachedUsers.length === 0) {
-          toast.error('Erreur lors de la récupération des utilisateurs');
+        const cached = sessionStorage.getItem('cachedUsers');
+        if (cached) {
+          const parsedCache = JSON.parse(cached);
+          setUsers(parsedCache);
+          setCachedUsers(parsedCache);
         }
         setLoading(false);
       }
     };
     fetchUsers();
-  }, []);
-
-  useEffect(() => {
-    const preventBack = () => {
-      window.history.forward();
-    };
-
-    window.addEventListener('load', preventBack);
-    window.addEventListener('pageshow', (event) => {
-      if (event.persisted) {
-        preventBack();
-      }
-    });
-
-    return () => {
-      window.removeEventListener('load', preventBack);
-      window.removeEventListener('pageshow', preventBack);
-    };
   }, []);
 
   const handleLoginChange = (e) => {
@@ -97,25 +70,15 @@ const Authentifications = () => {
         };
 
         Object.entries(userData).forEach(([key, value]) => {
-          localStorage.setItem(`user${key.charAt(0).toUpperCase() + key.slice(1)}`, value);
+          sessionStorage.setItem(`user${key.charAt(0).toUpperCase() + key.slice(1)}`, value);
         });
 
-        const connectionHistory = JSON.parse(localStorage.getItem('connectionHistory') || '[]');
         const now = new Date();
         const formattedDate = formatDateTime(now);
 
-        connectionHistory.push({
-          userName: user.name,
-          date: formattedDate.split(',')[0].trim(),
-          time: formattedDate.split(',')[1].trim(),
-          userService: user.service,
-        });
-
-        localStorage.setItem('connectionHistory', JSON.stringify(connectionHistory));
-
         toast.success('Connexion réussie');
         setLoginData({ name: '', password: '' });
-        navigate('/patients');
+        window.location.href = '/patients';
       } else {
         toast.error('Nom d\'utilisateur ou mot de passe incorrect');
       }
@@ -141,9 +104,8 @@ const Authentifications = () => {
       };
       await axios.post('https://threecr-sen.onrender.com/users', newUser);
       
-      // Mise à jour du cache après l'inscription
       const updatedUsers = [...users, newUser];
-      localStorage.setItem('cachedUsers', JSON.stringify(updatedUsers));
+      sessionStorage.setItem('cachedUsers', JSON.stringify(updatedUsers));
       setCachedUsers(updatedUsers);
       setUsers(updatedUsers);
       
@@ -204,9 +166,13 @@ const Authentifications = () => {
               />
             </div>
             <button type="submit" className="btn btn-primary w-100">
-              Se connecter
+              {isLoginMode ? 'Se connecter' : 'S\'inscrire'}
             </button>
-            <button onClick={() => navigate('/role')} className="btn btn-secondary w-100 mt-2">
+            <button 
+              type="button"
+              onClick={() => navigate('/role')} 
+              className="btn btn-secondary w-100 mt-2"
+            >
               Retour
             </button>
           </form>
