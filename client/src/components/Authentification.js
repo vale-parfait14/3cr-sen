@@ -6,7 +6,7 @@ import axios from 'axios';
 import ConnectionHistory from './ConnectionHistory';
 
 
-const Authentification = () => {
+const Authentifications = () => {
   const navigate = useNavigate();
   const [loginData, setLoginData] = useState({ name: '', password: '' });
   const [users, setUsers] = useState([]);
@@ -16,7 +16,7 @@ const Authentification = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get('http://localhost:5002/users'); // API pour récupérer les utilisateurs
+        const response = await axios.get('https://threecr-sen.onrender.com/users'); // API pour récupérer les utilisateurs
         setUsers(response.data);
       } catch (error) {
         toast.error('Erreur lors de la récupération des utilisateurs');
@@ -110,7 +110,7 @@ const handleLogin = async (e) => {
         accessLevel: 'Limité', // Par défaut, accès limité
         service: loginData.service, // Par défaut, service Google
       };
-      await axios.post('http://localhost:5002/users', newUser); // API POST pour ajouter un utilisateur
+      await axios.post('https://threecr-sen.onrender.com/users', newUser); // API POST pour ajouter un utilisateur
       toast.success('Utilisateur créé avec succès');
       setIsLoginMode(true); // Passer en mode connexion après l'inscription
       setLoginData({ name: '', password: '' });
@@ -192,4 +192,4 @@ const handleLogin = async (e) => {
   );
 };
 
-export default Authentification;
+export default Authentifications;
