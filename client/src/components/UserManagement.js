@@ -46,6 +46,14 @@ const UserManagement = () => {
   useEffect(() => {
     fetchUsers();
     const interval = setInterval(fetchUsers, 1000);
+
+    // Vérifier si l'utilisateur est déjà connecté via localStorage
+    const storedUserName = localStorage.getItem('userName');
+    if (storedUserName) {
+      // Si les informations sont présentes dans le localStorage, l'utilisateur est connecté
+      navigate('/patients');  // Redirection vers la page des patients (par exemple)
+    }
+
     return () => clearInterval(interval);
   }, []);
 
@@ -109,7 +117,7 @@ const UserManagement = () => {
       localStorage.setItem('userAccessLevel', user.accessLevel);
       localStorage.setItem('userService', user.service);
       localStorage.setItem('userName', user.name);
-      navigate('/patients');
+      navigate('/patients');  // Redirection après connexion réussie
     } else {
       toast.error('Identifiants incorrects');
     }
@@ -243,16 +251,6 @@ const UserManagement = () => {
                     <button type="submit" className="btn btn-success w-100">
                       {editUserId ? 'Modifier' : 'Ajouter'} l'utilisateur
                     </button>
-                    <p className="text-center mt-3">
-                      Connectez-vous directement !{' '}
-                      <button
-                        type="button"
-                        onClick={() => navigate('/authentifications')}
-                        className="btn btn-link"
-                      >
-                        Se connecter
-                      </button>
-                    </p>
                   </div>
                 </div>
               </div>
@@ -292,7 +290,7 @@ const UserManagement = () => {
         )}
       </ul>
 
-      <Alerts/>
+      <Alerts />
       <ToastContainer />
     </div>
   );
