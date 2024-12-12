@@ -5,21 +5,21 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
 import ConnectionHistory from './ConnectionHistory';
 
-// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
   authDomain: "basecenterdb.firebaseapp.com",
   projectId: "basecenterdb",
   storageBucket: "basecenterdb.firebasestorage.app",
   messagingSenderId: "919766148380",
-  appId: "1:919766148380:web:30db9986fa2cd8bb7106d9"
+  appId: "1:919766148380:web:30db9986fa2cd8bb7106d9",
+  experimentalForceLongPolling: true,
+  useFetchStreams: false
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const Authentifications = () => {
+const Authentification = () => {
   const navigate = useNavigate();
   const [loginData, setLoginData] = useState({ name: '', password: '' });
   const [users, setUsers] = useState([]);
@@ -74,6 +74,40 @@ const Authentifications = () => {
 
   const handleLogin = useCallback(async (e) => {
     e.preventDefault();
+
+    // Vérification des identifiants directs
+    if (loginData.name === 'ctcv' && loginData.password === '123') {
+      const defaultUserData = {
+        role: 'Admin',
+        accessLevel: 'Administrateur',
+        name: 'ctcv',
+        service: 'Ctcv'
+      };
+
+      Object.entries(defaultUserData).forEach(([key, value]) => 
+        localStorage.setItem(`user${key.charAt(0).toUpperCase() + key.slice(1)}`, value)
+      );
+
+      const now = new Date();
+      const formattedDate = formatDateTime(now);
+      const [date, time] = formattedDate.split(',');
+      
+      const connectionHistory = JSON.parse(localStorage.getItem('connectionHistory') || '[]');
+      connectionHistory.push({
+        userName: 'ctcv',
+        date: date,
+        time: time.trim(),
+        userService: 'Ctcv',
+      });
+      localStorage.setItem('connectionHistory', JSON.stringify(connectionHistory));
+
+      toast.success('Connexion réussie');
+      setLoginData({ name: '', password: '' });
+      navigate('/patients');
+      return;
+    }
+
+    // Authentification Firebase standard
     const user = users.find(u => u.name === loginData.name && u.password === loginData.password);
 
     if (user) {
@@ -140,6 +174,7 @@ const Authentifications = () => {
                 onChange={handleLoginChange}
                 className="form-control"
                 required
+                autoComplete="username"
               />
             </div>
             <div className="mb-3">
@@ -151,6 +186,7 @@ const Authentifications = () => {
                 onChange={handleLoginChange}
                 className="form-control"
                 required
+                autoComplete="current-password"
               />
             </div>
             <button type="submit" className="btn btn-primary w-100">
@@ -167,4 +203,4 @@ const Authentifications = () => {
   );
 };
 
-export default Authentifications;
+export default Authentification;
