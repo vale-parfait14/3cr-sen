@@ -3,17 +3,17 @@
   "name": "3CR",
   "icons": [
     {
-      "src": "https://img.icons8.com/3d-fluency/94/hospital.png",
+      "src": "hospital.png,
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
     },
     {
-      "src": "https://img.icons8.com/3d-fluency/94/hospital.png",
+      "src": "hospital.png,
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "https://img.icons8.com/3d-fluency/94/hospital.png",
+      "src": "hospital.png,
       "type": "image/png",
       "sizes": "512x512"
     }
