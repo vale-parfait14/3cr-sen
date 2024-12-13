@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
+import Alerts from './Alerts';
 import axios from 'axios';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -257,6 +258,7 @@ const UserManagement = () => {
 
       {/* Notification */}
       <ToastContainer />
+        <Alerts/>
     </div>
   );
 };
