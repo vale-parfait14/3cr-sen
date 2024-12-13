@@ -17,10 +17,8 @@ const Auth = ({ login }) => {
     loading: false
   });
 
-  // Memoized API URL
   const API_BASE_URL = useMemo(() => 'https://threecr-sen.onrender.com/api/auth', []);
 
-  // Optimized form handling
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -29,10 +27,11 @@ const Auth = ({ login }) => {
     }));
   }, []);
 
-  // Optimized authentication request
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     setUiState(prev => ({ ...prev, loading: true }));
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     try {
       const response = await fetch(`${API_BASE_URL}/${uiState.isRegistering ? 'register' : 'login'}`, {
@@ -57,13 +56,16 @@ const Auth = ({ login }) => {
     }
   }, [formData.username, formData.password, uiState.isRegistering, API_BASE_URL, login, navigate]);
 
-  // Optimized password reset
   const handlePasswordReset = useCallback(async (e) => {
     e.preventDefault();
     if (formData.newPassword !== formData.confirmPassword) {
       toast.error("Les mots de passe ne correspondent pas");
       return;
     }
+
+    setUiState(prev => ({ ...prev, loading: true }));
+    
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     try {
       const response = await fetch(`${API_BASE_URL}/reset-password`, {
@@ -86,6 +88,8 @@ const Auth = ({ login }) => {
       }));
     } catch (error) {
       toast.error("Erreur de réinitialisation");
+    } finally {
+      setUiState(prev => ({ ...prev, loading: false }));
     }
   }, [formData, API_BASE_URL]);
 
