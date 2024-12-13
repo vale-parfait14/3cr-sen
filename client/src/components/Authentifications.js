@@ -91,7 +91,7 @@ const ComposantConnexion = () => {
                 onClick={() => navigate('/role')}
                 className="btn btn-link"
               >
-                Créer un compte
+                retour vers la page pécédente
               </button>
             </div> 
           </form>
