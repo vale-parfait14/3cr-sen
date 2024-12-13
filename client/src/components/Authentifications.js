@@ -84,15 +84,15 @@ const ComposantConnexion = () => {
               Se connecter
             </button>
             
-    {/*<div className="text-center mt-3">
+    <div className="text-center mt-3">
               <button
                 type="button"
-                onClick={() => navigate('/inscription')}
+                onClick={() => navigate('/role')}
                 className="btn btn-link"
               >
                 Créer un compte
               </button>
-            </div> */}
+            </div> 
           </form>
         </div>
       </div>
