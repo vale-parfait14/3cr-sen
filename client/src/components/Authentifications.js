@@ -83,8 +83,8 @@ const ComposantConnexion = () => {
             <button type="submit" className="btn btn-primary w-100">
               Se connecter
             </button>
-
-            <div className="text-center mt-3">
+            
+    {/*<div className="text-center mt-3">
               <button
                 type="button"
                 onClick={() => navigate('/inscription')}
@@ -92,7 +92,7 @@ const ComposantConnexion = () => {
               >
                 Créer un compte
               </button>
-            </div>
+            </div> */}
           </form>
         </div>
       </div>
