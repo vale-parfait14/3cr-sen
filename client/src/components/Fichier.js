@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
@@ -24,19 +23,17 @@ const PatientSolvable = ({ patients }) => {
   const [fichierInfo, setFichierInfo] = useState({
     patientId: '',
     ordre: '',
-  
     datePatient: '',
     statut: 'Validé',
-  dropboxLinks: [] // Changed from dropboxLink to dropboxLinks array
+    dropboxLinks: []
   });
 
   const [fichiers, setFichiers] = useState([]);
   const userService = localStorage.getItem('userService');
-  const [userRole, setUserRole] = useState(localStorage.getItem("userRole"));
-  const [userAccessLevel, setUserAccessLevel] = useState(localStorage.getItem("userAccessLevel"));
+  const [userRole] = useState(localStorage.getItem("userRole"));
+  const [userAccessLevel] = useState(localStorage.getItem("userAccessLevel"));
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredFichiers, setFilteredFichiers] = useState([]);
-  const [dropboxLink, setDropboxLink] = useState('');
 
   const validatedPatients = patients.filter(patient =>
     patient.validation === 'Validé' && patient.services === userService
@@ -75,10 +72,9 @@ const PatientSolvable = ({ patients }) => {
         ${patient?.dossierNumber.toLowerCase()}
         ${fichier.ordre.toLowerCase()}
         ${patient?.nom.toLowerCase()}
-         ${patient?.sexe.toLowerCase()}
+        ${patient?.sexe.toLowerCase()}
         ${patient?.diagnostic.toLowerCase()}
         ${patient?.numeroDeTelephone}
-        
         ${formatDate(fichier.datePatient).toLowerCase()}
       `;
       return searchString.includes(searchTerm.toLowerCase());
@@ -92,18 +88,23 @@ const PatientSolvable = ({ patients }) => {
     setFichierInfo({
       patientId: fichier.patientId,
       ordre: fichier.ordre,
-    
       datePatient: fichier.datePatient,
-      statut: fichier.statut
+      statut: fichier.statut,
+      dropboxLinks: fichier.dropboxLinks || []
     });
   };
 
   const handleDropboxSuccess = (files) => {
-  const links = files.map(file => file.link);
-  setFichierInfo({ ...fichierInfo, dropboxLinks: links });
-  toast.success(`${files.length} document(s) Dropbox sélectionné(s) avec succès`);
-};
-
+    const links = files.map(file => ({
+      link: file.link,
+      name: file.name
+    }));
+    setFichierInfo(prev => ({
+      ...prev,
+      dropboxLinks: [...prev.dropboxLinks, ...links]
+    }));
+    toast.success(`${files.length} document(s) sélectionné(s) avec succès`);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -114,32 +115,14 @@ const PatientSolvable = ({ patients }) => {
 
     try {
       const docRef = await addDoc(collection(db, 'fichiers'), {
-        patientId: fichierInfo.patientId,
-        ordre: fichierInfo.ordre,
-        
-        datePatient: fichierInfo.datePatient,
-        statut: fichierInfo.statut,
-        service: userService,
-        dropboxLink: dropboxLink
-      });
-
-      const newFichier = {
-        _id: docRef.id,
         ...fichierInfo,
         service: userService,
-        dropboxLink: dropboxLink
-      };
-
-      setFichiers([...fichiers, newFichier]);
-      setFichierInfo({
-        patientId: '',
-        ordre: '',
-        
-        datePatient: '',
-        statut: 'Payé'
+        createdAt: new Date().toISOString()
       });
-      setDropboxLink('');
-      toast.success('Patient et document enregistrés avec succès');
+
+      setFichiers([...fichiers, { _id: docRef.id, ...fichierInfo, service: userService }]);
+      resetForm();
+      toast.success('Patient et documents enregistrés avec succès');
     } catch (error) {
       toast.error('Erreur lors de l\'enregistrement');
     }
@@ -152,56 +135,67 @@ const PatientSolvable = ({ patients }) => {
       await updateDoc(fichierRef, {
         ...fichierInfo,
         service: userService,
-        dropboxLink: dropboxLink
+        updatedAt: new Date().toISOString()
       });
 
       setFichiers(fichiers.map(p =>
-        p._id === editing ? {...p, ...fichierInfo, dropboxLink} : p
+        p._id === editing ? {...p, ...fichierInfo} : p
       ));
       setEditing(null);
-      setFichierInfo({
-        patientId: '',
-        ordre: '',
-       
-        datePatient: '',
-        statut: 'Validé',
-        dropboxLink: ''
-      });
-      setDropboxLink('');
-      toast.success('Patient et document modifiés avec succès');
+      resetForm();
+      toast.success('Patient et documents modifiés avec succès');
     } catch (error) {
       toast.error('Erreur lors de la modification');
     }
   };
 
   const handleDelete = async (fichierId) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce patient et son document associé ?')) {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce patient et ses documents associés ?')) {
       try {
         await deleteDoc(doc(db, 'fichiers', fichierId));
         setFichiers(fichiers.filter(fichier => fichier._id !== fichierId));
         if (editing === fichierId) {
-          setDropboxLink('');
+          resetForm();
+          setEditing(null);
         }
-        toast.success('Patient et document supprimés avec succès');
+        toast.success('Patient et documents supprimés avec succès');
       } catch (error) {
         toast.error('Erreur lors de la suppression');
       }
     }
   };
 
+  const resetForm = () => {
+    setFichierInfo({
+      patientId: '',
+      ordre: '',
+      datePatient: '',
+      statut: 'Validé',
+      dropboxLinks: []
+    });
+    setEditing(null);
+  };
+
+  const removeDocument = (index) => {
+    setFichierInfo(prev => ({
+      ...prev,
+      dropboxLinks: prev.dropboxLinks.filter((_, i) => i !== index)
+    }));
+  };
+
   const exportToExcel = () => {
     const data = fichiers.map(fichier => {
       const patient = patients.find(p => p._id === fichier.patientId);
       return {
-        Ordre: fichier.ordre,
-        Patient: patient?.nom,
-        Patient: patient?.sexe,
-        Patient:patient?.dossierNumber,
-        Diagnostic: patient?.diagnostic,
-        Age: formatDate(patient?.age),
-        Telephone: patient?.numeroDeTelephone,
-        
-        Date: formatDate(fichier.datePatient)
+        'Numéro de dossier': patient?.dossierNumber,
+        'Résumé': fichier.ordre,
+        'Patient': patient?.nom,
+        'Sexe': patient?.sexe,
+        'Diagnostic': patient?.diagnostic,
+        'Age': formatDate(patient?.age),
+        'Téléphone': patient?.numeroDeTelephone,
+        'Date': formatDate(fichier.datePatient),
+        'Nombre de documents': fichier.dropboxLinks?.length || 0
       };
     });
 
@@ -220,101 +214,15 @@ const PatientSolvable = ({ patients }) => {
     return new Date(dateString).toLocaleDateString('fr-FR', options);
   };
 
-
   return (
     <Container>
       <Row className="my-4">
-        <Col md={12} lg={8} className="mx-auto"
-      style={{
-                display:
-                  localStorage.getItem("userName") === "Ad" ||
-                  (userRole === "Médecin" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                  (userRole === "Secrétaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                  (userRole === "Infirmier(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                  (userRole === "Archiviste" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                  (userRole === "Gestionnaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                  (userRole === "Etudiant(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-  
-                  (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-  
-                  (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-  
-                  (userRole === "Secrétaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) 
-                    ? "none"
-                    : "block",
-                    
-              }}
-      >
-          <h2 className="text-center"
-             style={{
-              display:
-                localStorage.getItem("userName") === "Ad" ||
-                (userRole === "Secrétaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                (userRole === "Infirmier(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                (userRole === "Archiviste" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-                (userRole === "Etudiant(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-                (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-                (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-                (userRole === "Secrétaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) 
-                  ? "none"
-                  : "block",
-                  
-            }}
-          >Ajout des fichiers patients</h2>
-          <Form onSubmit={handleSubmit}
-               style={{
-                display:
-                  localStorage.getItem("userName") === "Ad" ||
-                  (userRole === "Médecin" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                  (userRole === "Secrétaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                  (userRole === "Infirmier(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                  (userRole === "Archiviste" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                  (userRole === "Gestionnaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                  (userRole === "Etudiant(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-                 (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modifcation"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                  (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-                  (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modifcation-Suppression"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                  (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-                  (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                  (userRole === "Secrétaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) 
-                    ? "none"
-                    : "block",
-                    
-              }}
-          >
+        <Col md={12} lg={8} className="mx-auto">
+          <h2 className="text-center">Gestion des documents patients</h2>
+          
+          <Form onSubmit={handleSubmit}>
             <Form.Group>
-              <Form.Label>Sélectionner un patient</Form.Label>
+              <Form.Label>Patient</Form.Label>
               <Form.Control
                 as="select"
                 value={fichierInfo.patientId}
@@ -324,29 +232,24 @@ const PatientSolvable = ({ patients }) => {
                 <option value="">Sélectionner un patient</option>
                 {validatedPatients.map(patient => (
                   <option key={patient._id} value={patient._id}>
-                   {patient.dossierNumber}- {patient.nom} - {patient.diagnostic} - Age: {formatDate(patient.age)}-{patient.sexe} - Tel: {patient.numeroDeTelephone}
+                    {patient.dossierNumber} - {patient.nom} - {patient.diagnostic}
                   </option>
                 ))}
               </Form.Control>
             </Form.Group>
 
             <Form.Group>
-              <Form.Label>Résumer ou titre</Form.Label>
+              <Form.Label>Résumé</Form.Label>
               <Form.Control
                 type="text"
-                placeholder="Résumer ou titre"
                 value={fichierInfo.ordre}
                 onChange={(e) => setFichierInfo({...fichierInfo, ordre: e.target.value})}
                 required
               />
             </Form.Group>
 
-            
-
-           
-
             <Form.Group>
-              <Form.Label>Date de Patient</Form.Label>
+              <Form.Label>Date</Form.Label>
               <Form.Control
                 type="date"
                 value={fichierInfo.datePatient}
@@ -354,122 +257,80 @@ const PatientSolvable = ({ patients }) => {
                 required
               />
             </Form.Group>
+
             <Form.Group className="mb-3">
-  <Form.Label>Document(Dropbox)</Form.Label>
-  <DropboxChooser 
-    appKey="gmhp5s9h3aup35v"
-    success={handleDropboxSuccess}
-    cancel={() => toast.info('Sélection annulée')}
-    multiselect={true}
-  >
-    <Button variant="outline-primary" type="button">
-      Choisir un fichier depuis Dropbox
-    </Button>
-  </DropboxChooser>
-  {dropboxLink && (
-    <div className="mt-2">
-      <a href={dropboxLink} target="_blank" rel="noopener noreferrer">
-        Voir le document
-      </a>
-    </div>
-  )}
-</Form.Group>
+              <Form.Label>Documents</Form.Label>
+              <DropboxChooser 
+                appKey="gmhp5s9h3aup35v"
+                success={handleDropboxSuccess}
+                cancel={() => toast.info('Sélection annulée')}
+                multiselect={true}
+              >
+                <Button variant="outline-primary" type="button">
+                  Ajouter des documents
+                </Button>
+              </DropboxChooser>
+
+              {fichierInfo.dropboxLinks.length > 0 && (
+                <div className="mt-2">
+                  {fichierInfo.dropboxLinks.map((doc, index) => (
+                    <div key={index} className="d-flex align-items-center mb-1">
+                      <a href={doc.link} target="_blank" rel="noopener noreferrer">
+                        {doc.name || `Document ${index + 1}`}
+                      </a>
+                      <Button 
+                        variant="outline-danger" 
+                        size="sm" 
+                        className="ms-2"
+                        onClick={() => removeDocument(index)}
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Form.Group>
+
             <Button variant="primary" type="submit">
               {editing ? 'Modifier' : 'Enregistrer'}
             </Button>
+            {editing && (
+              <Button variant="secondary" className="ms-2" onClick={resetForm}>
+                Annuler
+              </Button>
+            )}
           </Form>
         </Col>
       </Row>
 
       <Row>
         <Col>
-          <h3 className="text-center">Liste des Patients et Documents</h3>
-          <Button variant="success" onClick={exportToExcel} className="mb-3"
-           style={{
-            display:
-              localStorage.getItem("userName") === "Ad" ||
-              (userRole === "Médecin" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-              (userRole === "Secrétaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-              (userRole === "Infirmier(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-              (userRole === "Archiviste" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-              (userRole === "Gestionnaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-              (userRole === "Etudiant(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h3>Liste des documents</h3>
+            <Button variant="success" onClick={exportToExcel}>
+              Exporter en Excel
+            </Button>
+          </div>
 
-           (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-              (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-              (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-              (userRole === "Gestionnaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-              (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-              (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-             (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification-Suppression"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-              (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-              (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-              (userRole === "Secrétaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-              (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-              (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) 
-                ? "none"
-                : "block",
-                
-          }}
-          >
-            Exporter en Excel
-          </Button>
           <Form.Group className="mb-3">
-  <Form.Control
-    type="text"
-    placeholder="Rechercher dans tous les champs..."
-    value={searchTerm}
-    onChange={(e) => setSearchTerm(e.target.value)}
-  />
-</Form.Group>
+            <Form.Control
+              type="text"
+              placeholder="Rechercher..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </Form.Group>
 
           <Table responsive striped bordered hover>
             <thead>
               <tr>
-                <th>Numéro de dossier</th>
-                <th>Résumer ou titre</th>
+                <th>N° Dossier</th>
+                <th>Résumé</th>
                 <th>Patient</th>
-                <th>Sexe</th>
-                <th>Diagnostic</th>
-                <th>Age</th>
-                <th>Téléphone</th>
-                <th>Date du jours</th>
-                <th>Document</th>
-
-                <th
-                   style={{
-                    display:
-                      localStorage.getItem("userName") === "Ad" ||
-                      (userRole === "Médecin" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                      (userRole === "Secrétaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                      (userRole === "Infirmier(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                      (userRole === "Archiviste" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                      (userRole === "Gestionnaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                      (userRole === "Etudiant(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-      
-                      (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-      
-                      (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-      
-                      (userRole === "Secrétaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) 
-                        ? "none"
-                        : "block",
-                        
-                  }}
-                >Actions</th>
+                <th>Documents</th>
+                <th>Date</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -477,91 +338,26 @@ const PatientSolvable = ({ patients }) => {
                 const patient = patients.find(p => p._id === fichier.patientId);
                 return (
                   <tr key={fichier._id}>
-                    <td>{patient.dossierNumber}</td>
+                    <td>{patient?.dossierNumber}</td>
                     <td>{fichier.ordre}</td>
                     <td>{patient?.nom}</td>
-                    <td>{patient?.sexe}</td>
-                    <td>{patient?.diagnostic}</td>
-                    <td>{formatDate(patient?.age)}</td>
-                    <td>{patient?.numeroDeTelephone}</td>
-                    
+                    <td>
+                      {fichier.dropboxLinks?.map((doc, index) => (
+                        <div key={index}>
+                          <a href={doc.link} target="_blank" rel="noopener noreferrer">
+                            {doc.name || `Document ${index + 1}`}
+                          </a>
+                        </div>
+                      ))}
+                    </td>
                     <td>{formatDate(fichier.datePatient)}</td>
                     <td>
-  {fichier.dropboxLink && (
-    <a href={fichier.dropboxLink} target="_blank" rel="noopener noreferrer">
-      Voir
-    </a>
-  )}
-</td>
-                    <td>
-                      <Button variant="warning" onClick={() => handleEdit(fichier)}
-                        
-                        
-                        style={{
-                          display:
-                            localStorage.getItem("userName") === "Ad" ||
-                            (userRole === "Médecin" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Secrétaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Infirmier(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Archiviste" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Gestionnaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Etudiant(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-            
-                            (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-            
-                            (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-            
-                            (userRole === "Secrétaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) 
-                              ? "none"
-                              : "block",
-                              
-                        }}
-                        
-                        >Modifier</Button>{' '}
-                      <Button variant="danger" onClick={() => handleDelete(fichier._id)}
-            
-            style={{
-              display:
-                localStorage.getItem("userName") === "Ad" ||
-                (userRole === "Médecin" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                (userRole === "Secrétaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                (userRole === "Infirmier(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                (userRole === "Archiviste" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                (userRole === "Gestionnaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                (userRole === "Etudiant(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-                (userRole === "Médecin" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Gestionnaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-                (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-                (userRole === "Médecin" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Secrétaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) 
-                  ? "none"
-                  : "block",
-                  
-            }}
-
-                      >Supprimer</Button>
+                      <Button variant="warning" size="sm" onClick={() => handleEdit(fichier)}>
+                        Modifier
+                      </Button>{' '}
+                      <Button variant="danger" size="sm" onClick={() => handleDelete(fichier._id)}>
+                        Supprimer
+                      </Button>
                     </td>
                   </tr>
                 );
