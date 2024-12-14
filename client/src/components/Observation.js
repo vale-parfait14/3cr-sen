@@ -48,7 +48,6 @@ const Observation = () => {
       title: '',
       comment: '',
       timestamp: new Date().toISOString(),
-      order: 0 // Initial order value
     }));
 
     for (const file of newFilesObs) {
@@ -56,9 +55,9 @@ const Observation = () => {
     }
   };
 
-  const handleOrderChange = async (id, newOrder) => {
+  const handleOrderChange = async (id, newComment) => {
     const fileRef = doc(db, "filesObs", id);
-    await updateDoc(fileRef, { order: parseInt(newOrder) });
+    await updateDoc(fileRef, { comment: parseInt(newComment) });
   };
 
   const handleTitleChange = async (id, newTitle) => {
@@ -94,7 +93,7 @@ const Observation = () => {
 
   // Tri des fichiers uniquement par le numéro d'ordre
   const sortedAndFilteredFiles = [...filesObs]
-    .sort((a, b) => a.order - b.order) // Tri par ordre uniquement
+    .sort((a, b) => a.comment - b.comment) // Tri par ordre uniquement
     .filter(file => 
       file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       file.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -181,8 +180,8 @@ const Observation = () => {
                   <input
                     type="text"
                     className="form-control form-control-sm w-50"
-                    placeholder="Ordre d'affichage"
-                    value={file.order}
+                    placeholder="commentaire"
+                    value={file.comment}
                     onChange={(e) => handleOrderChange(file.id, e.target.value)}
                   />
                 </div>
