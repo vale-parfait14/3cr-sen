@@ -1511,6 +1511,7 @@ const [formData, setFormData] = useState({
                 setFormData({ ...formData, dossierNumber: e.target.value })
               }
             />
+                </label>
             <select
               type="text"
               placeholder="Service"
