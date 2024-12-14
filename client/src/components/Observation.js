@@ -6,6 +6,7 @@ import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 
+
 const firebaseConfig = {
   apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
   authDomain: "basecenterdb.firebaseapp.com",
