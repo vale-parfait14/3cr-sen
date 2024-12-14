@@ -154,13 +154,12 @@ const Observation = () => {
             <div className="card shadow-sm">
               <div className="card-body">
                 <div className="d-flex justify-content-between mb-3">
-                  <input
-                    type="text"
-                    value={file.title}
-                    onChange={(e) => handleTitleChange(file.id, e.target.value)}
-                    placeholder="Enter title"
-                    className="form-control form-control-sm"
-                  />
+                  <button
+                  className="btn btn-info btn-sm"
+                  onClick={() => handleOpenLink(file.link)}
+                >
+                  Voir le Staff
+                </button>
                   <div>
                     <button 
                       onClick={() => handleDelete(file.id)} 
@@ -180,20 +179,13 @@ const Observation = () => {
                 <div className="mb-3">
                   Ordre du fichier :
                   <input
-                    type="number"
+                    type="text"
                     className="form-control form-control-sm w-50"
                     placeholder="Ordre d'affichage"
-                    value={file.order || 0}
+                    value={file.order}
                     onChange={(e) => handleOrderChange(file.id, e.target.value)}
                   />
                 </div>
-
-                <button
-                  className="btn btn-info btn-sm"
-                  onClick={() => handleOpenLink(file.link)}
-                >
-                  Voir le Staff
-                </button>
               </div>
             </div>
           </div>
