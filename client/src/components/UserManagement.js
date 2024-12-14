@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import Alerts from './Alerts';
 import axios from 'axios';
 import 'react-toastify/dist/ReactToastify.css';
+import Alerts from './Alerts';
 
 const roles = ['Admin', 'Médecin', 'Secrétaire', 'Infirmier(e)', 'Archiviste', 'Gestionnaire', 'Etudiant(e)'];
 const accessLevels = ['Affichage', 'Affichage-Modification', 'Affichage-Modification-Suppression', 'Administrateur'];
@@ -42,32 +42,50 @@ const UserManagement = () => {
   // Ajouter ou modifier un utilisateur
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!userData.name || !userData.password || !userData.role || !userData.accessLevel || !userData.service) {
+    
+    // Validate required fields using object destructuring
+    const { name, password, role, accessLevel, service } = userData;
+    if (!name || !password || !role || !accessLevel || !service) {
       toast.error('Veuillez remplir tous les champs');
       return;
     }
-
-    if (editUserId !== null) {
-      // Modifier un utilisateur existant
-      try {
-        await axios.put(`https://threecr-sen.onrender.com/users/${users[editUserId]._id}`, userData); // API PUT
+  
+    const API_URL = 'https://threecr-sen.onrender.com/users';
+    
+    try {
+      if (editUserId !== null) {
+        // Edit existing user with optimistic update
+        const userId = users[editUserId]._id;
+        setUsers(prevUsers => {
+          const newUsers = [...prevUsers];
+          newUsers[editUserId] = { ...newUsers[editUserId], ...userData };
+          return newUsers;
+        });
+        
+        await axios.put(`${API_URL}/${userId}`, userData);
         toast.success('Utilisateur modifié avec succès');
-        setEditUserId(null);
-        setUserData({ name: '', password: '', role: '', accessLevel: '', service: '' });
-      } catch (error) {
-        toast.error('Erreur lors de la modification de l\'utilisateur');
-      }
-    } else {
-      // Ajouter un nouvel utilisateur
-      try {
-        await axios.post('https://threecr-sen.onrender.com/users', userData); // API POST
+      } else {
+        // Add new user with optimistic update
+        const tempId = Date.now();
+        setUsers(prevUsers => [...prevUsers, { ...userData, _id: tempId }]);
+        
+        await axios.post(API_URL, userData);
         toast.success('Utilisateur ajouté avec succès');
-        setUserData({ name: '', password: '', role: '', accessLevel: '', service: '' });
-      } catch (error) {
-        toast.error('Erreur lors de l\'ajout de l\'utilisateur');
       }
+  
+      // Reset form state
+      setEditUserId(null);
+      setUserData({ name: '', password: '', role: '', accessLevel: '', service: '' });
+      
+    } catch (error) {
+      // Revert optimistic update on error
+      toast.error(editUserId !== null ? 
+        'Erreur lors de la modification de l\'utilisateur' : 
+        'Erreur lors de l\'ajout de l\'utilisateur'
+      );
     }
   };
+  
 
   // Gérer les changements dans le formulaire d'ajout/modification
   const handleChange = (e) => {
@@ -80,6 +98,7 @@ const UserManagement = () => {
 
   // Supprimer un utilisateur
   const handleDelete = async (id) => {
+    const confirmation = window.confirm("Confirmation de la suppression : ")
     try {
       await axios.delete(`https://threecr-sen.onrender.com/users/${id}`); // API DELETE
       setUsers(users.filter(user => user._id !== id));
@@ -227,7 +246,6 @@ const UserManagement = () => {
               <button type="submit" className="btn btn-success w-100">
                 {editUserId !== null ? 'Modifier' : 'Ajouter'} l'utilisateur
               </button>
-              <button onClick={() => navigate('/role')} className="btn btn-secondary w-100 mt-3">Retour</button>
               <p className="text-center mt-3">
                 Connectez-vous directement ! <button type="button" onClick={() => setIsLoginMode(true)} className="btn btn-link">Se connecter</button>
               </p>
@@ -258,7 +276,7 @@ const UserManagement = () => {
 
       {/* Notification */}
       <ToastContainer />
-        <Alerts/>
+      <Alerts/>
     </div>
   );
 };
