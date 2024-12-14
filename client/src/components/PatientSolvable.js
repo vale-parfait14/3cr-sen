@@ -7,12 +7,12 @@ import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'fire
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC9PY-2h8xXxw_qPHVXsGfm5D2BZD1Dgj4",
-  authDomain: "threecr-sen.firebaseapp.com",
-  projectId: "threecr-sen",
-  storageBucket: "threecr-sen.appspot.com",
-  messagingSenderId: "1015837594540",
-  appId: "1:1015837594540:web:f6d9a5a6d9c73e7e3e8f7c"
+  apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
+  authDomain: "basecenterdb.firebaseapp.com",
+  projectId: "basecenterdb",
+  storageBucket: "basecenterdb.firebasestorage.app",
+  messagingSenderId: "919766148380",
+  appId: "1:919766148380:web:30db9986fa2cd8bb7106d9"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -449,4 +449,3 @@ const PatientSolvable = ({ patients }) => {
 };
 
 export default PatientSolvable;
-
