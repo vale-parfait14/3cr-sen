@@ -43,19 +43,12 @@ const Observation = () => {
     const newFilesObs = selectedFilesObs.map(file => ({
       name: file.name,
       link: file.link,
-      title: '',
-      comment: '',
-      timestamp: new Date().toISOString()
+      comment: ''
     }));
 
     for (const file of newFilesObs) {
       await addDoc(collection(db, "filesObs"), file);
     }
-  };
-
-  const handleTitleChange = async (id, newTitle) => {
-    const fileRef = doc(db, "filesObs", id);
-    await updateDoc(fileRef, { title: newTitle });
   };
 
   const handleCommentChange = async (id, newComment) => {
@@ -69,25 +62,13 @@ const Observation = () => {
     }
   };
 
-  const handleDownload = async (file) => {
-    try {
-      const response = await fetch(file.link);
-      const blob = await response.blob();
-      saveAs(blob, file.name);
-    } catch (error) {
-      console.error('Échec du téléchargement:', error);
-    }
-  };
-
   const handleOpenLink = (link) => {
     window.open(link, '_blank');
   };
 
   const filteredFiles = filesObs.filter(file => 
     file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    file.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    file.comment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    new Date(file.timestamp).toLocaleString().toLowerCase().includes(searchTerm.toLowerCase())
+    file.comment?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -136,7 +117,7 @@ const Observation = () => {
             <input
               type="text"
               className="form-control form-control-lg"
-              placeholder="Rechercher par nom, titre, commentaire ou date..."
+              placeholder="Rechercher par nom ou commentaire..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -147,22 +128,7 @@ const Observation = () => {
               <div key={file.id} className="col-12 col-md-6 col-lg-4">
                 <div className="card h-100 border-0 shadow-lg rounded-3">
                   <div className="card-body p-4">
-                    <div className="mb-3">
-                      <input
-                        type="text"
-                        value={file.title}
-                        onChange={(e) => handleTitleChange(file.id, e.target.value)}
-                        placeholder="Entrer un titre"
-                        className="form-control form-control-lg"
-                      />
-                    </div>
-
-                    <div className="mb-3">
-                      <h6 className="fw-bold">{file.name}</h6>
-                      <small className="text-muted">
-                        {new Date(file.timestamp).toLocaleString()}
-                      </small>
-                    </div>
+                    <h6 className="fw-bold mb-3">{file.name}</h6>
 
                     <div className="mb-4">
                       <textarea
