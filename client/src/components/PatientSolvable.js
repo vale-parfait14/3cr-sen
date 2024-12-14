@@ -5,26 +5,44 @@ import { Container, Row, Col, Form, Button, Table } from 'react-bootstrap';
 
 const PatientSolvable = ({ patients }) => {
   const [editing, setEditing] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [fileLinks, setFileLinks] = useState([]);
   const [paymentInfo, setPaymentInfo] = useState({
     patientId: '',
     ordre: '',
-    modePaiement: '',
-    Donnateur: '',
-    montant: '',
     datePaiement: '',
     statut: 'Payé'
   });
 
   const [payments, setPayments] = useState([]);
   const userService = localStorage.getItem('userService');
-  const [userRole, setUserRole] = useState(localStorage.getItem("userRole"));
-  const [userAccessLevel, setUserAccessLevel] = useState(localStorage.getItem("userAccessLevel"));
+  const [userRole] = useState(localStorage.getItem("userRole"));
+  const [userAccessLevel] = useState(localStorage.getItem("userAccessLevel"));
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredPayments, setFilteredPayments] = useState([]);
-  // Filtrer les patients par service
+
   const validatedPatients = patients.filter(patient =>
     patient.validation === 'Validé' && patient.services === userService
   );
+
+  useEffect(() => {
+    return () => {
+      fileLinks.forEach(file => URL.revokeObjectURL(file.url));
+    };
+  }, [fileLinks]);
+
+  const handleFileSelect = (event) => {
+    const files = Array.from(event.target.files);
+    setSelectedFiles(prevFiles => [...prevFiles, ...files]);
+    
+    const newFileLinks = files.map(file => ({
+      name: file.name,
+      url: URL.createObjectURL(file),
+      type: file.type
+    }));
+    
+    setFileLinks(prevLinks => [...prevLinks, ...newFileLinks]);
+  };
 
   useEffect(() => {
     const fetchPayments = async () => {
@@ -32,9 +50,9 @@ const PatientSolvable = ({ patients }) => {
         const response = await fetch('https://threecr-sen.onrender.com/api/payments');
         if (response.ok) {
           const data = await response.json();
-          // Filtrer les paiements selon le service de l'utilisateur
           const filteredPayments = data.filter(payment => payment.service === userService);
           setPayments(filteredPayments);
+          setFilteredPayments(filteredPayments);
         }
       } catch (error) {
         toast.error('Erreur lors du chargement des paiements');
@@ -42,43 +60,36 @@ const PatientSolvable = ({ patients }) => {
     };
 
     fetchPayments();
-    const intervalId = setInterval(fetchPayments, 5000); // Recharger chaque 5 secondes
-
-    // Nettoyage de l'intervalle au démontage du composant
+    const intervalId = setInterval(fetchPayments, 5000);
     return () => clearInterval(intervalId);
-  }, [userService]); // Dépendre du service de l'utilisateur pour recharger les paiements
-// Add this useEffect to handle the search filtering
-useEffect(() => {
-  if (!searchTerm) {
-    setFilteredPayments(payments);
-    return;
-  }
+  }, [userService]);
 
-  const searchResults = payments.filter(payment => {
-    const patient = patients.find(p => p._id === payment.patientId);
-    const searchString = `
-      ${payment.ordre.toLowerCase()}
-      ${patient?.nom.toLowerCase()}
-      ${patient?.diagnostic.toLowerCase()}
-      ${patient?.numeroDeTelephone}
-      ${payment.modePaiement.toLowerCase()}
-      ${payment.Donnateur?.toLowerCase() || ''}
-      ${payment.montant}
-      ${formatDate(payment.datePaiement).toLowerCase()}
-    `;
-    return searchString.includes(searchTerm.toLowerCase());
-  });
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredPayments(payments);
+      return;
+    }
 
-  setFilteredPayments(searchResults);
-}, [searchTerm, payments, patients]);
+    const searchResults = payments.filter(payment => {
+      const patient = patients.find(p => p._id === payment.patientId);
+      const searchString = `
+        ${payment.ordre.toLowerCase()}
+        ${patient?.nom.toLowerCase() || ''}
+        ${patient?.diagnostic.toLowerCase() || ''}
+        ${patient?.numeroDeTelephone || ''}
+        ${formatDate(payment.datePaiement).toLowerCase()}
+      `;
+      return searchString.includes(searchTerm.toLowerCase());
+    });
+
+    setFilteredPayments(searchResults);
+  }, [searchTerm, payments, patients]);
+
   const handleEdit = (payment) => {
     setEditing(payment._id);
     setPaymentInfo({
       patientId: payment.patientId,
       ordre: payment.ordre,
-      modePaiement: payment.modePaiement,
-      Donnateur: payment.Donnateur,
-      montant: payment.montant,
       datePaiement: payment.datePaiement,
       statut: payment.statut
     });
@@ -86,16 +97,20 @@ useEffect(() => {
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+    const formData = new FormData();
+    formData.append('paymentInfo', JSON.stringify({
+      ...paymentInfo,
+      service: userService
+    }));
+
+    selectedFiles.forEach((file, index) => {
+      formData.append(`file${index}`, file);
+    });
+
     try {
       const response = await fetch(`https://threecr-sen.onrender.com/api/payments/${editing}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...paymentInfo,
-          service: userService
-        })
+        body: formData
       });
 
       if (response.ok) {
@@ -103,16 +118,7 @@ useEffect(() => {
         setPayments(payments.map(p =>
           p._id === editing ? updatedPayment : p
         ));
-        setEditing(null);
-        setPaymentInfo({
-          patientId: '',
-          ordre: '',
-          modePaiement: '',
-          Donnateur: '',
-          montant: '',
-          datePaiement: '',
-          statut: 'Payé'
-        });
+        resetForm();
         toast.success('Paiement modifié avec succès');
       }
     } catch (error) {
@@ -127,35 +133,43 @@ useEffect(() => {
       return;
     }
 
+    const formData = new FormData();
+    formData.append('paymentInfo', JSON.stringify({
+      ...paymentInfo,
+      service: userService
+    }));
+    
+    selectedFiles.forEach((file, index) => {
+      formData.append(`file${index}`, file);
+    });
+
     try {
       const response = await fetch('https://threecr-sen.onrender.com/api/payments', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...paymentInfo,
-          service: userService
-        })
+        body: formData
       });
 
       if (response.ok) {
         const newPayment = await response.json();
         setPayments([...payments, newPayment]);
-        setPaymentInfo({
-          patientId: '',
-          ordre: '',
-          modePaiement: '',
-          Donnateur: '',
-          montant: '',
-          datePaiement: '',
-          statut: 'Payé'
-        });
+        resetForm();
         toast.success('Paiement enregistré avec succès');
       }
     } catch (error) {
       toast.error('Erreur lors de l\'enregistrement');
     }
+  };
+
+  const resetForm = () => {
+    setEditing(null);
+    setPaymentInfo({
+      patientId: '',
+      ordre: '',
+      datePaiement: '',
+      statut: 'Payé'
+    });
+    setSelectedFiles([]);
+    setFileLinks([]);
   };
 
   const handleDelete = async (paymentId) => {
@@ -184,10 +198,8 @@ useEffect(() => {
         Diagnostic: patient?.diagnostic,
         Age: formatDate(patient?.age),
         Telephone: patient?.numeroDeTelephone,
-        ModePaiement: payment.modePaiement,
-        Donnateur: payment.modePaiement === 'Dons' ? payment.Donnateur : '',
-        Montant: payment.montant,
-        Date: formatDate(payment.datePaiement)
+        Date: formatDate(payment.datePaiement),
+        Documents: payment.documents?.join(', ') || ''
       };
     });
 
@@ -198,6 +210,7 @@ useEffect(() => {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return '';
     const options = { 
       day: 'numeric', 
       month: 'long', 
@@ -206,212 +219,124 @@ useEffect(() => {
     return new Date(dateString).toLocaleDateString('fr-FR', options);
   };
 
+  const shouldShowAdminFeatures = () => {
+    return !(
+      localStorage.getItem("userName") === "Ad" ||
+      (userRole === "Médecin" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"].includes(userService)) ||
+      (userRole === "Secrétaire" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"].includes(userService)) ||
+      (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"].includes(userService))
+    );
+  };
+
   return (
     <Container>
       <Row className="my-4">
         <Col md={12} lg={8} className="mx-auto">
-          <h2 className="text-center"
-             style={{
-              display:
-                localStorage.getItem("userName") === "Ad" ||
-                (userRole === "Médecin" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                (userRole === "Secrétaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                (userRole === "Infirmier(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                (userRole === "Archiviste" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
+          {shouldShowAdminFeatures() && (
+            <>
+              <h2 className="text-center">Enregistrement des Documents</h2>
+              <Form onSubmit={handleSubmit}>
+                <Form.Group>
+                  <Form.Label>Sélectionner un patient</Form.Label>
+                  <Form.Control
+                    as="select"
+                    value={paymentInfo.patientId}
+                    onChange={(e) => setPaymentInfo({...paymentInfo, patientId: e.target.value})}
+                    required
+                  >
+                    <option value="">Sélectionner un patient</option>
+                    {validatedPatients.map(patient => (
+                      <option key={patient._id} value={patient._id}>
+                        {patient.nom} - {patient.diagnostic} - Age: {formatDate(patient.age)} - Tel: {patient.numeroDeTelephone}
+                      </option>
+                    ))}
+                  </Form.Control>
+                </Form.Group>
 
-                (userRole === "Etudiant(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
+                <Form.Group>
+                  <Form.Label>Ordre</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Ordre"
+                    value={paymentInfo.ordre}
+                    onChange={(e) => setPaymentInfo({...paymentInfo, ordre: e.target.value})}
+                    required
+                  />
+                </Form.Group>
 
-                (userRole === "Médecin" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
+                <Form.Group>
+                  <Form.Label>Date</Form.Label>
+                  <Form.Control
+                    type="date"
+                    value={paymentInfo.datePaiement}
+                    onChange={(e) => setPaymentInfo({...paymentInfo, datePaiement: e.target.value})}
+                    required
+                  />
+                </Form.Group>
 
-                (userRole === "Médecin" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
+                <Form.Group>
+                  <Form.Label>Documents</Form.Label>
+                  <Form.Control
+                    type="file"
+                    multiple
+                    onChange={handleFileSelect}
+                  />
+                </Form.Group>
 
-                (userRole === "Médecin" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Secrétaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) 
-                  ? "none"
-                  : "block",
-                  
-            }}
-          >Enregistrement des Paiements</h2>
-          <Form onSubmit={handleSubmit}
-               style={{
-                display:
-                  localStorage.getItem("userName") === "Ad" ||
-                  (userRole === "Médecin" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                  (userRole === "Secrétaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                  (userRole === "Infirmier(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                  (userRole === "Archiviste" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                  (userRole === "Gestionnaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                  (userRole === "Etudiant(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-  
-                  (userRole === "Médecin" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-  
-                  (userRole === "Médecin" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-  
-                  (userRole === "Médecin" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Secrétaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                  (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) 
-                    ? "none"
-                    : "block",
-                    
-              }}
-          >
-            <Form.Group>
-              <Form.Label>Sélectionner un patient</Form.Label>
-              <Form.Control
-                as="select"
-                value={paymentInfo.patientId}
-                onChange={(e) => setPaymentInfo({...paymentInfo, patientId: e.target.value})}
-                required
-              >
-                <option value="">Sélectionner un patient</option>
-                {validatedPatients.map(patient => (
-                  <option key={patient._id} value={patient._id}>
-                    {patient.nom} - {patient.diagnostic} - Age: {formatDate(patient.age)} - Tel: {patient.numeroDeTelephone}
-                  </option>
-                ))}
-              </Form.Control>
-            </Form.Group>
+                {selectedFiles.length > 0 && (
+                  <div className="mt-3">
+                    <h5>Fichiers sélectionnés:</h5>
+                    <ul>
+                      {fileLinks.map((file, index) => (
+                        <li key={index}>
+                          <a href={file.url} target="_blank" rel="noopener noreferrer">
+                            {file.name}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
-            <Form.Group>
-              <Form.Label>Ordre</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Ordre"
-                value={paymentInfo.ordre}
-                onChange={(e) => setPaymentInfo({...paymentInfo, ordre: e.target.value})}
-                required
-              />
-            </Form.Group>
+                {fileLinks.length > 0 && (
+                  <Button 
+                    variant="info" 
+                    className="mt-2"
+                    onClick={() => {
+                      const linksText = fileLinks.map(f => f.url).join('\n');
+                      alert('Liens des fichiers:\n\n' + linksText);
+                    }}
+                  >
+                    Afficher tous les liens
+                  </Button>
+                )}
 
-            <Form.Group>
-              <Form.Label>Mode de paiement</Form.Label>
-              <Form.Control
-                as="select"
-                value={paymentInfo.modePaiement}
-                onChange={(e) => setPaymentInfo({...paymentInfo, modePaiement: e.target.value})}
-                required
-              >
-                <option value="">Sélectionner un mode de paiement</option>
-                <option value="Dons">Dons</option>
-                <option value="espèces en :dollar">Espèces en: Dollar</option>
-                <option value="espèces en :euro">Espèces en: Euro</option>
-                <option value="espèces en :cfa">Espèces en: CFA</option>
-                <option value="espèces en :livre">Espèces en: Livre</option>
-                <option value="espèces en :dirham">Espèces en: Dirham</option>
-                <option value="carte :banquaire visa">Carte bancaire :Visa</option>
-                <option value="cheque :uba">Chèque: UBA</option>
-              </Form.Control>
-            </Form.Group>
-
-            {paymentInfo.modePaiement === 'Dons' && (
-              <Form.Group>
-                <Form.Label>Donnateur</Form.Label>
-                <Form.Control
-                  type="text"
-                  placeholder="Donnateur"
-                  value={paymentInfo.Donnateur}
-                  onChange={(e) => setPaymentInfo({...paymentInfo, Donnateur: e.target.value})}
-                  required
-                />
-              </Form.Group>
-            )}
-
-            <Form.Group>
-              <Form.Label>Montant</Form.Label>
-              <Form.Control
-                type="number"
-                placeholder="Montant"
-                value={paymentInfo.montant}
-                onChange={(e) => setPaymentInfo({...paymentInfo, montant: e.target.value})}
-                required
-              />
-            </Form.Group>
-
-            <Form.Group>
-              <Form.Label>Date de paiement</Form.Label>
-              <Form.Control
-                type="date"
-                value={paymentInfo.datePaiement}
-                onChange={(e) => setPaymentInfo({...paymentInfo, datePaiement: e.target.value})}
-                required
-              />
-            </Form.Group>
-
-            <Button variant="primary" type="submit">
-              {editing ? 'Modifier' : 'Enregistrer'}
-            </Button>
-          </Form>
+                <Button variant="primary" type="submit" className="mt-3">
+                  {editing ? 'Modifier' : 'Enregistrer'}
+                </Button>
+              </Form>
+            </>
+          )}
         </Col>
       </Row>
 
       <Row>
         <Col>
-          <h3 className="text-center">Liste des paiements</h3>
-          <Button variant="success" onClick={exportToExcel} className="mb-3"
-           style={{
-            display:
-              localStorage.getItem("userName") === "Ad" ||
-              (userRole === "Médecin" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-              (userRole === "Secrétaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-              (userRole === "Infirmier(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-              (userRole === "Archiviste" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-              (userRole === "Gestionnaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-              (userRole === "Etudiant(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-              (userRole === "Médecin" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-              (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-              (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-              (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-              (userRole === "Gestionnaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-              (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-              (userRole === "Médecin" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-              (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-              (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-              (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-              (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-              (userRole === "Médecin" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-              (userRole === "Secrétaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-              (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-              (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-              (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) 
-                ? "none"
-                : "block",
-                
-          }}
-          >
-            Exporter en Excel
-          </Button>
+          <h3 className="text-center">Liste des documents</h3>
+          {shouldShowAdminFeatures() && (
+            <Button variant="success" onClick={exportToExcel} className="mb-3">
+              Exporter en Excel
+            </Button>
+          )}
+          
           <Form.Group className="mb-3">
-  <Form.Control
-    type="text"
-    placeholder="Rechercher dans tous les champs..."
-    value={searchTerm}
-    onChange={(e) => setSearchTerm(e.target.value)}
-  />
-</Form.Group>
+            <Form.Control
+              type="text"
+              placeholder="Rechercher dans tous les champs..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </Form.Group>
 
           <Table responsive striped bordered hover>
             <thead>
@@ -421,43 +346,9 @@ useEffect(() => {
                 <th>Diagnostic</th>
                 <th>Age</th>
                 <th>Téléphone</th>
-                <th>Mode de paiement</th>
-                {payments.some(p => p.modePaiement === 'Dons') && <th>Donnateur</th>}
-                <th>Montant</th>
-                <th>Date de paiement</th>
-                <th
-                   style={{
-                    display:
-                      localStorage.getItem("userName") === "Ad" ||
-                      (userRole === "Médecin" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                      (userRole === "Secrétaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                      (userRole === "Infirmier(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                      (userRole === "Archiviste" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                      (userRole === "Gestionnaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                      (userRole === "Etudiant(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-      
-                      (userRole === "Médecin" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-      
-                      (userRole === "Médecin" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-      
-                      (userRole === "Médecin" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Secrétaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                      (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) 
-                        ? "none"
-                        : "block",
-                        
-                  }}
-                >Actions</th>
+                <th>Date</th>
+                <th>Documents</th>
+                {shouldShowAdminFeatures() && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -470,86 +361,26 @@ useEffect(() => {
                     <td>{patient?.diagnostic}</td>
                     <td>{formatDate(patient?.age)}</td>
                     <td>{patient?.numeroDeTelephone}</td>
-                    <td>{payment.modePaiement}</td>
-                    {payments.some(p => p.modePaiement === 'Dons') && 
-                      <td>{payment.modePaiement === 'Dons' ? payment.Donnateur : '-'}</td>
-                    }
-                    <td>{payment.montant}</td>
                     <td>{formatDate(payment.datePaiement)}</td>
                     <td>
-                      <Button variant="warning" onClick={() => handleEdit(payment)}
-                        
-                        
-                        style={{
-                          display:
-                            localStorage.getItem("userName") === "Ad" ||
-                            (userRole === "Médecin" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Secrétaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Infirmier(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Archiviste" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Gestionnaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                            (userRole === "Etudiant(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-            
-                            (userRole === "Médecin" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-            
-                            (userRole === "Médecin" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-            
-                            (userRole === "Médecin" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Secrétaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                            (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) 
-                              ? "none"
-                              : "block",
-                              
-                        }}
-                        
-                        >Modifier</Button>{' '}
-                      <Button variant="danger" onClick={() => handleDelete(payment._id)}
-            
-            style={{
-              display:
-                localStorage.getItem("userName") === "Ad" ||
-                (userRole === "Médecin" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                (userRole === "Secrétaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                (userRole === "Infirmier(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                (userRole === "Archiviste" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                (userRole === "Gestionnaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                (userRole === "Etudiant(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-                (userRole === "Médecin" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Gestionnaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-                (userRole === "Médecin" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-
-                (userRole === "Médecin" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Secrétaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) 
-                  ? "none"
-                  : "block",
-                  
-            }}
-
-                      >Supprimer</Button>
+                      {payment.documents?.map((doc, index) => (
+                        <div key={index}>
+                          <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                            {doc.name}
+                          </a>
+                        </div>
+                      ))}
                     </td>
+                    {shouldShowAdminFeatures() && (
+                      <td>
+                        <Button variant="warning" onClick={() => handleEdit(payment)}>
+                          Modifier
+                        </Button>{' '}
+                        <Button variant="danger" onClick={() => handleDelete(payment._id)}>
+                          Supprimer
+                        </Button>
+                      </td>
+                    )}
                   </tr>
                 );
               })}
