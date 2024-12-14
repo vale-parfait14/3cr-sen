@@ -32,8 +32,6 @@ const PatientSolvable = ({ patients }) => {
   const userService = localStorage.getItem('userService');
   const [userRole] = useState(localStorage.getItem("userRole"));
   const [userAccessLevel] = useState(localStorage.getItem("userAccessLevel"));
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filteredFichiers, setFilteredFichiers] = useState([]);
 
   const validatedPatients = patients.filter(patient =>
     patient.validation === 'Validé' && patient.services === userService
@@ -59,29 +57,6 @@ const PatientSolvable = ({ patients }) => {
     const intervalId = setInterval(fetchFichiers, 5000);
     return () => clearInterval(intervalId);
   }, [userService]);
-
-  useEffect(() => {
-    if (!searchTerm) {
-      setFilteredFichiers(fichiers);
-      return;
-    }
-
-    const searchResults = fichiers.filter(fichier => {
-      const patient = patients.find(p => p._id === fichier.patientId);
-      const searchString = `
-        ${patient?.dossierNumber.toLowerCase()}
-        ${fichier.ordre.toLowerCase()}
-        ${patient?.nom.toLowerCase()}
-        ${patient?.sexe.toLowerCase()}
-        ${patient?.diagnostic.toLowerCase()}
-        ${patient?.numeroDeTelephone}
-        ${formatDate(fichier.datePatient).toLowerCase()}
-      `;
-      return searchString.includes(searchTerm.toLowerCase());
-    });
-
-    setFilteredFichiers(searchResults);
-  }, [searchTerm, fichiers, patients]);
 
   const handleEdit = (fichier) => {
     setEditing(fichier._id);
@@ -313,15 +288,6 @@ const PatientSolvable = ({ patients }) => {
             </Button>
           </div>
 
-          <Form.Group className="mb-3">
-            <Form.Control
-              type="text"
-              placeholder="Rechercher..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </Form.Group>
-
           <Table responsive striped bordered hover>
             <thead>
               <tr>
@@ -334,7 +300,7 @@ const PatientSolvable = ({ patients }) => {
               </tr>
             </thead>
             <tbody>
-              {filteredFichiers.map((fichier) => {
+              {fichiers.map((fichier) => {
                 const patient = patients.find(p => p._id === fichier.patientId);
                 return (
                   <tr key={fichier._id}>
