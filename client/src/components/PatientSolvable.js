@@ -25,6 +25,73 @@ const PatientSolvable = ({ patients }) => {
     patient.validation === 'Validé' && patient.services === userService
   );
 
+  const handleViewAllFiles = () => {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      max-height: 80vh;
+      overflow-y: auto;
+      z-index: 1000;
+      width: 80%;
+      max-width: 600px;
+    `;
+
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+    `;
+
+    const content = document.createElement('div');
+    content.innerHTML = `
+      <h3 style="margin-bottom: 20px;">Tous les fichiers sélectionnés</h3>
+      <div style="margin: 10px 0;">
+        ${fileLinks.map((file, index) => `
+          <div style="margin: 15px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+            <strong>${index + 1}. ${file.name}</strong><br>
+            <a href="${file.url}" target="_blank" style="color: #007bff; text-decoration: none;">
+              Voir le fichier
+            </a>
+          </div>
+        `).join('')}
+      </div>
+      <button style="
+        padding: 8px 16px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 15px;
+      ">Fermer</button>
+    `;
+
+    modal.appendChild(content);
+
+    const closeModal = () => {
+      document.body.removeChild(modal);
+      document.body.removeChild(overlay);
+    };
+
+    modal.querySelector('button').addEventListener('click', closeModal);
+    overlay.addEventListener('click', closeModal);
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(modal);
+  };
+
   useEffect(() => {
     return () => {
       fileLinks.forEach(file => URL.revokeObjectURL(file.url));
@@ -55,7 +122,7 @@ const PatientSolvable = ({ patients }) => {
           setFilteredPayments(filteredPayments);
         }
       } catch (error) {
-        toast.error('Erreur lors du chargement des paiements');
+        toast.error('Erreur lors du chargement des documents');
       }
     };
 
@@ -119,7 +186,7 @@ const PatientSolvable = ({ patients }) => {
           p._id === editing ? updatedPayment : p
         ));
         resetForm();
-        toast.success('Paiement modifié avec succès');
+        toast.success('Document modifié avec succès');
       }
     } catch (error) {
       toast.error('Erreur lors de la modification');
@@ -153,7 +220,7 @@ const PatientSolvable = ({ patients }) => {
         const newPayment = await response.json();
         setPayments([...payments, newPayment]);
         resetForm();
-        toast.success('Paiement enregistré avec succès');
+        toast.success('Document enregistré avec succès');
       }
     } catch (error) {
       toast.error('Erreur lors de l\'enregistrement');
@@ -173,7 +240,7 @@ const PatientSolvable = ({ patients }) => {
   };
 
   const handleDelete = async (paymentId) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce paiement ?')) {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
       try {
         const response = await fetch(`https://threecr-sen.onrender.com/api/payments/${paymentId}`, {
           method: 'DELETE'
@@ -181,7 +248,7 @@ const PatientSolvable = ({ patients }) => {
 
         if (response.ok) {
           setPayments(payments.filter(payment => payment._id !== paymentId));
-          toast.success('Paiement supprimé avec succès');
+          toast.success('Document supprimé avec succès');
         }
       } catch (error) {
         toast.error('Erreur lors de la suppression');
@@ -205,8 +272,8 @@ const PatientSolvable = ({ patients }) => {
 
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Paiements");
-    XLSX.writeFile(wb, "paiements.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, "Documents");
+    XLSX.writeFile(wb, "documents.xlsx");
   };
 
   const formatDate = (dateString) => {
@@ -301,13 +368,10 @@ const PatientSolvable = ({ patients }) => {
                 {fileLinks.length > 0 && (
                   <Button 
                     variant="info" 
-                    className="mt-2"
-                    onClick={() => {
-                      const linksText = fileLinks.map(f => f.url).join('\n');
-                      alert('Liens des fichiers:\n\n' + linksText);
-                    }}
+                    className="mt-2 mb-3"
+                    onClick={handleViewAllFiles}
                   >
-                    Afficher tous les liens
+                    Voir tous les fichiers ({fileLinks.length})
                   </Button>
                 )}
 
@@ -362,6 +426,8 @@ const PatientSolvable = ({ patients }) => {
                     <td>{formatDate(patient?.age)}</td>
                     <td>{patient?.numeroDeTelephone}</td>
                     <td>{formatDate(payment.datePaiement)}</td>
+                    <td>
+                      {payment
                     <td>
                       {payment.documents?.map((doc, index) => (
                         <div key={index}>
