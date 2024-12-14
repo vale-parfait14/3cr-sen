@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import DropboxChooser from 'react-dropbox-chooser';
-import { useNavigate } from "react-router-dom";
 import { saveAs } from 'file-saver';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
-import { GlobalWorkerOptions, version } from 'pdfjs-dist';
-
-GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.js`;
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
@@ -21,179 +19,156 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const Observation = () => {
-  const [filesObs, setFilesObs] = useState([]);
+  const [filesobs, setFilesobs] = useState([]);
+  const [comment, setComment] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState(null);
-  const [userAccessLevel, setUserAccessLevel] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editComment, setEditComment] = useState('');
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "filesObs"), (snapshot) => {
-      const filesObsData = snapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id
+    const unsubscribe = onSnapshot(collection(db, 'filesobs'), (snapshot) => {
+      const filesobsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
       }));
-      setFilesObs(filesObsData);
-      setLoading(false);
+      setFilesobs(filesobsData);
     });
 
     return () => unsubscribe();
   }, []);
 
-  const handleDropboxSuccess = async (selectedFilesObs) => {
-    const newFilesObs = selectedFilesObs.map(file => ({
+  const handleFileSuccess = (filesobs) => {
+    const file = filesobs[0];
+    addDoc(collection(db, 'filesobs'), {
       name: file.name,
       link: file.link,
-      title: '',
-      comment: '',
-      timestamp: new Date().toISOString(),
-      order: 0 // Initial order value
-    }));
-
-    for (const file of newFilesObs) {
-      await addDoc(collection(db, "filesObs"), file);
-    }
-  };
-
-  const handleOrderChange = async (id, newOrder) => {
-    const fileRef = doc(db, "filesObs", id);
-    await updateDoc(fileRef, { order: parseInt(newOrder) });
-  };
-
-  const handleTitleChange = async (id, newTitle) => {
-    const fileRef = doc(db, "filesObs", id);
-    await updateDoc(fileRef, { title: newTitle });
-  };
-
-  const handleCommentChange = async (id, newComment) => {
-    const fileRef = doc(db, "filesObs", id);
-    await updateDoc(fileRef, { comment: newComment });
+      comment: comment,
+      timestamp: new Date().toISOString()
+    });
+    setComment('');
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) {
-      const fileRef = doc(db, "filesObs", id);
-      await deleteDoc(fileRef);
-    }
+    await deleteDoc(doc(db, 'filesobs', id));
   };
 
-  const handleDownload = async (file) => {
-    try {
-      const response = await fetch(file.link);
-      const blob = await response.blob();
-      saveAs(blob, file.name);
-    } catch (error) {
-      console.error('Échec du téléchargement:', error);
-    }
+  const handleEdit = (id, currentComment) => {
+    setEditingId(id);
+    setEditComment(currentComment);
   };
 
-  const handleOpenLink = (link) => {
+  const saveEdit = async (id) => {
+    await updateDoc(doc(db, 'filesobs', id), {
+      comment: editComment
+    });
+    setEditingId(null);
+    setEditComment('');
+  };
+
+  const viewFile = (link) => {
     window.open(link, '_blank');
   };
 
-  // Tri des fichiers uniquement par le numéro d'ordre
-  const sortedAndFilteredFiles = [...filesObs]
-    .sort((a, b) => a.order - b.order) // Tri par ordre uniquement
-    .filter(file => 
-      file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      file.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      file.comment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      new Date(file.timestamp).toLocaleString().toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  const downloadFile = async (link, filename) => {
+    const response = await fetch(link);
+    const blob = await response.blob();
+    saveAs(blob, filename);
+  };
 
-  if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-100">
-        <div className="text-center">
-          <img
-            src="https://i.pinimg.com/originals/82/ff/4f/82ff4f493afb72f8e0acb401c1b7498f.gif"
-            alt="Loading"
-            className="mb-3"
-            style={{ width: '200px', borderRadius: "200px" }}
-          />
-          <div className="loading-text text-muted">Chargement en cours...</div>
-        </div>
-      </div>
-    );
-  }
+  const filteredFiles = filesobs.filter(file => 
+    file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    file.comment.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="container mt-5">
-      <h2 className="text-center mb-4">STAFF</h2>
-      <button className="btn btn-primary" onClick={() => navigate('/patients')}>
-        Retour à la page d'enregistrement
-      </button>
+    <div className="container py-4">
+      <div className="row mb-4">
+        <div className="col-12 col-md-6 col-lg-4 mb-3">
+          <DropboxChooser 
+            appKey="23rlajqskcae2gk"
+            success={handleFileSuccess}
+            cancel={() => console.log('cancelled')}
+            multiselect={false}
+          >
+            <button className="btn btn-primary w-100">
+              <i className="bi bi-cloud-upload me-2"></i>Choose from Dropbox
+            </button>
+          </DropboxChooser>
+        </div>
 
-      <div className="mb-4 mt-4">
-        <input
-          type="text"
-          className="form-control"
-          placeholder="Rechercher par nom, titre, commentaire ou date..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
+        <div className="col-12 col-md-6 col-lg-4 mb-3">
+          <input
+            type="text"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Add a comment"
+            className="form-control"
+          />
+        </div>
 
-      <div className="text-center mb-4">
-        <DropboxChooser
-          appKey="23rlajqskcae2gk"
-          success={handleDropboxSuccess}
-          multiselect={true}
-          extensions={['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt','.gif','.pptx','.svg','.jpeg', '.jpg', '.png']}
-        >
-          <button className="btn btn-primary">
-            Choisir les fichiers
-          </button>
-        </DropboxChooser>
+        <div className="col-12 col-md-6 col-lg-4 mb-3">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search files..."
+            className="form-control"
+          />
+        </div>
       </div>
 
       <div className="row">
-        {sortedAndFilteredFiles.map(file => (
-          <div key={file.id} className="col-12 col-md-6 col-lg-4 mb-4">
-            <div className="card shadow-sm">
+        {filteredFiles.map(file => (
+          <div key={file.id} className="col-12 col-lg-6 mb-4">
+            <div className="card h-100">
               <div className="card-body">
-                <div className="d-flex justify-content-between mb-3">
-                  <input
-                    type="text"
-                    value={file.title}
-                    onChange={(e) => handleTitleChange(file.id, e.target.value)}
-                    placeholder="Enter title"
-                    className="form-control form-control-sm"
-                  />
-                  <div>
-                    <button 
-                      onClick={() => handleDelete(file.id)} 
-                      className="btn btn-danger btn-sm"
+                <h5 className="card-title">{file.name}</h5>
+                
+                {editingId === file.id ? (
+                  <div className="mb-3">
+                    <input
+                      type="text"
+                      value={editComment}
+                      onChange={(e) => setEditComment(e.target.value)}
+                      className="form-control mb-2"
+                    />
+                    <button
+                      onClick={() => saveEdit(file.id)}
+                      className="btn btn-success"
                     >
-                      Supprimer
+                      <i className="bi bi-check-lg me-2"></i>Save
                     </button>
                   </div>
+                ) : (
+                  <p className="card-text">{file.comment}</p>
+                )}
+
+                <div className="btn-group">
+                  <button
+                    onClick={() => viewFile(file.link)}
+                    className="btn btn-primary"
+                  >
+                    <i className="bi bi-eye me-2"></i>View
+                  </button>
+                  <button
+                    onClick={() => downloadFile(file.link, file.name)}
+                    className="btn btn-success"
+                  >
+                    <i className="bi bi-download me-2"></i>Download
+                  </button>
+                  <button
+                    onClick={() => handleEdit(file.id, file.comment)}
+                    className="btn btn-warning"
+                  >
+                    <i className="bi bi-pencil me-2"></i>Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(file.id)}
+                    className="btn btn-danger"
+                  >
+                    <i className="bi bi-trash me-2"></i>Delete
+                  </button>
                 </div>
-
-                <div className="file-info text-muted small">
-                  <p><strong>{file.name}</strong> </p>
-                    {/*<p><strong>Date:</strong> {new Date(file.timestamp).toLocaleString()}</p>*/}
-                  </div>
-
-                {/* Champ pour l'ordre */}
-                <div className="mb-3">
-                  Ordre du fichier :
-                  <input
-                    type="number"
-                    className="form-control form-control-sm w-50"
-                    placeholder="Ordre d'affichage"
-                    value={file.order || 0}
-                    onChange={(e) => handleOrderChange(file.id, e.target.value)}
-                  />
-                </div>
-
-                <button
-                  className="btn btn-info btn-sm"
-                  onClick={() => handleOpenLink(file.link)}
-                >
-                  Voir le Staff
-                </button>
               </div>
             </div>
           </div>
