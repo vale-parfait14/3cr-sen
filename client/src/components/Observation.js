@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import DropboxChooser from 'react-dropbox-chooser';
+import { useNavigate } from "react-router-dom";
 import { saveAs } from 'file-saver';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap-icons/font/bootstrap-icons.css';
+import { GlobalWorkerOptions, version } from 'pdfjs-dist';
 
+GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.js`;
 
 const firebaseConfig = {
   apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
