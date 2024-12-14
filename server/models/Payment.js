@@ -11,13 +11,16 @@ const paymentSchema = new mongoose.Schema({
   age: String,
   numeroDeTelephone: String,
   ordre: String,
- 
+  modePaiement: String,
+  Donnateur: String,
+  montant: Number,
   datePaiement: Date,
   statut: {
     type: String,
     default: 'Payé'
   },
-   {
+  service: String
+}, {
   timestamps: true
 });
 
