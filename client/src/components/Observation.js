@@ -23,6 +23,9 @@ const db = getFirestore(app);
 const Observation = () => {
   const [filesObs, setFilesObs] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showCommentModal, setShowCommentModal] = useState(false);
+  const [currentFile, setCurrentFile] = useState(null);
+  const [tempComment, setTempComment] = useState('');
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
@@ -39,22 +42,47 @@ const Observation = () => {
   }, []);
 
   const handleDropboxSuccess = async (selectedFilesObs) => {
-    for (const file of selectedFilesObs) {
-      const comment = window.prompt(`Ajoutez un commentaire pour ${file.name}:`);
-      const newFile = {
-        name: file.name,
-        link: file.link,
-        comment: comment || '',
-        timestamp: new Date().toISOString()
-      };
-      await addDoc(collection(db, "filesObs"), newFile);
+    try {
+      for (const file of selectedFilesObs) {
+        const userComment = prompt(`Ajoutez un commentaire pour le fichier "${file.name}" :`);
+        
+        const newFile = {
+          name: file.name,
+          link: file.link,
+          comment: userComment || '',
+          timestamp: new Date().toISOString()
+        };
+
+        const docRef = await addDoc(collection(db, "filesObs"), newFile);
+        console.log("Fichier ajouté avec succès, ID:", docRef.id);
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'ajout:", error);
+      alert("Une erreur est survenue lors de l'ajout du fichier.");
+    }
+  };
+
+  const handleUpdateComment = async (id, newComment) => {
+    try {
+      const fileRef = doc(db, "filesObs", id);
+      await updateDoc(fileRef, { comment: newComment });
+      console.log("Commentaire mis à jour avec succès");
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du commentaire:", error);
+      alert("Une erreur est survenue lors de la mise à jour du commentaire.");
     }
   };
 
   const handleDelete = async (id) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) {
-      const fileRef = doc(db, "filesObs", id);
-      await deleteDoc(fileRef);
+      try {
+        const fileRef = doc(db, "filesObs", id);
+        await deleteDoc(fileRef);
+        console.log("Fichier supprimé avec succès");
+      } catch (error) {
+        console.error("Erreur lors de la suppression:", error);
+        alert("Une erreur est survenue lors de la suppression du fichier.");
+      }
     }
   };
 
@@ -131,7 +159,12 @@ const Observation = () => {
 
                 <div className="mb-3">
                   <strong>Commentaire:</strong>
-                  <p className="text-muted mb-2">{file.comment || 'Aucun commentaire'}</p>
+                  <textarea
+                    className="form-control mt-2"
+                    value={file.comment || ''}
+                    onChange={(e) => handleUpdateComment(file.id, e.target.value)}
+                    placeholder="Ajouter/modifier le commentaire"
+                  />
                 </div>
 
                 <div className="text-muted small mb-3">
