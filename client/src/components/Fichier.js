@@ -259,7 +259,7 @@ const PatientSolvable = ({ patients }) => {
             <Form.Group>
               <Form.Label>Documents Dropbox</Form.Label>
               <DropboxChooser
-                appKey="4jt0w13onhpd8uk"
+                appKey="gmhp5s9h3aup35v"
                 success={handleDropboxSuccess}
                 cancel={() => toast.info('Annulé')}
               >
