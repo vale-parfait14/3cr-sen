@@ -3,7 +3,7 @@ import DropboxChooser from 'react-dropbox-chooser';
 import { useNavigate } from "react-router-dom";
 import { saveAs } from 'file-saver';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import { GlobalWorkerOptions, version } from 'pdfjs-dist';
 
 GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.js`;
@@ -22,11 +22,8 @@ const db = getFirestore(app);
 
 const Observation = () => {
   const [filesObs, setFilesObs] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState(null);
-  const [userAccessLevel, setUserAccessLevel] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "filesObs"), (snapshot) => {
@@ -45,30 +42,12 @@ const Observation = () => {
     const newFilesObs = selectedFilesObs.map(file => ({
       name: file.name,
       link: file.link,
-      title: '',
-      comment: '',
-      timestamp: new Date().toISOString(),
-      order: 0 // Initial order value
+      timestamp: new Date().toISOString()
     }));
 
     for (const file of newFilesObs) {
       await addDoc(collection(db, "filesObs"), file);
     }
-  };
-
-  const handleOrderChange = async (id, newOrder) => {
-    const fileRef = doc(db, "filesObs", id);
-    await updateDoc(fileRef, { order: parseInt(newOrder) });
-  };
-
-  const handleTitleChange = async (id, newTitle) => {
-    const fileRef = doc(db, "filesObs", id);
-    await updateDoc(fileRef, { title: newTitle });
-  };
-
-  const handleCommentChange = async (id, newComment) => {
-    const fileRef = doc(db, "filesObs", id);
-    await updateDoc(fileRef, { comment: newComment });
   };
 
   const handleDelete = async (id) => {
@@ -78,29 +57,9 @@ const Observation = () => {
     }
   };
 
-  const handleDownload = async (file) => {
-    try {
-      const response = await fetch(file.link);
-      const blob = await response.blob();
-      saveAs(blob, file.name);
-    } catch (error) {
-      console.error('Échec du téléchargement:', error);
-    }
-  };
-
   const handleOpenLink = (link) => {
     window.open(link, '_blank');
   };
-
-  // Tri des fichiers uniquement par le numéro d'ordre
-  const sortedAndFilteredFiles = [...filesObs]
-    .sort((a, b) => a.order - b.order) // Tri par ordre uniquement
-    .filter(file => 
-      file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      file.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      file.comment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      new Date(file.timestamp).toLocaleString().toLowerCase().includes(searchTerm.toLowerCase())
-    );
 
   if (loading) {
     return (
@@ -125,17 +84,7 @@ const Observation = () => {
         Retour à la page d'enregistrement
       </button>
 
-      <div className="mb-4 mt-4">
-        <input
-          type="text"
-          className="form-control"
-          placeholder="Rechercher par nom, titre, commentaire ou date..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
-
-      <div className="text-center mb-4">
+      <div className="text-center mb-4 mt-4">
         <DropboxChooser
           appKey="23rlajqskcae2gk"
           success={handleDropboxSuccess}
@@ -149,43 +98,18 @@ const Observation = () => {
       </div>
 
       <div className="row">
-        {sortedAndFilteredFiles.map(file => (
+        {filesObs.map(file => (
           <div key={file.id} className="col-12 col-md-6 col-lg-4 mb-4">
             <div className="card shadow-sm">
               <div className="card-body">
                 <div className="d-flex justify-content-between mb-3">
-                  <input
-                    type="text"
-                    value={file.title}
-                    onChange={(e) => handleTitleChange(file.id, e.target.value)}
-                    placeholder="Enter title"
-                    className="form-control form-control-sm"
-                  />
-                  <div>
-                    <button 
-                      onClick={() => handleDelete(file.id)} 
-                      className="btn btn-danger btn-sm"
-                    >
-                      Supprimer
-                    </button>
-                  </div>
-                </div>
-
-                <div className="file-info text-muted small">
-                  <p><strong>{file.name}</strong> </p>
-                    {/*<p><strong>Date:</strong> {new Date(file.timestamp).toLocaleString()}</p>*/}
-                  </div>
-
-                {/* Champ pour l'ordre */}
-                <div className="mb-3">
-                  Ordre du fichier :
-                  <input
-                    type="number"
-                    className="form-control form-control-sm w-50"
-                    placeholder="Ordre d'affichage"
-                    value={file.order || 0}
-                    onChange={(e) => handleOrderChange(file.id, e.target.value)}
-                  />
+                  <strong>{file.name}</strong>
+                  <button 
+                    onClick={() => handleDelete(file.id)} 
+                    className="btn btn-danger btn-sm"
+                  >
+                    Supprimer
+                  </button>
                 </div>
 
                 <button
