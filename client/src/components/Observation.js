@@ -3,7 +3,7 @@ import DropboxChooser from 'react-dropbox-chooser';
 import { useNavigate } from "react-router-dom";
 import { saveAs } from 'file-saver';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { GlobalWorkerOptions, version } from 'pdfjs-dist';
 
 GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.js`;
@@ -22,6 +22,7 @@ const db = getFirestore(app);
 
 const Observation = () => {
   const [filesObs, setFilesObs] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
@@ -42,12 +43,18 @@ const Observation = () => {
     const newFilesObs = selectedFilesObs.map(file => ({
       name: file.name,
       link: file.link,
+      comment: '',
       timestamp: new Date().toISOString()
     }));
 
     for (const file of newFilesObs) {
       await addDoc(collection(db, "filesObs"), file);
     }
+  };
+
+  const handleCommentChange = async (id, newComment) => {
+    const fileRef = doc(db, "filesObs", id);
+    await updateDoc(fileRef, { comment: newComment });
   };
 
   const handleDelete = async (id) => {
@@ -60,6 +67,12 @@ const Observation = () => {
   const handleOpenLink = (link) => {
     window.open(link, '_blank');
   };
+
+  const filteredFiles = filesObs.filter(file => 
+    file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (file.comment && file.comment.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    new Date(file.timestamp).toLocaleString().toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -84,7 +97,17 @@ const Observation = () => {
         Retour à la page d'enregistrement
       </button>
 
-      <div className="text-center mb-4 mt-4">
+      <div className="mb-4 mt-4">
+        <input
+          type="text"
+          className="form-control"
+          placeholder="Rechercher par nom, commentaire ou date..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
+      <div className="text-center mb-4">
         <DropboxChooser
           appKey="gmhp5s9h3aup35v"
           success={handleDropboxSuccess}
@@ -98,7 +121,7 @@ const Observation = () => {
       </div>
 
       <div className="row">
-        {filesObs.map(file => (
+        {filteredFiles.map(file => (
           <div key={file.id} className="col-12 col-md-6 col-lg-4 mb-4">
             <div className="card shadow-sm">
               <div className="card-body">
@@ -110,6 +133,17 @@ const Observation = () => {
                   >
                     Supprimer
                   </button>
+                </div>
+
+                <textarea
+                  className="form-control mb-3"
+                  placeholder="Ajouter un commentaire"
+                  value={file.comment || ''}
+                  onChange={(e) => handleCommentChange(file.id, e.target.value)}
+                />
+
+                <div className="text-muted small mb-3">
+                  Date: {new Date(file.timestamp).toLocaleString()}
                 </div>
 
                 <button
