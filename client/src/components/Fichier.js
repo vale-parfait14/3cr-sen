@@ -27,7 +27,7 @@ const PatientSolvable = ({ patients }) => {
   
     datePatient: '',
     statut: 'Validé',
-    dropboxLink: ''
+  dropboxLinks: [] // Changed from dropboxLink to dropboxLinks array
   });
 
   const [fichiers, setFichiers] = useState([]);
@@ -99,11 +99,11 @@ const PatientSolvable = ({ patients }) => {
   };
 
   const handleDropboxSuccess = (files) => {
-    const link = files[0].link;
-    setDropboxLink(link);
-    setFichierInfo({ ...fichierInfo, dropboxLink: link });
-    toast.success('Document Dropbox sélectionné avec succès');
-  };
+  const links = files.map(file => file.link);
+  setFichierInfo({ ...fichierInfo, dropboxLinks: links });
+  toast.success(`${files.length} document(s) Dropbox sélectionné(s) avec succès`);
+};
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
