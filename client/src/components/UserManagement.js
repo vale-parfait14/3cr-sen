@@ -116,10 +116,18 @@ const UserManagement = () => {
     }
   };
 
-  const handleEdit = (index) => {
-    setUserData(users[index]);
-    setEditUserId(index);
-  };
+// Add this modification to the handleEdit function
+const handleEdit = (index) => {
+  setUserData(users[index]);
+  setEditUserId(index);
+  setIsLoginMode(false); // This line ensures the form is displayed
+  // Scroll to the form smoothly
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+};
+
 
   return (
     <div className="container-fluid px-4">
