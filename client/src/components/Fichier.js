@@ -6,7 +6,6 @@ import DropboxChooser from 'react-dropbox-chooser';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, deleteDoc, query, where } from 'firebase/firestore';
 
-// Initialisation de Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
   authDomain: "basecenterdb.firebaseapp.com",
@@ -21,6 +20,7 @@ const db = getFirestore(app);
 
 const PatientSolvable = ({ patients }) => {
   const [editing, setEditing] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [fichierInfo, setFichierInfo] = useState({
     patientId: '',
     ordre: '',
@@ -29,25 +29,26 @@ const PatientSolvable = ({ patients }) => {
     dropboxLinks: []
   });
   const [fichiers, setFichiers] = useState([]);
-  const [searchTerm, setSearchTerm] = useState(''); // État pour la recherche
   const userService = localStorage.getItem('userService');
   const [userRole] = useState(localStorage.getItem("userRole"));
   const [userAccessLevel] = useState(localStorage.getItem("userAccessLevel"));
 
-  const validatedPatients = patients.filter(patient =>
+  const validatedPatients = patients.filter(patient => 
     patient.validation === 'Validé' && patient.services === userService
   );
 
-  // Fonction pour filtrer les fichiers en fonction de la recherche
   const filteredFichiers = fichiers.filter(fichier => {
     const patient = patients.find(p => p._id === fichier.patientId);
-    if (!patient) return false;
+    const searchString = searchTerm.toLowerCase();
+    
     return (
-      patient.dossierNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.diagnostic.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      fichier.ordre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      formatDate(fichier.datePatient).toLowerCase().includes(searchTerm.toLowerCase())
+      patient?.dossierNumber?.toLowerCase().includes(searchString) ||
+      patient?.nom?.toLowerCase().includes(searchString) ||
+      patient?.diagnostic?.toLowerCase().includes(searchString) ||
+      patient?.sexe?.toLowerCase().includes(searchString) ||
+      patient?.numeroDeTelephone?.toLowerCase().includes(searchString) ||
+      fichier.ordre?.toLowerCase().includes(searchString) ||
+      fichier.datePatient?.toLowerCase().includes(searchString)
     );
   });
 
@@ -101,14 +102,12 @@ const PatientSolvable = ({ patients }) => {
       handleUpdate(e);
       return;
     }
-
     try {
       const docRef = await addDoc(collection(db, 'fichiers'), {
         ...fichierInfo,
         service: userService,
         createdAt: new Date().toISOString()
       });
-
       setFichiers([...fichiers, { _id: docRef.id, ...fichierInfo, service: userService }]);
       resetForm();
       toast.success('Patient et documents enregistrés avec succès');
@@ -126,10 +125,7 @@ const PatientSolvable = ({ patients }) => {
         service: userService,
         updatedAt: new Date().toISOString()
       });
-
-      setFichiers(fichiers.map(p =>
-        p._id === editing ? { ...p, ...fichierInfo } : p
-      ));
+      setFichiers(fichiers.map(p => p._id === editing ? {...p, ...fichierInfo} : p));
       setEditing(null);
       resetForm();
       toast.success('Patient et documents modifiés avec succès');
@@ -187,7 +183,6 @@ const PatientSolvable = ({ patients }) => {
         'Nombre de documents': fichier.dropboxLinks?.length || 0
       };
     });
-
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Patients");
@@ -195,11 +190,7 @@ const PatientSolvable = ({ patients }) => {
   };
 
   const formatDate = (dateString) => {
-    const options = { 
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric' 
-    };
+    const options = { day: 'numeric', month: 'long', year: 'numeric' };
     return new Date(dateString).toLocaleDateString('fr-FR', options);
   };
 
@@ -208,30 +199,19 @@ const PatientSolvable = ({ patients }) => {
       <Row className="my-4">
         <Col md={12} lg={8} className="mx-auto">
           <h2 className="text-center">Gestion des documents patients</h2>
-
-          {/* Champ de recherche */}
-          <Form.Group>
-            <Form.Label>Recherche</Form.Label>
-            <Form.Control
-              type="text"
-              placeholder="Rechercher par numéro de dossier, nom, diagnostic, résumé, etc."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </Form.Group>
-
           <Form onSubmit={handleSubmit}>
             <Form.Group>
               <Form.Label>Patient</Form.Label>
               <Form.Control
                 as="select"
                 value={fichierInfo.patientId}
-                onChange={(e) => setFichierInfo({ ...fichierInfo, patientId: e.target.value })}
+                onChange={(e) => setFichierInfo({...fichierInfo, patientId: e.target.value})}
+                required
               >
                 <option value="">Sélectionner un patient</option>
-                {validatedPatients.map((patient) => (
+                {validatedPatients.map(patient => (
                   <option key={patient._id} value={patient._id}>
-                    {patient.nom} - {patient.dossierNumber}
+                    {patient.dossierNumber} - {patient.nom} - {patient.diagnostic}
                   </option>
                 ))}
               </Form.Control>
@@ -242,8 +222,8 @@ const PatientSolvable = ({ patients }) => {
               <Form.Control
                 type="text"
                 value={fichierInfo.ordre}
-                onChange={(e) => setFichierInfo({ ...fichierInfo, ordre: e.target.value })}
-                placeholder="Résumé"
+                onChange={(e) => setFichierInfo({...fichierInfo, ordre: e.target.value})}
+                required
               />
             </Form.Group>
 
@@ -252,41 +232,79 @@ const PatientSolvable = ({ patients }) => {
               <Form.Control
                 type="date"
                 value={fichierInfo.datePatient}
-                onChange={(e) => setFichierInfo({ ...fichierInfo, datePatient: e.target.value })}
+                onChange={(e) => setFichierInfo({...fichierInfo, datePatient: e.target.value})}
+                required
               />
             </Form.Group>
 
-            <Form.Group>
-              <Form.Label>Documents Dropbox</Form.Label>
+            <Form.Group className="mb-3">
+              <Form.Label>Documents</Form.Label>
               <DropboxChooser
                 appKey="gmhp5s9h3aup35v"
                 success={handleDropboxSuccess}
-                cancel={() => toast.info('Annulé')}
+                cancel={() => toast.info('Sélection annulée')}
+                multiselect={true}
               >
-                <Button variant="secondary">Choisir des fichiers</Button>
+                <Button variant="outline-primary" type="button">
+                  Ajouter des documents
+                </Button>
               </DropboxChooser>
-              <ul>
-                {fichierInfo.dropboxLinks.map((doc, index) => (
-                  <li key={index}>
-                    <a href={doc.link} target="_blank" rel="noopener noreferrer">{doc.name}</a>
-                    <Button variant="danger" size="sm" onClick={() => removeDocument(index)}>Supprimer</Button>
-                  </li>
-                ))}
-              </ul>
+
+              {fichierInfo.dropboxLinks.length > 0 && (
+                <div className="mt-2">
+                  {fichierInfo.dropboxLinks.map((doc, index) => (
+                    <div key={index} className="d-flex align-items-center mb-1">
+                      <a href={doc.link} target="_blank" rel="noopener noreferrer">
+                        {doc.name || `Document ${index + 1}`}
+                      </a>
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
+                        className="ms-2"
+                        onClick={() => removeDocument(index)}
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Form.Group>
 
-            <Button type="submit">{editing ? 'Modifier' : 'Ajouter'} Fichier</Button>
+            <Button variant="primary" type="submit">
+              {editing ? 'Modifier' : 'Enregistrer'}
+            </Button>
+            {editing && (
+              <Button variant="secondary" className="ms-2" onClick={resetForm}>
+                Annuler
+              </Button>
+            )}
           </Form>
         </Col>
       </Row>
 
-      {/* Tableau des fichiers */}
-      <Row className="my-4">
-        <Col md={12} lg={12}>
-          <Table striped bordered hover responsive>
+      <Row>
+        <Col>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h3>Liste des documents</h3>
+            <div className="d-flex gap-2">
+              <Form.Control
+                type="search"
+                placeholder="Rechercher..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-auto"
+              />
+              <Button variant="success" onClick={exportToExcel}>
+                Exporter en Excel
+              </Button>
+            </div>
+          </div>
+
+          <Table responsive striped bordered hover>
             <thead>
               <tr>
-                <th>Dossier</th>
+                <th>N° Dossier</th>
                 <th>Résumé</th>
                 <th>Patient</th>
                 <th>Documents</th>
@@ -313,10 +331,18 @@ const PatientSolvable = ({ patients }) => {
                     </td>
                     <td>{formatDate(fichier.datePatient)}</td>
                     <td>
-                      <Button variant="warning" size="sm" onClick={() => handleEdit(fichier)}>
+                      <Button
+                        variant="warning"
+                        size="sm"
+                        onClick={() => handleEdit(fichier)}
+                      >
                         Modifier
                       </Button>{' '}
-                      <Button variant="danger" size="sm" onClick={() => handleDelete(fichier._id)}>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleDelete(fichier._id)}
+                      >
                         Supprimer
                       </Button>
                     </td>
