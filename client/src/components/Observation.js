@@ -23,6 +23,7 @@ const db = getFirestore(app);
 const Observation = () => {
   const [filesObs, setFilesObs] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingFile, setEditingFile] = useState(null);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
@@ -66,6 +67,25 @@ const Observation = () => {
 
   const handleOpenLink = (link) => {
     window.open(link, '_blank');
+  };
+
+  const handleEdit = (file) => {
+    setEditingFile(file);
+  };
+
+  const handleSaveEdit = async () => {
+    if (editingFile) {
+      const fileRef = doc(db, "filesObs", editingFile.id);
+      await updateDoc(fileRef, {
+        name: editingFile.name,
+        comment: editingFile.comment
+      });
+      setEditingFile(null);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingFile(null);
   };
 
   const filteredFiles = filesObs.filter(file => 
@@ -126,20 +146,59 @@ const Observation = () => {
             <div className="card shadow-sm">
               <div className="card-body">
                 <div className="d-flex justify-content-between mb-3">
-                  <strong>{file.name}</strong>
-                  <button 
-                    onClick={() => handleDelete(file.id)} 
-                    className="btn btn-danger btn-sm"
-                  >
-                    Supprimer
-                  </button>
+                  {editingFile?.id === file.id ? (
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={editingFile.name}
+                      onChange={(e) => setEditingFile({...editingFile, name: e.target.value})}
+                    />
+                  ) : (
+                    <strong>{file.name}</strong>
+                  )}
+                  <div>
+                    {editingFile?.id === file.id ? (
+                      <>
+                        <button 
+                          onClick={handleSaveEdit}
+                          className="btn btn-success btn-sm me-2"
+                        >
+                          Sauvegarder
+                        </button>
+                        <button 
+                          onClick={handleCancelEdit}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          Annuler
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button 
+                          onClick={() => handleEdit(file)}
+                          className="btn btn-primary btn-sm me-2"
+                        >
+                          Modifier
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(file.id)} 
+                          className="btn btn-danger btn-sm"
+                        >
+                          Supprimer
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 <textarea
                   className="form-control mb-3"
                   placeholder="Ajouter un commentaire"
-                  value={file.comment || ''}
-                  onChange={(e) => handleCommentChange(file.id, e.target.value)}
+                  value={editingFile?.id === file.id ? editingFile.comment : (file.comment || '')}
+                  onChange={(e) => editingFile?.id === file.id 
+                    ? setEditingFile({...editingFile, comment: e.target.value})
+                    : handleCommentChange(file.id, e.target.value)
+                  }
                 />
 
                 <div className="text-muted small mb-3">
