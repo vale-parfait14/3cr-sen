@@ -2,6 +2,22 @@ import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { Container, Row, Col, Form, Button, Table } from 'react-bootstrap';
+import { initializeApp } from 'firebase/app';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC9PY-2h8xXxw_qPHVXsGfm5D2BZD1Dgj4",
+  authDomain: "threecr-sen.firebaseapp.com",
+  projectId: "threecr-sen",
+  storageBucket: "threecr-sen.appspot.com",
+  messagingSenderId: "1015837594540",
+  appId: "1:1015837594540:web:f6d9a5a6d9c73e7e3e8f7c"
+};
+
+const app = initializeApp(firebaseConfig);
+const storage = getStorage(app);
+const db = getFirestore(app);
 
 const PatientSolvable = ({ patients }) => {
   const [editing, setEditing] = useState(null);
@@ -92,40 +108,41 @@ const PatientSolvable = ({ patients }) => {
     document.body.appendChild(modal);
   };
 
-  useEffect(() => {
-    return () => {
-      fileLinks.forEach(file => URL.revokeObjectURL(file.url));
-    };
-  }, [fileLinks]);
-
-  const handleFileSelect = (event) => {
+  const handleFileSelect = async (event) => {
     const files = Array.from(event.target.files);
-    setSelectedFiles(prevFiles => [...prevFiles, ...files]);
+    setSelectedFiles(files);
     
-    const newFileLinks = files.map(file => ({
-      name: file.name,
-      url: URL.createObjectURL(file),
-      type: file.type
+    const newFileLinks = await Promise.all(files.map(async (file) => {
+      const fileRef = ref(storage, `documents/${Date.now()}-${file.name}`);
+      const snapshot = await uploadBytes(fileRef, file);
+      const url = await getDownloadURL(snapshot.ref);
+      return {
+        name: file.name,
+        url: url,
+        path: snapshot.ref.fullPath
+      };
     }));
     
     setFileLinks(prevLinks => [...prevLinks, ...newFileLinks]);
   };
 
-  useEffect(() => {
-    const fetchPayments = async () => {
-      try {
-        const response = await fetch('https://threecr-sen.onrender.com/api/payments');
-        if (response.ok) {
-          const data = await response.json();
-          const filteredPayments = data.filter(payment => payment.service === userService);
-          setPayments(filteredPayments);
-          setFilteredPayments(filteredPayments);
-        }
-      } catch (error) {
-        toast.error('Erreur lors du chargement des documents');
-      }
-    };
+  const fetchPayments = async () => {
+    try {
+      const paymentsRef = collection(db, 'payments');
+      const q = query(paymentsRef, where('service', '==', userService));
+      const querySnapshot = await getDocs(q);
+      const paymentsData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setPayments(paymentsData);
+      setFilteredPayments(paymentsData);
+    } catch (error) {
+      toast.error('Erreur lors du chargement des documents');
+    }
+  };
 
+  useEffect(() => {
     fetchPayments();
     const intervalId = setInterval(fetchPayments, 5000);
     return () => clearInterval(intervalId);
@@ -152,47 +169,6 @@ const PatientSolvable = ({ patients }) => {
     setFilteredPayments(searchResults);
   }, [searchTerm, payments, patients]);
 
-  const handleEdit = (payment) => {
-    setEditing(payment._id);
-    setPaymentInfo({
-      patientId: payment.patientId,
-      ordre: payment.ordre,
-      datePaiement: payment.datePaiement,
-      statut: payment.statut
-    });
-  };
-
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    const formData = new FormData();
-    formData.append('paymentInfo', JSON.stringify({
-      ...paymentInfo,
-      service: userService
-    }));
-
-    selectedFiles.forEach((file, index) => {
-      formData.append(`file${index}`, file);
-    });
-
-    try {
-      const response = await fetch(`https://threecr-sen.onrender.com/api/payments/${editing}`, {
-        method: 'PUT',
-        body: formData
-      });
-
-      if (response.ok) {
-        const updatedPayment = await response.json();
-        setPayments(payments.map(p =>
-          p._id === editing ? updatedPayment : p
-        ));
-        resetForm();
-        toast.success('Document modifié avec succès');
-      }
-    } catch (error) {
-      toast.error('Erreur lors de la modification');
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (editing) {
@@ -200,30 +176,63 @@ const PatientSolvable = ({ patients }) => {
       return;
     }
 
-    const formData = new FormData();
-    formData.append('paymentInfo', JSON.stringify({
-      ...paymentInfo,
-      service: userService
-    }));
-    
-    selectedFiles.forEach((file, index) => {
-      formData.append(`file${index}`, file);
-    });
-
     try {
-      const response = await fetch('https://threecr-sen.onrender.com/api/payments', {
-        method: 'POST',
-        body: formData
-      });
+      const docData = {
+        ...paymentInfo,
+        service: userService,
+        documents: fileLinks,
+        createdAt: new Date()
+      };
 
-      if (response.ok) {
-        const newPayment = await response.json();
-        setPayments([...payments, newPayment]);
+      const docRef = await addDoc(collection(db, 'payments'), docData);
+      
+      if (docRef.id) {
+        setPayments([...payments, { id: docRef.id, ...docData }]);
         resetForm();
         toast.success('Document enregistré avec succès');
       }
     } catch (error) {
       toast.error('Erreur lors de l\'enregistrement');
+    }
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      const docRef = doc(db, 'payments', editing);
+      await updateDoc(docRef, {
+        ...paymentInfo,
+        documents: fileLinks,
+        updatedAt: new Date()
+      });
+
+      setPayments(payments.map(p =>
+        p.id === editing ? { ...p, ...paymentInfo, documents: fileLinks } : p
+      ));
+      resetForm();
+      toast.success('Document modifié avec succès');
+    } catch (error) {
+      toast.error('Erreur lors de la modification');
+    }
+  };
+
+  const handleDelete = async (paymentId) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
+      try {
+        const payment = payments.find(p => p.id === paymentId);
+        if (payment.documents) {
+          await Promise.all(payment.documents.map(async (doc) => {
+            const fileRef = ref(storage, doc.path);
+            await deleteObject(fileRef);
+          }));
+        }
+
+        await deleteDoc(doc(db, 'payments', paymentId));
+        setPayments(payments.filter(payment => payment.id !== paymentId));
+        toast.success('Document supprimé avec succès');
+      } catch (error) {
+        toast.error('Erreur lors de la suppression');
+      }
     }
   };
 
@@ -239,23 +248,6 @@ const PatientSolvable = ({ patients }) => {
     setFileLinks([]);
   };
 
-  const handleDelete = async (paymentId) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
-      try {
-        const response = await fetch(`https://threecr-sen.onrender.com/api/payments/${paymentId}`, {
-          method: 'DELETE'
-        });
-
-        if (response.ok) {
-          setPayments(payments.filter(payment => payment._id !== paymentId));
-          toast.success('Document supprimé avec succès');
-        }
-      } catch (error) {
-        toast.error('Erreur lors de la suppression');
-      }
-    }
-  };
-
   const exportToExcel = () => {
     const data = payments.map(payment => {
       const patient = patients.find(p => p._id === payment.patientId);
@@ -266,7 +258,7 @@ const PatientSolvable = ({ patients }) => {
         Age: formatDate(patient?.age),
         Telephone: patient?.numeroDeTelephone,
         Date: formatDate(payment.datePaiement),
-        Documents: payment.documents?.join(', ') || ''
+        Documents: payment.documents?.map(doc => doc.name).join(', ') || ''
       };
     });
 
@@ -418,15 +410,15 @@ const PatientSolvable = ({ patients }) => {
             <tbody>
               {filteredPayments.map((payment) => {
                 const patient = patients.find(p => p._id === payment.patientId);
-                return (
-                  <tr key={payment._id}>
+                                return (
+                  <tr key={payment.id}>
                     <td>{payment.ordre}</td>
                     <td>{patient?.nom}</td>
                     <td>{patient?.diagnostic}</td>
                     <td>{formatDate(patient?.age)}</td>
                     <td>{patient?.numeroDeTelephone}</td>
                     <td>{formatDate(payment.datePaiement)}</td>
-                                        <td>
+                    <td>
                       {payment.documents?.map((doc, index) => (
                         <div key={index}>
                           <a href={doc.url} target="_blank" rel="noopener noreferrer">
@@ -440,7 +432,7 @@ const PatientSolvable = ({ patients }) => {
                         <Button variant="warning" onClick={() => handleEdit(payment)}>
                           Modifier
                         </Button>{' '}
-                        <Button variant="danger" onClick={() => handleDelete(payment._id)}>
+                        <Button variant="danger" onClick={() => handleDelete(payment.id)}>
                           Supprimer
                         </Button>
                       </td>
