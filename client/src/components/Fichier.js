@@ -6,13 +6,14 @@ import DropboxChooser from 'react-dropbox-chooser';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, deleteDoc, query, where } from 'firebase/firestore';
 
+// Initialisation de Firebase
 const firebaseConfig = {
-    apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
-    authDomain: "basecenterdb.firebaseapp.com",
-    projectId: "basecenterdb",
-    storageBucket: "basecenterdb.firebasestorage.app",
-    messagingSenderId: "919766148380",
-    appId: "1:919766148380:web:30db9986fa2cd8bb7106d9"
+  apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
+  authDomain: "basecenterdb.firebaseapp.com",
+  projectId: "basecenterdb",
+  storageBucket: "basecenterdb.firebasestorage.app",
+  messagingSenderId: "919766148380",
+  appId: "1:919766148380:web:30db9986fa2cd8bb7106d9"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -27,8 +28,8 @@ const PatientSolvable = ({ patients }) => {
     statut: 'Validé',
     dropboxLinks: []
   });
-
   const [fichiers, setFichiers] = useState([]);
+  const [searchTerm, setSearchTerm] = useState(''); // État pour la recherche
   const userService = localStorage.getItem('userService');
   const [userRole] = useState(localStorage.getItem("userRole"));
   const [userAccessLevel] = useState(localStorage.getItem("userAccessLevel"));
@@ -36,6 +37,19 @@ const PatientSolvable = ({ patients }) => {
   const validatedPatients = patients.filter(patient =>
     patient.validation === 'Validé' && patient.services === userService
   );
+
+  // Fonction pour filtrer les fichiers en fonction de la recherche
+  const filteredFichiers = fichiers.filter(fichier => {
+    const patient = patients.find(p => p._id === fichier.patientId);
+    if (!patient) return false;
+    return (
+      patient.dossierNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.diagnostic.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      fichier.ordre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      formatDate(fichier.datePatient).toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  });
 
   useEffect(() => {
     const fetchFichiers = async () => {
@@ -114,7 +128,7 @@ const PatientSolvable = ({ patients }) => {
       });
 
       setFichiers(fichiers.map(p =>
-        p._id === editing ? {...p, ...fichierInfo} : p
+        p._id === editing ? { ...p, ...fichierInfo } : p
       ));
       setEditing(null);
       resetForm();
@@ -194,20 +208,30 @@ const PatientSolvable = ({ patients }) => {
       <Row className="my-4">
         <Col md={12} lg={8} className="mx-auto">
           <h2 className="text-center">Gestion des documents patients</h2>
-          
+
+          {/* Champ de recherche */}
+          <Form.Group>
+            <Form.Label>Recherche</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Rechercher par numéro de dossier, nom, diagnostic, résumé, etc."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </Form.Group>
+
           <Form onSubmit={handleSubmit}>
             <Form.Group>
               <Form.Label>Patient</Form.Label>
               <Form.Control
                 as="select"
                 value={fichierInfo.patientId}
-                onChange={(e) => setFichierInfo({...fichierInfo, patientId: e.target.value})}
-                required
+                onChange={(e) => setFichierInfo({ ...fichierInfo, patientId: e.target.value })}
               >
                 <option value="">Sélectionner un patient</option>
-                {validatedPatients.map(patient => (
+                {validatedPatients.map((patient) => (
                   <option key={patient._id} value={patient._id}>
-                    {patient.dossierNumber} - {patient.nom} - {patient.diagnostic}
+                    {patient.nom} - {patient.dossierNumber}
                   </option>
                 ))}
               </Form.Control>
@@ -218,8 +242,8 @@ const PatientSolvable = ({ patients }) => {
               <Form.Control
                 type="text"
                 value={fichierInfo.ordre}
-                onChange={(e) => setFichierInfo({...fichierInfo, ordre: e.target.value})}
-                required
+                onChange={(e) => setFichierInfo({ ...fichierInfo, ordre: e.target.value })}
+                placeholder="Résumé"
               />
             </Form.Group>
 
@@ -228,70 +252,41 @@ const PatientSolvable = ({ patients }) => {
               <Form.Control
                 type="date"
                 value={fichierInfo.datePatient}
-                onChange={(e) => setFichierInfo({...fichierInfo, datePatient: e.target.value})}
-                required
+                onChange={(e) => setFichierInfo({ ...fichierInfo, datePatient: e.target.value })}
               />
             </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Documents</Form.Label>
-              <DropboxChooser 
-                appKey="gmhp5s9h3aup35v"
+            <Form.Group>
+              <Form.Label>Documents Dropbox</Form.Label>
+              <DropboxChooser
+                appKey="4jt0w13onhpd8uk"
                 success={handleDropboxSuccess}
-                cancel={() => toast.info('Sélection annulée')}
-                multiselect={true}
+                cancel={() => toast.info('Annulé')}
               >
-                <Button variant="outline-primary" type="button">
-                  Ajouter des documents
-                </Button>
+                <Button variant="secondary">Choisir des fichiers</Button>
               </DropboxChooser>
-
-              {fichierInfo.dropboxLinks.length > 0 && (
-                <div className="mt-2">
-                  {fichierInfo.dropboxLinks.map((doc, index) => (
-                    <div key={index} className="d-flex align-items-center mb-1">
-                      <a href={doc.link} target="_blank" rel="noopener noreferrer">
-                        {doc.name || `Document ${index + 1}`}
-                      </a>
-                      <Button 
-                        variant="outline-danger" 
-                        size="sm" 
-                        className="ms-2"
-                        onClick={() => removeDocument(index)}
-                      >
-                        ×
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <ul>
+                {fichierInfo.dropboxLinks.map((doc, index) => (
+                  <li key={index}>
+                    <a href={doc.link} target="_blank" rel="noopener noreferrer">{doc.name}</a>
+                    <Button variant="danger" size="sm" onClick={() => removeDocument(index)}>Supprimer</Button>
+                  </li>
+                ))}
+              </ul>
             </Form.Group>
 
-            <Button variant="primary" type="submit">
-              {editing ? 'Modifier' : 'Enregistrer'}
-            </Button>
-            {editing && (
-              <Button variant="secondary" className="ms-2" onClick={resetForm}>
-                Annuler
-              </Button>
-            )}
+            <Button type="submit">{editing ? 'Modifier' : 'Ajouter'} Fichier</Button>
           </Form>
         </Col>
       </Row>
 
-      <Row>
-        <Col>
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h3>Liste des documents</h3>
-            <Button variant="success" onClick={exportToExcel}>
-              Exporter en Excel
-            </Button>
-          </div>
-
-          <Table responsive striped bordered hover>
+      {/* Tableau des fichiers */}
+      <Row className="my-4">
+        <Col md={12} lg={12}>
+          <Table striped bordered hover responsive>
             <thead>
               <tr>
-                <th>N° Dossier</th>
+                <th>Dossier</th>
                 <th>Résumé</th>
                 <th>Patient</th>
                 <th>Documents</th>
@@ -300,7 +295,7 @@ const PatientSolvable = ({ patients }) => {
               </tr>
             </thead>
             <tbody>
-              {fichiers.map((fichier) => {
+              {filteredFichiers.map((fichier) => {
                 const patient = patients.find(p => p._id === fichier.patientId);
                 return (
                   <tr key={fichier._id}>
