@@ -1505,7 +1505,7 @@ const [formData, setFormData] = useState({
         Numéro de Dossier :
             <input
               type="text"
-              placeholder="ex:01/312"
+              placeholder="Numéro de dossier"
               value={formData.dossierNumber}
               onChange={(e) =>
                 setFormData({ ...formData, dossierNumber: e.target.value })
