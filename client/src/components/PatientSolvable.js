@@ -426,9 +426,7 @@ const PatientSolvable = ({ patients }) => {
                     <td>{formatDate(patient?.age)}</td>
                     <td>{patient?.numeroDeTelephone}</td>
                     <td>{formatDate(payment.datePaiement)}</td>
-                    <td>
-                      {payment
-                    <td>
+                                        <td>
                       {payment.documents?.map((doc, index) => (
                         <div key={index}>
                           <a href={doc.url} target="_blank" rel="noopener noreferrer">
@@ -459,3 +457,4 @@ const PatientSolvable = ({ patients }) => {
 };
 
 export default PatientSolvable;
+
