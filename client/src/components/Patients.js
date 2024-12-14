@@ -1501,9 +1501,11 @@ const [formData, setFormData] = useState({
             id="data-entry"
           >
             <h4 style={{ color: "white" }}>SAISIE DES DONNEES</h4>
+        <label>
+        Numéro de Dossier :
             <input
               type="text"
-              placeholder="dossierNumber"
+              placeholder="ex:01/312"
               value={formData.dossierNumber}
               onChange={(e) =>
                 setFormData({ ...formData, dossierNumber: e.target.value })
@@ -1511,7 +1513,7 @@ const [formData, setFormData] = useState({
             />
             <select
               type="text"
-              placeholder="service"
+              placeholder="Service"
               value={formData.anneeIntervention}
               onChange={(e) =>
                 setFormData({ ...formData, service: e.target.value })
@@ -1831,7 +1833,7 @@ const [formData, setFormData] = useState({
             />
             <input
               type="text"
-              placeholder="numeroDeTelephone"
+              placeholder="Numéro de téléphone"
               value={formData.numeroDeTelephone}
               onChange={(e) =>
                 setFormData({ ...formData, numeroDeTelephone: e.target.value })
@@ -1839,7 +1841,7 @@ const [formData, setFormData] = useState({
             />
             <input
               type="email"
-              placeholder="addressEmail"
+              placeholder="Address Email"
               value={formData.addressEmail}
               onChange={(e) =>
                 setFormData({ ...formData, addressEmail: e.target.value })
@@ -1847,7 +1849,7 @@ const [formData, setFormData] = useState({
             />
             <input
               type="text"
-              placeholder="addressDomicile"
+              placeholder="Address de domicile"
               value={formData.addressDomicile}
               onChange={(e) =>
                 setFormData({ ...formData, addressDomicile: e.target.value })
