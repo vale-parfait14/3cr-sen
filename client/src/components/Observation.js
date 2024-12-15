@@ -28,6 +28,13 @@ const Observation = () => {
   const [tempComment, setTempComment] = useState('');
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  useEffect(() => {
+  // Get user role and access level from localStorage
+  const role = localStorage.getItem('userRole');
+  const accessLevel = localStorage.getItem('userAccessLevel');
+  setUserRole(role);
+  setUserAccessLevel(accessLevel);
+}, []);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "filesObs"), (snapshot) => {
@@ -130,6 +137,11 @@ const Observation = () => {
       </div>
 
       <div className="text-center mb-4">
+            {(userRole === 'Médecin' && userAccessLevel === 'Affichage-Modification') ||
+              (userRole === 'Médecin' && userAccessLevel === 'Affichage-Modification-Suppression') ||
+              (userRole === 'Médecin' && userAccessLevel === 'Administrateur') ||
+                  (userRole === 'Admin' && userAccessLevel === 'Administrateur')
+            && (
         <DropboxChooser
           appKey="gmhp5s9h3aup35v"
           success={handleDropboxSuccess}
@@ -140,6 +152,7 @@ const Observation = () => {
             Choisir les fichiers
           </button>
         </DropboxChooser>
+          )}
       </div>
 
       <div className="row">
@@ -149,12 +162,20 @@ const Observation = () => {
               <div className="card-body">
                 <div className="d-flex justify-content-between align-items-start mb-3">
                   <h5 className="card-title mb-0">{file.name}</h5>
+                  {
+            (userRole === 'Médecin' && userAccessLevel === 'Affichage-Modification-Suppression') ||
+            (userRole === 'Médecin' && userAccessLevel === 'Administrateur') ||
+                  (userRole === 'Admin' && userAccessLevel === 'Administrateur')
+            && (
                   <button 
                     onClick={() => handleDelete(file.id)} 
                     className="btn btn-danger btn-sm"
                   >
                     Supprimer
                   </button>
+                    )}
+
+
                 </div>
 
                 <div className="mb-3">
