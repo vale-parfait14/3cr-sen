@@ -26,8 +26,20 @@ const FileManager = () => {
   const [sortedFiles, setSortedFiles] = useState([]);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState(null);
-  const [userAccessLevel, setUserAccessLevel] = useState(null);
+  const [userName, setUserName] = useState('');
+  const [userAccessLevel, setUserAccessLevel] = useState('');
+  const [userService, setUserService] = useState('');
+
+  // Récupération des informations utilisateur du localStorage
+  useEffect(() => {
+    const storedUserName = localStorage.getItem('userName');
+    const storedUserAccessLevel = localStorage.getItem('userAccessLevel');
+    const storedUserService = localStorage.getItem('userService');
+
+    setUserName(storedUserName || '');
+    setUserAccessLevel(storedUserAccessLevel || '');
+    setUserService(storedUserService || '');
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "files"), (snapshot) => {
@@ -38,14 +50,12 @@ const FileManager = () => {
       setFiles(filesData);
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
     let filtered = [...files];
     
-    // Filtrer selon le terme de recherche
     if (searchTerm) {
       filtered = filtered.filter(file => 
         file.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -55,13 +65,11 @@ const FileManager = () => {
       );
     }
     
-    // Trier uniquement par `order`
     filtered.sort((a, b) => {
-      const orderA = a.order || 0; // Utiliser 0 si `order` n'est pas défini
+      const orderA = a.order || 0;
       const orderB = b.order || 0;
-      return orderA - orderB; // Tri croissant basé uniquement sur `order`
+      return orderA - orderB;
     });
-
     setSortedFiles(filtered);
   }, [files, searchTerm]);
 
@@ -72,9 +80,8 @@ const FileManager = () => {
       title: '',
       comment: '',
       timestamp: new Date().toISOString(),
-      order: 0 // Ajouter l'attribut order
+      order: 0
     }));
-
     for (const file of newFiles) {
       await addDoc(collection(db, "files"), file);
     }
@@ -135,7 +142,6 @@ const FileManager = () => {
   return (
     <div className="container mt-5">
       <h2 className="text-center mb-4">PROGRAMME OPERATOIRE</h2>
-
       <div className="mb-4">
         <input
           type="text"
@@ -145,11 +151,9 @@ const FileManager = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
-
       <button className="btn btn-primary mb-3" onClick={() => navigate('/patients')}>
         Retour à la page d'enregistrement
       </button>
-
       <div className="text-center mb-4">
         <DropboxChooser
           appKey="gmhp5s9h3aup35v"
@@ -162,7 +166,6 @@ const FileManager = () => {
           </button>
         </DropboxChooser>
       </div>
-
       <div className="row">
         {sortedFiles.map(file => (
           <div key={file.id} className="col-12 col-md-6 col-lg-4 mb-4">
@@ -180,26 +183,27 @@ const FileManager = () => {
                     <button 
                       onClick={() => handleDelete(file.id)} 
                       className="btn btn-danger btn-sm"
-                     style={{
-                          display: userRole === "Secrétaire" || userRole === "Administrateur" ? "block" : "none",
-                          
-                    }}
-
+                      style={{
+                        display:
+                          userName === "Ad" ||
+                          (userRole === "Médecin" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"].includes(userService)) ||
+                          (userRole === "Infirmier(e)" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"].includes(userService)) ||
+                          (userRole === "Archiviste" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"].includes(userService)) ||
+                          (userRole === "Gestionnaire" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"].includes(userService)) ||
+                          (userRole === "Etudiant(e)" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"].includes(userService))
+                            ? "none"
+                            : "block"
+                      }}
                     >
                       Supprimer
                     </button>
                   </div>
                 </div>
-
                 <div className="file-info text-muted small">
-                  <p><strong> {file.name}</strong> </p>
-                 {/* <p><strong>Date:</strong> {new Date(file.timestamp).toLocaleString()}</p>*/}
+                  <p><strong>{file.name}</strong></p>
                 </div>
-
-                {/* Champ pour saisir l'ordre d'affichage */}
                 <div className="mb-3">
-                Ordre du fichier :
-
+                  Ordre du fichier :
                   <input
                     type="number"
                     value={file.order || 0}
@@ -208,7 +212,6 @@ const FileManager = () => {
                     className="form-control form-control-sm w-50"
                   />
                 </div>
-
                 <button
                   className="btn btn-info btn-sm"
                   onClick={() => handleOpenLink(file.link)}
