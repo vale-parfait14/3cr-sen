@@ -1,4 +1,4 @@
- import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -32,7 +32,7 @@ const Auth = ({ login }) => {
     setUiState(prev => ({ ...prev, loading: true }));
 
     try {
-      const response = await fetch(${API_BASE_URL}/${uiState.isRegistering ? 'register' : 'login'}, {
+      const response = await fetch(`${API_BASE_URL}/${uiState.isRegistering ? 'register' : 'login'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -41,7 +41,7 @@ const Auth = ({ login }) => {
         }),
       });
 
-      if (!response.ok) throw new Error(Erreur ${response.status});
+      if (!response.ok) throw new Error(`Erreur ${response.status}`);
 
       const data = await response.json();
       localStorage.setItem('token', data.token);
@@ -64,7 +64,7 @@ const Auth = ({ login }) => {
     setUiState(prev => ({ ...prev, loading: true }));
 
     try {
-      const response = await fetch(${API_BASE_URL}/reset-password, {
+      const response = await fetch(`${API_BASE_URL}/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,7 +73,7 @@ const Auth = ({ login }) => {
         }),
       });
 
-      if (!response.ok) throw new Error(Erreur ${response.status});
+      if (!response.ok) throw new Error(`Erreur ${response.status}`);
       
       toast.success("Mot de passe réinitialisé");
       setUiState(prev => ({ ...prev, showPasswordReset: false }));
