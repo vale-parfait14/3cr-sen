@@ -50,10 +50,12 @@ const ComposantConnexion = () => {
       if (utilisateur) {
         // Utilisation de try-catch pour la gestion du localStorage
         try {
-          localStorage.setItem('roleUtilisateur', utilisateur.role);
-          localStorage.setItem('niveauAcces', utilisateur.accessLevel);
-          localStorage.setItem('nomUtilisateur', utilisateur.name);
-          localStorage.setItem('serviceUtilisateur', utilisateur.service);
+          localStorage.setItem('userRole', utilisateur.role);
+          localStorage.setItem('userAccessLevel', utilisateur.accessLevel);
+          localStorage.setItem('userName', utilisateur.name);
+          localStorage.setItem('userService', utilisateur.service);
+
+
           
           toast.success('Connexion réussie');
           setDonneesConnexion({ nom: '', motDePasse: '' });
