@@ -103,7 +103,7 @@ const Auth = ({ login }) => {
             className="mb-3"
             style={{ width: '200px', borderRadius: "200px" }}
           />
-            Chargement...
+            <p>Chargement...</p>
         </div>
       </div>
     );
