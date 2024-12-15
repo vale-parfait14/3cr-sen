@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -16,6 +16,7 @@ const Auth = ({ login }) => {
     showPasswordReset: false,
     loading: false
   });
+  const [redirecting, setRedirecting] = useState(false); // state pour gérer la redirection
 
   const API_BASE_URL = useMemo(() => 'https://threecr-sen.onrender.com/api/auth', []);
 
@@ -46,7 +47,15 @@ const Auth = ({ login }) => {
       const data = await response.json();
       localStorage.setItem('token', data.token);
       login(data.token);
-      navigate('/role');
+
+      // Déclenche la transition d'animation avant de rediriger
+      setRedirecting(true);
+
+      // Attendre quelques secondes avant la redirection (500ms pour la transition Bootstrap)
+      setTimeout(() => {
+        navigate('/role');
+      }, 500);  // Délai pour que l'animation se termine
+
     } catch (error) {
       toast.error("Erreur d'authentification");
     } finally {
@@ -92,7 +101,7 @@ const Auth = ({ login }) => {
   return (
     <div className="container min-vh-100 d-flex justify-content-center align-items-center py-5">
       <div className="col-12 col-md-8 col-lg-6 col-xl-4">
-        <div className="card shadow-lg">
+        <div className={`card shadow-lg ${redirecting ? 'fade' : ''}`} style={{transition: 'opacity 0.5s ease-out'}}>
           <div className="card-body p-4">
             <form onSubmit={handleSubmit}>
               <h2 className="text-center mb-4 text-secondary">Connexion</h2>
@@ -122,8 +131,12 @@ const Auth = ({ login }) => {
               </div>
 
               <div className="d-grid gap-2">
-                <button type="submit" className="btn btn-primary">
-                  Se connecter
+                <button 
+                  type="submit" 
+                  className={`btn btn-primary ${uiState.loading ? 'disabled' : ''}`} 
+                  disabled={uiState.loading}
+                >
+                  {uiState.loading ? 'Chargement...' : 'Se connecter'}
                 </button>
                 
                 <button 
@@ -147,6 +160,7 @@ const Auth = ({ login }) => {
         </div>
       </div>
 
+      {/* Modal pour réinitialisation du mot de passe */}
       {uiState.showPasswordReset && (
         <div className="modal show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
           <div className="modal-dialog modal-dialog-centered">
@@ -184,7 +198,13 @@ const Auth = ({ login }) => {
                     />
                   </div>
                   <div className="d-grid gap-2">
-                    <button type="submit" className="btn btn-primary">Réinitialiser</button>
+                    <button 
+                      type="submit" 
+                      className={`btn btn-primary ${uiState.loading ? 'disabled' : ''}`}
+                      disabled={uiState.loading}
+                    >
+                      {uiState.loading ? 'Chargement...' : 'Réinitialiser'}
+                    </button>
                     <button 
                       type="button" 
                       className="btn btn-secondary" 
@@ -200,7 +220,11 @@ const Auth = ({ login }) => {
         </div>
       )}
 
-      <ToastContainer />
+      {/* Transition avec Bootstrap */}
+      <div className={`transition-container ${redirecting ? 'fade' : ''}`}>
+
+        <ToastContainer />
+      </div>
     </div>
   );
 };
