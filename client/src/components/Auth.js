@@ -31,7 +31,7 @@ const Auth = ({ login }) => {
     e.preventDefault();
     setUiState(prev => ({ ...prev, loading: true }));
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 900));
 
     try {
       const response = await fetch(`${API_BASE_URL}/${uiState.isRegistering ? 'register' : 'login'}`, {
@@ -65,7 +65,7 @@ const Auth = ({ login }) => {
 
     setUiState(prev => ({ ...prev, loading: true }));
     
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 900));
 
     try {
       const response = await fetch(`${API_BASE_URL}/reset-password`, {
@@ -103,6 +103,7 @@ const Auth = ({ login }) => {
             className="mb-3"
             style={{ width: '200px', borderRadius: "200px" }}
           />
+            Chargement...
         </div>
       </div>
     );
