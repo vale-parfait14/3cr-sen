@@ -5,6 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 const Auth = ({ login }) => {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -29,11 +30,25 @@ const Auth = ({ login }) => {
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     setUiState(prev => ({ ...prev, loading: true }));
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1000);
+      setTimeout(() => {
+        if (isLoading) {
+          toast.info(
+            <div>
+              Chargement en cours
+              <img 
+                src="https://i.pinimg.com/originals/82/ff/4f/82ff4f493afb72f8e0acb401c1b7498f.gif" 
+                alt="loading" 
+                style={{ width: '20px', marginLeft: '10px' }}
+              />
+            </div>,
+            { autoClose: false }
+          );
+        }
+      }, 1000);
 
       const response = await fetch(`${API_BASE_URL}/${uiState.isRegistering ? 'register' : 'login'}`, {
         method: 'POST',
@@ -41,28 +56,23 @@ const Auth = ({ login }) => {
         body: JSON.stringify({
           username: formData.username,
           password: formData.password
-        }),
-        signal: controller.signal
+        })
       });
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) throw new Error(`Erreur ${response.status}`);
 
       const data = await response.json();
+      toast.dismiss();
       localStorage.setItem('token', data.token);
       login(data.token);
       navigate('/role');
     } catch (error) {
-      if (error.name === 'AbortError') {
-        toast.error("Délai de connexion dépassé (1 seconde)");
-      } else {
-        toast.error("Erreur d'authentification");
-      }
+      toast.error("Erreur d'authentification");
     } finally {
+      setIsLoading(false);
       setUiState(prev => ({ ...prev, loading: false }));
     }
-  }, [formData.username, formData.password, uiState.isRegistering, API_BASE_URL, login, navigate]);
+  }, [formData.username, formData.password, uiState.isRegistering, API_BASE_URL, login, navigate, isLoading]);
 
   const handlePasswordReset = useCallback(async (e) => {
     e.preventDefault();
@@ -71,11 +81,25 @@ const Auth = ({ login }) => {
       return;
     }
 
+    setIsLoading(true);
     setUiState(prev => ({ ...prev, loading: true }));
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1000);
+      setTimeout(() => {
+        if (isLoading) {
+          toast.info(
+            <div>
+              Réinitialisation en cours
+              <img 
+                src="https://i.pinimg.com/originals/82/ff/4f/82ff4f493afb72f8e0acb401c1b7498f.gif" 
+                alt="loading" 
+                style={{ width: '20px', marginLeft: '10px' }}
+              />
+            </div>,
+            { autoClose: false }
+          );
+        }
+      }, 1000);
 
       const response = await fetch(`${API_BASE_URL}/reset-password`, {
         method: 'POST',
@@ -83,14 +107,12 @@ const Auth = ({ login }) => {
         body: JSON.stringify({
           username: formData.username,
           newPassword: formData.newPassword
-        }),
-        signal: controller.signal
+        })
       });
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) throw new Error(`Erreur ${response.status}`);
       
+      toast.dismiss();
       toast.success("Mot de passe réinitialisé");
       setUiState(prev => ({ ...prev, showPasswordReset: false }));
       setFormData(prev => ({
@@ -99,15 +121,12 @@ const Auth = ({ login }) => {
         confirmPassword: ''
       }));
     } catch (error) {
-      if (error.name === 'AbortError') {
-        toast.error("Délai de réinitialisation dépassé (1 seconde)");
-      } else {
-        toast.error("Erreur de réinitialisation");
-      }
+      toast.error("Erreur de réinitialisation");
     } finally {
+      setIsLoading(false);
       setUiState(prev => ({ ...prev, loading: false }));
     }
-  }, [formData, API_BASE_URL]);
+  }, [formData, API_BASE_URL, isLoading]);
 
   return (
     <div className="container min-vh-100 d-flex justify-content-center align-items-center py-5">
@@ -142,14 +161,19 @@ const Auth = ({ login }) => {
               </div>
 
               <div className="d-grid gap-2">
-                <button type="submit" className="btn btn-primary">
-                  Se connecter
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Connexion...' : 'Se connecter'}
                 </button>
                 
                 <button 
                   type="button" 
                   className="btn btn-outline-secondary"
                   onClick={() => navigate('/')}
+                  disabled={isLoading}
                 >
                   Retour
                 </button>
@@ -158,6 +182,7 @@ const Auth = ({ login }) => {
                   type="button" 
                   className="btn btn-link"
                   onClick={() => setUiState(prev => ({ ...prev, showPasswordReset: true }))}
+                  disabled={isLoading}
                 >
                   Mot de passe oublié ?
                 </button>
@@ -177,6 +202,7 @@ const Auth = ({ login }) => {
                   type="button" 
                   className="btn-close" 
                   onClick={() => setUiState(prev => ({ ...prev, showPasswordReset: false }))}
+                  disabled={isLoading}
                 ></button>
               </div>
               <div className="modal-body">
@@ -204,11 +230,18 @@ const Auth = ({ login }) => {
                     />
                   </div>
                   <div className="d-grid gap-2">
-                    <button type="submit" className="btn btn-primary">Réinitialiser</button>
+                    <button 
+                      type="submit" 
+                      className="btn btn-primary"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? 'Réinitialisation...' : 'Réinitialiser'}
+                    </button>
                     <button 
                       type="button" 
                       className="btn btn-secondary" 
                       onClick={() => setUiState(prev => ({ ...prev, showPasswordReset: false }))}
+                      disabled={isLoading}
                     >
                       Annuler
                     </button>
@@ -220,7 +253,17 @@ const Auth = ({ login }) => {
         </div>
       )}
 
-      <ToastContainer />
+      <ToastContainer 
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     </div>
   );
 };
