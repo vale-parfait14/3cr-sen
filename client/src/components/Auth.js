@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -32,7 +32,7 @@ const Auth = ({ login }) => {
     setUiState(prev => ({ ...prev, loading: true }));
 
     try {
-      const response = await fetch(`${API_BASE_URL}/${uiState.isRegistering ? 'register' : 'login'}`, {
+      const response = await fetch(${API_BASE_URL}/${uiState.isRegistering ? 'register' : 'login'}, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -41,7 +41,7 @@ const Auth = ({ login }) => {
         }),
       });
 
-      if (!response.ok) throw new Error(`Erreur ${response.status}`);
+      if (!response.ok) throw new Error(Erreur ${response.status});
 
       const data = await response.json();
       localStorage.setItem('token', data.token);
@@ -64,7 +64,7 @@ const Auth = ({ login }) => {
     setUiState(prev => ({ ...prev, loading: true }));
 
     try {
-      const response = await fetch(`${API_BASE_URL}/reset-password`, {
+      const response = await fetch(${API_BASE_URL}/reset-password, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,7 +73,7 @@ const Auth = ({ login }) => {
         }),
       });
 
-      if (!response.ok) throw new Error(`Erreur ${response.status}`);
+      if (!response.ok) throw new Error(Erreur ${response.status});
       
       toast.success("Mot de passe réinitialisé");
       setUiState(prev => ({ ...prev, showPasswordReset: false }));
@@ -122,12 +122,8 @@ const Auth = ({ login }) => {
               </div>
 
               <div className="d-grid gap-2">
-                <button 
-                  type="submit" 
-                  className={`btn btn-primary ${uiState.loading ? 'disabled' : ''}`} 
-                  disabled={uiState.loading}
-                >
-                  {uiState.loading ? 'Chargement...' : 'Se connecter'}
+                <button type="submit" className="btn btn-primary">
+                  Se connecter
                 </button>
                 
                 <button 
@@ -151,7 +147,6 @@ const Auth = ({ login }) => {
         </div>
       </div>
 
-      {/* Modal pour réinitialisation du mot de passe */}
       {uiState.showPasswordReset && (
         <div className="modal show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
           <div className="modal-dialog modal-dialog-centered">
@@ -189,13 +184,7 @@ const Auth = ({ login }) => {
                     />
                   </div>
                   <div className="d-grid gap-2">
-                    <button 
-                      type="submit" 
-                      className={`btn btn-primary ${uiState.loading ? 'disabled' : ''}`}
-                      disabled={uiState.loading}
-                    >
-                      {uiState.loading ? 'Chargement...' : 'Réinitialiser'}
-                    </button>
+                    <button type="submit" className="btn btn-primary">Réinitialiser</button>
                     <button 
                       type="button" 
                       className="btn btn-secondary" 
