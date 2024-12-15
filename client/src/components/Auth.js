@@ -16,7 +16,6 @@ const Auth = ({ login }) => {
     showPasswordReset: false,
     loading: false
   });
-  const [redirecting, setRedirecting] = useState(false); // state pour gérer la redirection
 
   const API_BASE_URL = useMemo(() => 'https://threecr-sen.onrender.com/api/auth', []);
 
@@ -47,15 +46,7 @@ const Auth = ({ login }) => {
       const data = await response.json();
       localStorage.setItem('token', data.token);
       login(data.token);
-
-      // Déclenche la transition d'animation avant de rediriger
-      setRedirecting(true);
-
-      // Attendre quelques secondes avant la redirection (500ms pour la transition Bootstrap)
-      setTimeout(() => {
-        navigate('/role');
-      }, 500);  // Délai pour que l'animation se termine
-
+      navigate('/role');
     } catch (error) {
       toast.error("Erreur d'authentification");
     } finally {
@@ -101,7 +92,7 @@ const Auth = ({ login }) => {
   return (
     <div className="container min-vh-100 d-flex justify-content-center align-items-center py-5">
       <div className="col-12 col-md-8 col-lg-6 col-xl-4">
-        <div className={`card shadow-lg ${redirecting ? 'fade' : ''}`} style={{transition: 'opacity 0.5s ease-out'}}>
+        <div className="card shadow-lg">
           <div className="card-body p-4">
             <form onSubmit={handleSubmit}>
               <h2 className="text-center mb-4 text-secondary">Connexion</h2>
@@ -220,11 +211,7 @@ const Auth = ({ login }) => {
         </div>
       )}
 
-      {/* Transition avec Bootstrap */}
-      <div className={`transition-container ${redirecting ? 'fade' : ''}`}>
-
-        <ToastContainer />
-      </div>
+      <ToastContainer />
     </div>
   );
 };
