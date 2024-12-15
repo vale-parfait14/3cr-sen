@@ -117,7 +117,7 @@ const [formData, setFormData] = useState({
 
   const [editing, setEditing] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Opéré");
   const [expandedPatientId, setExpandedPatientId] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showAdditionalFields, setShowAdditionalFields] = useState(false);
