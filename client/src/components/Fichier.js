@@ -287,7 +287,7 @@ const PatientSolvable = ({ patients }) => {
         <Col>
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h3>Liste des documents</h3>
-            <div className="d-flex gap-2">
+            <div className="d-flex flex-column gap-2 ">
               <Form.Control
                 type="search"
                 placeholder="Rechercher..."
