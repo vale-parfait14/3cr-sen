@@ -28,7 +28,7 @@ const Alerts = () => {
   // Fonction pour supprimer une alerte par son ID
   const handleDeleteAlert = (id) => {
     
-    if(windows.confirm("Confirmez la suppression !")){
+    if(window.confirm("Confirmez la suppression !")){
        
     fetch(`https://threecr-sen.onrender.com/api/alerts/${id}`, {
       method: 'DELETE', // Méthode HTTP DELETE
