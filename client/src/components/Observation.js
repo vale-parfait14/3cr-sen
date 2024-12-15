@@ -137,23 +137,20 @@ const Observation = () => {
       </div>
 
       <div className="text-center mb-4">
-            {(userRole === 'Médecin' && userAccessLevel === 'Affichage-Modification') ||
-              (userRole === 'Médecin' && userAccessLevel === 'Affichage-Modification-Suppression') ||
-              (userRole === 'Médecin' && userAccessLevel === 'Administrateur') ||
-                  (userRole === 'Admin' && userAccessLevel === 'Administrateur')
-            && (
-        <DropboxChooser
-          appKey="gmhp5s9h3aup35v"
-          success={handleDropboxSuccess}
-          multiselect={true}
-          extensions={['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt','.gif','.pptx','.svg','.jpeg', '.jpg', '.png']}
-        >
-          <button className="btn btn-primary">
-            Choisir les fichiers
-          </button>
-        </DropboxChooser>
-          )}
-      </div>
+  {(userRole === 'Médecin' && ['Affichage-Modification', 'Affichage-Modification-Suppression', 'Administrateur'].includes(userAccessLevel)) || 
+   (userRole === 'Admin' && userAccessLevel === 'Administrateur') ? (
+    <DropboxChooser
+      appKey="gmhp5s9h3aup35v"
+      success={handleDropboxSuccess}
+      multiselect={true}
+      extensions={['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt','.gif','.pptx','.svg','.jpeg', '.jpg', '.png']}
+    >
+      <button className="btn btn-primary">
+        Choisir les fichiers
+      </button>
+    </DropboxChooser>
+  ) : null}
+</div>
 
       <div className="row">
         {filteredFiles.map(file => (
@@ -162,18 +159,15 @@ const Observation = () => {
               <div className="card-body">
                 <div className="d-flex justify-content-between align-items-start mb-3">
                   <h5 className="card-title mb-0">{file.name}</h5>
-                  {
-            (userRole === 'Médecin' && userAccessLevel === 'Affichage-Modification-Suppression') ||
-            (userRole === 'Médecin' && userAccessLevel === 'Administrateur') ||
-                  (userRole === 'Admin' && userAccessLevel === 'Administrateur')
-            && (
-                  <button 
-                    onClick={() => handleDelete(file.id)} 
-                    className="btn btn-danger btn-sm"
-                  >
-                    Supprimer
-                  </button>
-                    )}
+                {((userRole === 'Médecin' && ['Affichage-Modification-Suppression', 'Administrateur'].includes(userAccessLevel)) ||
+  (userRole === 'Admin' && userAccessLevel === 'Administrateur')) && (
+  <button 
+    onClick={() => handleDelete(file.id)} 
+    className="btn btn-danger btn-sm"
+  >
+    Supprimer
+  </button>
+)}
 
 
                 </div>
