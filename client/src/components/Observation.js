@@ -26,15 +26,18 @@ const Observation = () => {
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [currentFile, setCurrentFile] = useState(null);
   const [tempComment, setTempComment] = useState('');
+  const [userRole, setUserRole] = useState(null);
+  const [userAccessLevel, setUserAccessLevel] = useState(null);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-  // Get user role and access level from localStorage
-  const role = localStorage.getItem('userRole');
-  const accessLevel = localStorage.getItem('userAccessLevel');
-  setUserRole(role);
-  setUserAccessLevel(accessLevel);
-}, []);
+    const role = localStorage.getItem('userRole');
+    const accessLevel = localStorage.getItem('userAccessLevel');
+    setUserRole(role);
+    setUserAccessLevel(accessLevel);
+  }, []);
+
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "filesObs"), (snapshot) => {
