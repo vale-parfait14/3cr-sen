@@ -3405,18 +3405,20 @@ const [formData, setFormData] = useState({
   style={{ borderRadius: "80px", padding: "8px", width: "300px" }}
 />
 
-        <select
+        <label>
+        Tous les status:
+<select
           onChange={(e) => setStatusFilter(e.target.value)}
           style={{ borderRadius: "50px", padding: "10px" }}
         >
-          <option value="">Tous les Statuts</option>
+          <option value="Opéré">Opéré</option>
           <option value="Non Opéré">Non Opéré</option>
           <option value="En Opération">En Opération</option>
-          <option value="Opéré">Opéré</option>
           <option value="Opéré-transféré">Opéré-transféré</option>
           <option value="Opéré-décédé">Opéré-décédé</option>
           <option value="Opéré-Exeat">Opéré-Exeat</option>
         </select>
+</label>
 
         <select
           onChange={(e) => setValidationFilter(e.target.value)}
@@ -3565,6 +3567,7 @@ const [formData, setFormData] = useState({
               style={{
                 display:
                   localStorage.getItem("userName") === "Ad" ||
+                  (userRole === "Médecin" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
                   (userRole === "Secrétaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
                   (userRole === "Infirmier(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
                   (userRole === "Archiviste" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
@@ -3574,7 +3577,7 @@ const [formData, setFormData] = useState({
                   (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) |
                   (userRole === "Gestionnaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
 
-
+                  
                   (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) |
                   (userRole === "Gestionnaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
       
