@@ -32,6 +32,9 @@ const Auth = ({ login }) => {
     setUiState(prev => ({ ...prev, loading: true }));
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1000);
+
       const response = await fetch(`${API_BASE_URL}/${uiState.isRegistering ? 'register' : 'login'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -39,7 +42,10 @@ const Auth = ({ login }) => {
           username: formData.username,
           password: formData.password
         }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) throw new Error(`Erreur ${response.status}`);
 
@@ -48,7 +54,11 @@ const Auth = ({ login }) => {
       login(data.token);
       navigate('/role');
     } catch (error) {
-      toast.error("Erreur d'authentification");
+      if (error.name === 'AbortError') {
+        toast.error("Délai de connexion dépassé (1 seconde)");
+      } else {
+        toast.error("Erreur d'authentification");
+      }
     } finally {
       setUiState(prev => ({ ...prev, loading: false }));
     }
@@ -64,6 +74,9 @@ const Auth = ({ login }) => {
     setUiState(prev => ({ ...prev, loading: true }));
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1000);
+
       const response = await fetch(`${API_BASE_URL}/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -71,7 +84,10 @@ const Auth = ({ login }) => {
           username: formData.username,
           newPassword: formData.newPassword
         }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) throw new Error(`Erreur ${response.status}`);
       
@@ -83,7 +99,11 @@ const Auth = ({ login }) => {
         confirmPassword: ''
       }));
     } catch (error) {
-      toast.error("Erreur de réinitialisation");
+      if (error.name === 'AbortError') {
+        toast.error("Délai de réinitialisation dépassé (1 seconde)");
+      } else {
+        toast.error("Erreur de réinitialisation");
+      }
     } finally {
       setUiState(prev => ({ ...prev, loading: false }));
     }
