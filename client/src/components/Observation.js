@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import DropboxChooser from 'react-dropbox-chooser';
 import { useNavigate } from "react-router-dom";
 import { saveAs } from 'file-saver';
@@ -45,7 +44,11 @@ const Observation = () => {
         ...doc.data(),
         id: doc.id
       }));
-      setFilesObs(filesObsData);
+      // Sort files by timestamp in descending order
+      const sortedFiles = filesObsData.sort((a, b) => 
+        new Date(b.timestamp) - new Date(a.timestamp)
+      );
+      setFilesObs(sortedFiles);
       setLoading(false);
     });
     return () => unsubscribe();
@@ -100,7 +103,8 @@ const Observation = () => {
     window.open(link, '_blank');
   };
 
-  const filteredFiles = filesObs.filter(file => 
+  const filteredFiles = filesObs
+  .filter(file => 
     file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (file.comment && file.comment.toLowerCase().includes(searchTerm.toLowerCase())) ||
     new Date(file.timestamp).toLocaleString().toLowerCase().includes(searchTerm.toLowerCase())
