@@ -31,8 +31,6 @@ const Auth = ({ login }) => {
     e.preventDefault();
     setUiState(prev => ({ ...prev, loading: true }));
 
-    {/*    await new Promise(resolve => setTimeout(resolve, 900));
-*/}
     try {
       const response = await fetch(`${API_BASE_URL}/${uiState.isRegistering ? 'register' : 'login'}`, {
         method: 'POST',
@@ -64,9 +62,7 @@ const Auth = ({ login }) => {
     }
 
     setUiState(prev => ({ ...prev, loading: true }));
-    
-    {/*    await new Promise(resolve => setTimeout(resolve, 900));
-*/}
+
     try {
       const response = await fetch(`${API_BASE_URL}/reset-password`, {
         method: 'POST',
@@ -80,7 +76,7 @@ const Auth = ({ login }) => {
       if (!response.ok) throw new Error(`Erreur ${response.status}`);
       
       toast.success("Mot de passe réinitialisé");
-      setUiState(prev => ({ ...prev, showPasswordReset: true }));
+      setUiState(prev => ({ ...prev, showPasswordReset: false }));
       setFormData(prev => ({
         ...prev,
         newPassword: '',
@@ -92,22 +88,6 @@ const Auth = ({ login }) => {
       setUiState(prev => ({ ...prev, loading: false }));
     }
   }, [formData, API_BASE_URL]);
-
-  {/*if (uiState.loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-100">
-        <div className="text-center">
-          <img
-            src="https://i.pinimg.com/originals/82/ff/4f/82ff4f493afb72f8e0acb401c1b7498f.gif"
-            alt="Loading"
-            className="mb-3"
-            style={{ width: '200px', borderRadius: "200px" }}
-          />
-            <p>Chargement...</p>
-        </div>
-      </div>
-    );
-  }*/}
 
   return (
     <div className="container min-vh-100 d-flex justify-content-center align-items-center py-5">
