@@ -1407,7 +1407,6 @@ const [formData, setFormData] = useState({
                     style={{
                       display:
                         localStorage.getItem("userName") === "Ad" ||
-                        (userRole === "Médecin" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
                         (userRole === "Secrétaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
                         (userRole === "Infirmier(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
                         (userRole === "Archiviste" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
@@ -3405,20 +3404,20 @@ const [formData, setFormData] = useState({
   style={{ borderRadius: "80px", padding: "8px", width: "300px" }}
 />
 
-        <label>
-        Tous les status:
+    
+        
 <select
           onChange={(e) => setStatusFilter(e.target.value)}
           style={{ borderRadius: "50px", padding: "10px" }}
         >
-          <option value="Opéré">Opéré</option>
+          <option value="">Tous les statuts:</option>
           <option value="Non Opéré">Non Opéré</option>
           <option value="En Opération">En Opération</option>
+           <option value="Opéré">Opéré</option>
           <option value="Opéré-transféré">Opéré-transféré</option>
           <option value="Opéré-décédé">Opéré-décédé</option>
           <option value="Opéré-Exeat">Opéré-Exeat</option>
         </select>
-</label>
 
         <select
           onChange={(e) => setValidationFilter(e.target.value)}
@@ -3545,7 +3544,7 @@ const [formData, setFormData] = useState({
               }}
               id="data-exit"
             >
-              {patient.nom} - {patient.statut}
+              {patient.nom} - {patient.statut===Opéré}
               {patient.statut === "Opéré-transféré" &&
                 patient.departementTransfert && (
                   <span> → {patient.departementTransfert}</span>
