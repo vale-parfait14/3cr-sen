@@ -3544,7 +3544,7 @@ const [formData, setFormData] = useState({
               }}
               id="data-exit"
             >
-              {patient.nom} - {patient.statut===Opéré}
+              {patient.nom} - {patient.statut}
               {patient.statut === "Opéré-transféré" &&
                 patient.departementTransfert && (
                   <span> → {patient.departementTransfert}</span>
