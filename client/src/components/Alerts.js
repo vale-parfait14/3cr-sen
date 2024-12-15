@@ -27,11 +27,9 @@ const Alerts = () => {
 
   // Fonction pour supprimer une alerte par son ID
   const handleDeleteAlert = (id) => {
-    const confirmation = windows.confirm("Confirmez la suppression !");
-    if(!confirmation){
-      return;
-    }
     
+    if(windows.confirm("Confirmez la suppression !")){
+       
     fetch(`https://threecr-sen.onrender.com/api/alerts/${id}`, {
       method: 'DELETE', // Méthode HTTP DELETE
     })
@@ -43,6 +41,7 @@ const Alerts = () => {
         }
       })
       .catch((err) => console.error('Erreur lors de la suppression de l\'alerte', err));
+  };
   };
 
   // Fonction pour télécharger en PDF
