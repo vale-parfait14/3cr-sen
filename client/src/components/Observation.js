@@ -174,9 +174,10 @@ const Observation = () => {
 
 
                 </div>
-
+                {((userRole === 'Médecin' && ['Affichage-Modification', 'Affichage-Modification-Suppression', 'Administrateur'].includes(userAccessLevel)) ||
+  (userRole === 'Admin' && userAccessLevel === 'Administrateur')) && (
                 <div className="mb-3">
-                  <strong>Commentaire:</strong>
+                  
                   <textarea
                     className="form-control mt-2"
                     value={file.comment || ''}
@@ -184,7 +185,7 @@ const Observation = () => {
                     placeholder="Ajouter/modifier le commentaire"
                   />
                 </div>
-
+                )}
                 <div className="text-muted small mb-3">
                   Date: {new Date(file.timestamp).toLocaleString()}
                 </div>
