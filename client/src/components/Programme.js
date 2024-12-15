@@ -185,14 +185,11 @@ const FileManager = () => {
                       className="btn btn-danger btn-sm"
                       style={{
                         display:
-                          userName === "Ad" ||
-                          (userRole === "Médecin" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"].includes(userService)) ||
-                          (userRole === "Infirmier(e)" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"].includes(userService)) ||
-                          (userRole === "Archiviste" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"].includes(userService)) ||
-                          (userRole === "Gestionnaire" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"].includes(userService)) ||
-                          (userRole === "Etudiant(e)" && userAccessLevel === "Affichage" && ["Cuomo","Ctcv","Cardiologie","Réanimation"].includes(userService))
-                            ? "none"
-                            : "block"
+                           localStorage.getItem("userName") === "Ad" ||
+                          (userRole === "Secrétaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"].includes(userService)) ||
+                          (userRole === "Admin" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"].includes(userService))
+                          ? "block"
+                            : "none"
                       }}
                     >
                       Supprimer
