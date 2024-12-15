@@ -209,6 +209,7 @@ const FileManager = () => {
                           : "block",
                           
                     }}
+
                     >
                       Supprimer
                     </button>
