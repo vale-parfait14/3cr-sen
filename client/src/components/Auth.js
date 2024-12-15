@@ -31,8 +31,8 @@ const Auth = ({ login }) => {
     e.preventDefault();
     setUiState(prev => ({ ...prev, loading: true }));
 
-    await new Promise(resolve => setTimeout(resolve, 900));
-
+    {/*    await new Promise(resolve => setTimeout(resolve, 900));
+*/}
     try {
       const response = await fetch(`${API_BASE_URL}/${uiState.isRegistering ? 'register' : 'login'}`, {
         method: 'POST',
@@ -65,8 +65,8 @@ const Auth = ({ login }) => {
 
     setUiState(prev => ({ ...prev, loading: true }));
     
-    await new Promise(resolve => setTimeout(resolve, 900));
-
+    {/*    await new Promise(resolve => setTimeout(resolve, 900));
+*/}
     try {
       const response = await fetch(`${API_BASE_URL}/reset-password`, {
         method: 'POST',
@@ -80,7 +80,7 @@ const Auth = ({ login }) => {
       if (!response.ok) throw new Error(`Erreur ${response.status}`);
       
       toast.success("Mot de passe réinitialisé");
-      setUiState(prev => ({ ...prev, showPasswordReset: false }));
+      setUiState(prev => ({ ...prev, showPasswordReset: true }));
       setFormData(prev => ({
         ...prev,
         newPassword: '',
@@ -93,7 +93,7 @@ const Auth = ({ login }) => {
     }
   }, [formData, API_BASE_URL]);
 
-  if (uiState.loading) {
+  {/*if (uiState.loading) {
     return (
       <div className="d-flex justify-content-center align-items-center vh-100">
         <div className="text-center">
@@ -107,7 +107,7 @@ const Auth = ({ login }) => {
         </div>
       </div>
     );
-  }
+  }*/}
 
   return (
     <div className="container min-vh-100 d-flex justify-content-center align-items-center py-5">
