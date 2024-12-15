@@ -105,9 +105,10 @@ const UserManagement = () => {
     );
 
     if (user) {
-      localStorage.setItem('userRole', utilisateur.role);
-      localStorage.setItem('userAccessLevel', utilisateur.accessLevel);
-      localStorage.setItem('userName', utilisateur.name);
+      localStorage.setItem('userRole', user.role);
+      localStorage.setItem('userAccessLevel', user.accessLevel);
+      localStorage.setItem('userName', user.name);
+      localstorage.setItem('userService', user.service);
       toast.success('Connexion réussie');
       setLoginData({ name: '', password: '' });
       navigate('/patients');
