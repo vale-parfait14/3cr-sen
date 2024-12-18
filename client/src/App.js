@@ -33,6 +33,7 @@ import PasswordPrompt from './components/PasswordPrompt';
 import UserConnection from './components/UserConnection';
 import Programme from './components/Programme';
 import Observation from './components/Observation';
+import filesCro from './components/filesCro';
 import filePatient from './components/fichiersPatients';
 import Message from './components/Message';
 import Iconographie from "./components/Iconographie";
@@ -127,6 +128,7 @@ const App = () => {
             <Route path="/userconnection" element={<ProtectedRoute element={<UserConnection token={token} />} token={token} />} />
             <Route path="/programme" element={<ProtectedRoute element={<Programme token={token} />} token={token} />} />
             <Route path="/Observation" element={< Observation element={<Observation token={token} />} token={token} />} />
+             <Route path="/filesCro" element={< filesCro element={<filesCro token={token} />} token={token} />} />
             <Route path="/filepatient" element={<ProtectedRoute element={<filePatient token={token} />} token={token} />} />
 
           </Routes>
