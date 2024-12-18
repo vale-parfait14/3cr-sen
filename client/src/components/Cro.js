@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DropboxChooser from 'react-dropbox-chooser';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, orderBy } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, orderBy, arrayUnion, arrayRemove } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
@@ -66,27 +66,31 @@ const FileChooserWithComment = () => {
 
   const handleSuccess = async (files) => {
     const comment = commentType === 'autre' ? customComment : predefinedComments[commentType];
-    
-    // Si des fichiers sont déjà sélectionnés, les ajouter à la liste des fichiers existants.
-    const newFiles = files.map(file => ({
-      fileName: file.name,
-      fileLink: file.link,
-    }));
 
-    const docRef = await addDoc(collection(db, 'fileEntries'), {
-      files: newFiles, // Ajout des fichiers dans un seul enregistrement
-      comment: comment,
-      timestamp: new Date().toISOString()
-    });
+    for (const file of files) {
+      try {
+        const docRef = await addDoc(collection(db, 'fileEntries'), {
+          fileName: file.name,
+          fileLink: file.link,
+          comment: comment,
+          timestamp: new Date().toISOString(),
+          files: [file.link] // Enregistrez les fichiers dans un tableau
+        });
 
-    const newEntry = {
-      id: docRef.id,
-      files: newFiles,
-      comment: comment,
-      timestamp: new Date().toISOString()
-    };
+        const newEntry = {
+          id: docRef.id,
+          fileName: file.name,
+          fileLink: file.link,
+          comment: comment,
+          timestamp: new Date().toISOString(),
+          files: [file.link] // Enregistrez les fichiers dans un tableau
+        };
 
-    setFileEntries(prev => [newEntry, ...prev]);
+        setFileEntries(prev => [newEntry, ...prev]);
+      } catch (error) {
+        console.error("Erreur lors de l'ajout du fichier:", error);
+      }
+    }
   };
 
   const handleDelete = async (id) => {
@@ -101,33 +105,60 @@ const FileChooserWithComment = () => {
   const handleEdit = async (id, newComment, newFiles) => {
     try {
       const docRef = doc(db, 'fileEntries', id);
+
+      // Mise à jour du commentaire
       await updateDoc(docRef, {
-        comment: newComment,
-        files: newFiles // Met à jour les fichiers
+        comment: newComment
       });
 
+      // Mise à jour des fichiers (ajout ou suppression)
+      for (const file of newFiles.addedFiles) {
+        await updateDoc(docRef, {
+          files: arrayUnion(file)
+        });
+      }
+
+      for (const file of newFiles.removedFiles) {
+        await updateDoc(docRef, {
+          files: arrayRemove(file)
+        });
+      }
+
       setFileEntries(fileEntries.map(entry => 
-        entry.id === id ? { ...entry, comment: newComment, files: newFiles } : entry
+        entry.id === id ? { ...entry, comment: newComment, files: [...entry.files, ...newFiles.addedFiles] } : entry
       ));
     } catch (error) {
       console.error("Erreur lors de la modification:", error);
     }
   };
 
-  const handleFileEdit = (id, entry) => {
-    const newFiles = [...entry.files];
-    const newComment = prompt('Modifier le commentaire:', entry.comment);
-    if (newComment !== null) {
-      // Modifications de fichiers si nécessaire
-      // Ajouter ou supprimer des fichiers ici selon l'interaction souhaitée
-      handleEdit(id, newComment, newFiles);
-    }
+  const handleFileUpdate = async (id, currentFiles) => {
+    // Ouvrir DropboxChooser pour ajouter de nouveaux fichiers
+    DropboxChooser.open({
+      appKey: APP_KEY,
+      multiselect: true,
+      success: async (newFiles) => {
+        // Créer une liste de nouveaux fichiers ajoutés
+        const addedFiles = newFiles.filter(file => !currentFiles.some(existingFile => existingFile === file.link));
+
+        // Créer une liste de fichiers supprimés
+        const removedFiles = currentFiles.filter(existingFile => !newFiles.some(file => file.link === existingFile));
+
+        if (addedFiles.length > 0 || removedFiles.length > 0) {
+          const newComment = prompt('Modifiez le commentaire:', fileEntries.find(entry => entry.id === id).comment);
+          if (newComment) {
+            // Mettre à jour l'enregistrement avec les nouveaux fichiers et le nouveau commentaire
+            await handleEdit(id, newComment, { addedFiles, removedFiles });
+          }
+        }
+      }
+    });
   };
 
   return (
     <div className="container py-4">
       <div className="mb-4">
-        {/* Step 1: Choisir le commentaire */}
+        {/* Step 1: Choose the comment type */}
         <div className="form-group">
           <label htmlFor="commentType">Choisissez un type de commentaire</label>
           <select 
@@ -142,7 +173,7 @@ const FileChooserWithComment = () => {
           </select>
         </div>
 
-        {/* Step 2: Input pour commentaire personnalisé si "Autre" est sélectionné */}
+        {/* Step 2: Input for custom comment if "Autre" is selected */}
         {commentType === 'autre' && (
           <div className="form-group mt-2">
             <input
@@ -156,7 +187,7 @@ const FileChooserWithComment = () => {
         )}
       </div>
 
-      {/* Step 3: Choisir les fichiers */}
+      {/* Step 3: Dropbox file chooser */}
       <div className="mb-4">
         <DropboxChooser 
           appKey={APP_KEY}
@@ -181,22 +212,17 @@ const FileChooserWithComment = () => {
         />
       </div>
 
-      {/* Step 4: Affichage des fichiers en cartes */}
+      {/* Step 4: Displaying files as cards */}
       <div className="row">
         <h3 className="h4 mb-4 w-100">Fichiers sélectionnés:</h3>
         {filteredEntries.map((entry) => (
           <div key={entry.id} className="col-12 col-sm-6 col-md-4 mb-4">
             <div className="card h-100">
               <div className="card-body">
-                <h5 className="card-title">Fichiers :</h5>
-                {entry.files.map((file, index) => (
-                  <div key={index}>
-                    <p>{file.fileName}</p>
-                    <a href={file.fileLink} target="_blank" rel="noopener noreferrer" className="card-link text-primary">
-                      Voir le fichier
-                    </a>
-                  </div>
-                ))}
+                <h5 className="card-title">{entry.fileName}</h5>
+                <a href={entry.fileLink} target="_blank" rel="noopener noreferrer" className="card-link text-primary">
+                  Voir le fichier
+                </a>
                 <p className="card-text"><strong>Commentaire:</strong> {entry.comment}</p>
                 <p className="card-text"><strong>Date:</strong> {new Date(entry.timestamp).toLocaleString()}</p>
               </div>
@@ -208,7 +234,7 @@ const FileChooserWithComment = () => {
                   Supprimer
                 </button>
                 <button
-                  onClick={() => handleFileEdit(entry.id, entry)}
+                  onClick={() => handleFileUpdate(entry.id, entry.files)}
                   className="btn btn-success btn-sm"
                 >
                   Modifier
