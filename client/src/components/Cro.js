@@ -29,17 +29,17 @@ const PatientSolvable = ({ patients }) => {
     indicationOperatoire: ''
   });
   const [showFiles, setShowFiles] = useState({});
-  const [croInfo, setCroInfo] = useState({
+  const [fichierInfo, setFichierInfo] = useState({
     patientId: '',
     statut: 'Validé',
     dropboxLinks: []
   });
-  const [Cros, setCros] = useState([]);
+  const [fichiers, setFichiers] = useState([]);
   const userService = localStorage.getItem('userService');
   const [userRole] = useState(localStorage.getItem("userRole"));
   const [userAccessLevel] = useState(localStorage.getItem("userAccessLevel"));
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredCros, setFilteredCros] = useState([]);
+  const [filteredFichiers, setFilteredFichiers] = useState([]);
   const [dropboxLinks, setDropboxLinks] = useState([]);
 
   const validatedPatients = patients.filter(patient => 
@@ -47,44 +47,44 @@ const PatientSolvable = ({ patients }) => {
   );
 
   useEffect(() => {
-    const fetchCros = async () => {
+    const fetchFichiers = async () => {
       try {
-        const CrosRef = collection(db, 'Cros');
-        const q = query(CrosRef, where('service', '==', userService));
+        const fichiersRef = collection(db, 'fichiers');
+        const q = query(fichiersRef, where('service', '==', userService));
         const querySnapshot = await getDocs(q);
-        const CrosData = querySnapshot.docs.map(doc => ({
+        const fichiersData = querySnapshot.docs.map(doc => ({
           _id: doc.id,
           ...doc.data()
         }));
-        setCros(CrosData);
+        setFichiers(fichiersData);
       } catch (error) {
         toast.error('Erreur lors du chargement des patients');
       }
     };
 
-    fetchCros();
-    const intervalId = setInterval(fetchCros, 5000);
+    fetchFichiers();
+    const intervalId = setInterval(fetchFichiers, 5000);
     return () => clearInterval(intervalId);
   }, [userService]);
 
   useEffect(() => {
     if (!searchTerm) {
-      setFilteredCros(Cros);
+      setFilteredFichiers(fichiers);
       return;
     }
 
-    const searchResults = Cros.filter(cro => {
-      const patient = patients.find(p => p._id === cro.patientId);
+    const searchResults = fichiers.filter(fichier => {
+      const patient = patients.find(p => p._id === fichier.patientId);
       const searchString = `${patient?.dossierNumber.toLowerCase()} ${patient?.nom.toLowerCase()} ${patient?.dateNaissance} ${patient?.sexe.toLowerCase()} ${patient?.groupeSanguin} ${patient?.adresse.toLowerCase()} ${patient?.numeroDeTelephone} ${patient?.diagnostic.toLowerCase()} ${patient?.operateur.toLowerCase()}`;
       return searchString.includes(searchTerm.toLowerCase());
     });
-    setFilteredCros(searchResults);
-  }, [searchTerm, Cros, patients]);
+    setFilteredFichiers(searchResults);
+  }, [searchTerm, fichiers, patients]);
 
   const handleDropboxSuccess = (files) => {
     const newLinks = files.map(file => file.link);
     setDropboxLinks([...dropboxLinks, ...newLinks]);
-    setCroInfo(prev => ({
+    setFichierInfo(prev => ({
       ...prev,
       dropboxLinks: [...(prev.dropboxLinks || []), ...newLinks]
     }));
@@ -99,8 +99,8 @@ const PatientSolvable = ({ patients }) => {
     }
 
     try {
-      const docRef = await addDoc(collection(db, 'Cros'), {
-        ...croInfo,
+      const docRef = await addDoc(collection(db, 'fichiers'), {
+        ...fichierInfo,
         service: userService,
         commentType,
         customComment: commentType === 'autre' ? customComment : '',
@@ -108,9 +108,9 @@ const PatientSolvable = ({ patients }) => {
         dropboxLinks
       });
 
-      const newcro = {
+      const newFichier = {
         _id: docRef.id,
-        ...croInfo,
+        ...fichierInfo,
         service: userService,
         commentType,
         customComment: commentType === 'autre' ? customComment : '',
@@ -118,7 +118,7 @@ const PatientSolvable = ({ patients }) => {
         dropboxLinks
       };
 
-      setCros([...Cros, newcro]);
+      setFichiers([...fichiers, newFichier]);
       resetForm();
       toast.success('Patient et documents enregistrés avec succès');
     } catch (error) {
@@ -129,9 +129,9 @@ const PatientSolvable = ({ patients }) => {
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
-      const croRef = doc(db, 'Cros', editing);
+      const fichierRef = doc(db, 'fichiers', editing);
       const updateData = {
-        ...croInfo,
+        ...fichierInfo,
         service: userService,
         commentType,
         customComment: commentType === 'autre' ? customComment : '',
@@ -139,8 +139,8 @@ const PatientSolvable = ({ patients }) => {
         dropboxLinks
       };
 
-      await updateDoc(croRef, updateData);
-      setCros(Cros.map(p => 
+      await updateDoc(fichierRef, updateData);
+      setFichiers(fichiers.map(p => 
         p._id === editing ? {...p, ...updateData} : p
       ));
       resetForm();
@@ -152,7 +152,7 @@ const PatientSolvable = ({ patients }) => {
   };
 
   const resetForm = () => {
-    setCroInfo({
+    setFichierInfo({
       patientId: '',
       statut: 'Validé',
       dropboxLinks: []
@@ -168,11 +168,11 @@ const PatientSolvable = ({ patients }) => {
     });
   };
 
-  const handleDelete = async (croId) => {
+  const handleDelete = async (fichierId) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce patient et ses documents associés ?')) {
       try {
-        await deleteDoc(doc(db, 'Cros', croId));
-        setCros(Cros.filter(cro => cro._id !== croId));
+        await deleteDoc(doc(db, 'fichiers', fichierId));
+        setFichiers(fichiers.filter(fichier => fichier._id !== fichierId));
         toast.success('Patient et documents supprimés avec succès');
       } catch (error) {
         toast.error('Erreur lors de la suppression');
@@ -180,27 +180,27 @@ const PatientSolvable = ({ patients }) => {
     }
   };
 
-  const handleEdit = (cro) => {
-    setEditing(cro._id);
-    setCroInfo({
-      patientId: cro.patientId,
-      statut: cro.statut,
-      dropboxLinks: cro.dropboxLinks || []
+  const handleEdit = (fichier) => {
+    setEditing(fichier._id);
+    setFichierInfo({
+      patientId: fichier.patientId,
+      statut: fichier.statut,
+      dropboxLinks: fichier.dropboxLinks || []
     });
-    setCommentType(cro.commentType || 'Normal');
-    setCustomComment(cro.customComment || '');
-    setOperationDetails(cro.operationDetails || {
+    setCommentType(fichier.commentType || 'Normal');
+    setCustomComment(fichier.customComment || '');
+    setOperationDetails(fichier.operationDetails || {
       anesthesistes: '',
       responsablesCEC: '',
       instrumentistes: '',
       indicationOperatoire: ''
     });
-    setDropboxLinks(cro.dropboxLinks || []);
+    setDropboxLinks(fichier.dropboxLinks || []);
   };
 
   const exportToExcel = () => {
-    const data = Cros.map(cro => {
-      const patient = patients.find(p => p._id === cro.patientId);
+    const data = fichiers.map(fichier => {
+      const patient = patients.find(p => p._id === fichier.patientId);
       return {
         'Numéro de dossier': patient?.dossierNumber,
         'Patient': patient?.nom,
@@ -212,11 +212,11 @@ const PatientSolvable = ({ patients }) => {
         'Téléphone': patient?.numeroDeTelephone,
         'Diagnostic': patient?.diagnostic,
         'Opérateur': patient?.operateur,
-        'Commentaire': cro.commentType === 'autre' ? cro.customComment : cro.commentType,
-        'Anesthésistes': cro.operationDetails?.anesthesistes,
-        'Responsables CEC': cro.operationDetails?.responsablesCEC,
-        'Instrumentistes': cro.operationDetails?.instrumentistes,
-        'Indication opératoire': cro.operationDetails?.indicationOperatoire
+        'Commentaire': fichier.commentType === 'autre' ? fichier.customComment : fichier.commentType,
+        'Anesthésistes': fichier.operationDetails?.anesthesistes,
+        'Responsables CEC': fichier.operationDetails?.responsablesCEC,
+        'Instrumentistes': fichier.operationDetails?.instrumentistes,
+        'Indication opératoire': fichier.operationDetails?.indicationOperatoire
       };
     });
     const ws = XLSX.utils.json_to_sheet(data);
@@ -234,8 +234,8 @@ const PatientSolvable = ({ patients }) => {
               <Form.Label>Sélectionner un patient</Form.Label>
               <Form.Control
                 as="select"
-                value={croInfo.patientId}
-                onChange={(e) => setCroInfo({...croInfo, patientId: e.target.value})}
+                value={fichierInfo.patientId}
+                onChange={(e) => setFichierInfo({...fichierInfo, patientId: e.target.value})}
                 required
               >
                 <option value="">Sélectionner un patient</option>
@@ -310,7 +310,7 @@ const PatientSolvable = ({ patients }) => {
                 multiselect={true}
               >
                 <Button variant="outline-primary" type="button">
-                  Choisir des Cros depuis Dropbox
+                  Choisir des fichiers depuis Dropbox
                 </Button>
               </DropboxChooser>
               {dropboxLinks.length > 0 && (
@@ -368,10 +368,10 @@ const PatientSolvable = ({ patients }) => {
               </tr>
             </thead>
             <tbody>
-              {filteredCros.map((cro) => {
-                const patient = patients.find(p => p._id === cro.patientId);
+              {filteredFichiers.map((fichier) => {
+                const patient = patients.find(p => p._id === fichier.patientId);
                 return (
-                  <tr key={cro._id}>
+                  <tr key={fichier._id}>
                     <td>{patient?.dossierNumber}</td>
                     <td>{patient?.nom}</td>
                     <td>{patient?.dateNaissance}</td>
@@ -382,28 +382,28 @@ const PatientSolvable = ({ patients }) => {
                     <td>{patient?.numeroDeTelephone}</td>
                     <td>{patient?.diagnostic}</td>
                     <td>{patient?.operateur}</td>
-                    <td>{cro.commentType === 'autre' ? cro.customComment : cro.commentType}</td>
+                    <td>{fichier.commentType === 'autre' ? fichier.customComment : fichier.commentType}</td>
                     <td>
                       <small>
-                        <strong>Anesthésistes:</strong> {cro.operationDetails?.anesthesistes}<br/>
-                        <strong>CEC:</strong> {cro.operationDetails?.responsablesCEC}<br/>
-                        <strong>Instrumentistes:</strong> {cro.operationDetails?.instrumentistes}<br/>
-                        <strong>Indication:</strong> {cro.operationDetails?.indicationOperatoire}
+                        <strong>Anesthésistes:</strong> {fichier.operationDetails?.anesthesistes}<br/>
+                        <strong>CEC:</strong> {fichier.operationDetails?.responsablesCEC}<br/>
+                        <strong>Instrumentistes:</strong> {fichier.operationDetails?.instrumentistes}<br/>
+                        <strong>Indication:</strong> {fichier.operationDetails?.indicationOperatoire}
                       </small>
                     </td>
                     <td>
-                      {cro.dropboxLinks?.length > 2 ? (
+                      {fichier.dropboxLinks?.length > 2 ? (
                         <>
                           <Button
                             variant="info"
                             size="sm"
-                            onClick={() => setShowFiles({...showFiles, [cro._id]: !showFiles[cro._id]})}
+                            onClick={() => setShowFiles({...showFiles, [fichier._id]: !showFiles[fichier._id]})}
                           >
-                            {showFiles[cro._id] ? 'Masquer' : `Voir ${cro.dropboxLinks.length} Cros`}
+                            {showFiles[fichier._id] ? 'Masquer' : `Voir ${fichier.dropboxLinks.length} fichiers`}
                           </Button>
-                          {showFiles[cro._id] && (
+                          {showFiles[fichier._id] && (
                             <div className="mt-2">
-                              {cro.dropboxLinks.map((link, index) => (
+                              {fichier.dropboxLinks.map((link, index) => (
                                 <div key={index}>
                                   <a href={link} target="_blank" rel="noopener noreferrer">
                                     Document {index + 1}
@@ -414,7 +414,7 @@ const PatientSolvable = ({ patients }) => {
                           )}
                         </>
                       ) : (
-                        cro.dropboxLinks?.map((link, index) => (
+                        fichier.dropboxLinks?.map((link, index) => (
                           <div key={index}>
                             <a href={link} target="_blank" rel="noopener noreferrer">
                               Document {index + 1}
@@ -424,10 +424,10 @@ const PatientSolvable = ({ patients }) => {
                       )}
                     </td>
                     <td>
-                      <Button variant="warning" onClick={() => handleEdit(cro)} className="me-2">
+                      <Button variant="warning" onClick={() => handleEdit(fichier)} className="me-2">
                         Modifier
                       </Button>
-                      <Button variant="danger" onClick={() => handleDelete(cro._id)}>
+                      <Button variant="danger" onClick={() => handleDelete(fichier._id)}>
                         Supprimer
                       </Button>
                     </td>
