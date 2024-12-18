@@ -23,6 +23,8 @@ const FileChooserWithComment = () => {
   const [fileEntries, setFileEntries] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredEntries, setFilteredEntries] = useState([]);
+  const [filesChosen, setFilesChosen] = useState([]); // Liste des fichiers choisis
+  const [newTitle, setNewTitle] = useState(''); // Titre à ajouter si 2 fichiers sont sélectionnés
 
   const predefinedComments = {
     normal: 'Normal',
@@ -68,6 +70,9 @@ const FileChooserWithComment = () => {
     // Si aucun fichier n'a été sélectionné, ne rien faire
     if (files.length === 0) return;
 
+    // Mettre à jour les fichiers choisis
+    setFilesChosen(files);
+
     // Structure de l'enregistrement avec plusieurs fichiers
     const newFiles = files.map(file => ({
       fileName: file.name,
@@ -76,8 +81,14 @@ const FileChooserWithComment = () => {
       timestamp: new Date().toISOString()
     }));
 
+    // Si 2 fichiers sont choisis, afficher un champ pour ajouter un titre
+    if (files.length === 2) {
+      setNewTitle('');
+    }
+
     try {
       const docRef = await addDoc(collection(db, 'fileEntries'), {
+        title: files.length === 2 ? newTitle || 'Enregistrement' : 'Enregistrement', // Utiliser le titre uniquement si 2 fichiers sont sélectionnés
         files: newFiles, // Stocker les fichiers sous forme de tableau
         comment: comment,
         timestamp: new Date().toISOString()
@@ -86,6 +97,7 @@ const FileChooserWithComment = () => {
       // Mettre à jour les entrées avec l'enregistrement contenant les fichiers
       const newEntry = {
         id: docRef.id,
+        title: files.length === 2 ? newTitle || 'Enregistrement' : 'Enregistrement', // Ajouter le titre si 2 fichiers
         files: newFiles,
         comment: comment,
         timestamp: new Date().toISOString()
@@ -167,6 +179,21 @@ const FileChooserWithComment = () => {
         </DropboxChooser>
       </div>
 
+      {/* Affichage du champ de titre uniquement si 2 fichiers sont choisis */}
+      {filesChosen.length === 2 && (
+        <div className="form-group mt-4">
+          <label htmlFor="newTitle">Ajouter un titre à l'enregistrement</label>
+          <input
+            type="text"
+            id="newTitle"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            placeholder="Entrez un titre"
+            className="form-control"
+          />
+        </div>
+      )}
+
       {/* Barre de recherche */}
       <div className="mb-4">
         <input
@@ -185,7 +212,8 @@ const FileChooserWithComment = () => {
           <div key={entry.id} className="col-12 mb-4">
             <div className="card h-100">
               <div className="card-body">
-                <h5 className="card-title">Enregistrement</h5>
+                {/* Affichage du titre */}
+                <h5 className="card-title">{entry.title}</h5>
                 <p className="card-text"><strong>Commentaire:</strong> {entry.comment}</p>
                 <p className="card-text"><strong>Date:</strong> {new Date(entry.timestamp).toLocaleString()}</p>
 
