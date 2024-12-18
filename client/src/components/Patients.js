@@ -1444,7 +1444,7 @@ const [formData, setFormData] = useState({
                       <button
                     className="btn3 "
                     title="fichiers CRO"
-                    onClick={() => navigate("/filesCro")}
+                    onClick={() => navigate("/fichiers-cro")}
 
                     style={{
                       display:
