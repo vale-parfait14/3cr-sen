@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import * as XLSX from 'xlsx';
-import { toast } from 'react-toastify';
-import { Container, Row, Col, Form, Button, Table } from 'react-bootstrap';
+ import React, { useState, useEffect } from 'react';
 import DropboxChooser from 'react-dropbox-chooser';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, deleteDoc, query, where } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
@@ -17,429 +16,340 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
-const PatientSolvable = ({ patients }) => {
-  const [editing, setEditing] = useState(null);
-  const [commentType, setCommentType] = useState('Normal');
+const PatientFileManager = () => {
+  const [patients, setPatients] = useState([]);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [comment, setComment] = useState('');
   const [customComment, setCustomComment] = useState('');
-  const [operationDetails, setOperationDetails] = useState({
-    anesthesistes: '',
-    responsablesCEC: '',
-    instrumentistes: '',
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [showFiles, setShowFiles] = useState(false);
+  const [formData, setFormData] = useState({
+    anesthesiste: '',
+    responsableCec: '',
+    instrumentiste: '',
     indicationOperatoire: ''
   });
-  const [showFiles, setShowFiles] = useState({});
-  const [fichierInfo, setFichierInfo] = useState({
-    patientId: '',
-    statut: 'Validé',
-    dropboxLinks: []
-  });
-  const [fichiers, setFichiers] = useState([]);
-  const userService = localStorage.getItem('userService');
-  const [userRole] = useState(localStorage.getItem("userRole"));
-  const [userAccessLevel] = useState(localStorage.getItem("userAccessLevel"));
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filteredFichiers, setFilteredFichiers] = useState([]);
-  const [dropboxLinks, setDropboxLinks] = useState([]);
-
-  const validatedPatients = patients.filter(patient => 
-    patient.validation === 'Validé' && patient.services === userService
-  );
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
-    const fetchFichiers = async () => {
-      try {
-        const fichiersRef = collection(db, 'fichiers');
-        const q = query(fichiersRef, where('service', '==', userService));
-        const querySnapshot = await getDocs(q);
-        const fichiersData = querySnapshot.docs.map(doc => ({
-          _id: doc.id,
-          ...doc.data()
-        }));
-        setFichiers(fichiersData);
-      } catch (error) {
-        toast.error('Erreur lors du chargement des patients');
-      }
-    };
+    fetchPatients();
+  }, []);
 
-    fetchFichiers();
-    const intervalId = setInterval(fetchFichiers, 5000);
-    return () => clearInterval(intervalId);
-  }, [userService]);
-
-  useEffect(() => {
-    if (!searchTerm) {
-      setFilteredFichiers(fichiers);
-      return;
+  const fetchPatients = async () => {
+    setLoading(true);
+    try {
+      const querySnapshot = await getDocs(collection(db, 'patients'));
+      const patientsList = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setPatients(patientsList);
+    } catch (error) {
+      setMessage({ type: 'danger', text: 'Erreur lors du chargement des patients' });
     }
+    setLoading(false);
+  };
 
-    const searchResults = fichiers.filter(fichier => {
-      const patient = patients.find(p => p._id === fichier.patientId);
-      const searchString = `${patient?.dossierNumber.toLowerCase()} ${patient?.nom.toLowerCase()} ${patient?.dateNaissance} ${patient?.sexe.toLowerCase()} ${patient?.groupeSanguin} ${patient?.adresse.toLowerCase()} ${patient?.numeroDeTelephone} ${patient?.diagnostic.toLowerCase()} ${patient?.operateur.toLowerCase()}`;
-      return searchString.includes(searchTerm.toLowerCase());
-    });
-    setFilteredFichiers(searchResults);
-  }, [searchTerm, fichiers, patients]);
+  const handlePatientSelect = (patient) => {
+    setSelectedPatient(patient);
+  };
 
-  const handleDropboxSuccess = (files) => {
-    const newLinks = files.map(file => file.link);
-    setDropboxLinks([...dropboxLinks, ...newLinks]);
-    setFichierInfo(prev => ({
-      ...prev,
-      dropboxLinks: [...(prev.dropboxLinks || []), ...newLinks]
-    }));
-    toast.success('Documents Dropbox sélectionnés avec succès');
+  const handleCommentChange = (e) => {
+    if (e.target.value === 'autre') {
+      setComment('autre');
+    } else {
+      setComment(e.target.value);
+      setCustomComment('');
+    }
+  };
+
+  const handleFileSuccess = (files) => {
+    setSelectedFiles(prev => [...prev, ...files]);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editing) {
-      handleUpdate(e);
-      return;
-    }
-
+    setLoading(true);
     try {
-      const docRef = await addDoc(collection(db, 'fichiers'), {
-        ...fichierInfo,
-        service: userService,
-        commentType,
-        customComment: commentType === 'autre' ? customComment : '',
-        operationDetails,
-        dropboxLinks
-      });
+      const fileUrls = await Promise.all(
+        selectedFiles.map(async (file) => {
+          const storageRef = ref(storage, `files/${Date.now()}_${file.name}`);
+          const response = await fetch(file.link);
+          const blob = await response.blob();
+          await uploadBytes(storageRef, blob);
+          return await getDownloadURL(storageRef);
+        })
+      );
 
-      const newFichier = {
-        _id: docRef.id,
-        ...fichierInfo,
-        service: userService,
-        commentType,
-        customComment: commentType === 'autre' ? customComment : '',
-        operationDetails,
-        dropboxLinks
+      const patientData = {
+        patient: selectedPatient,
+        comment: comment === 'autre' ? customComment : comment,
+        files: fileUrls,
+        ...formData,
+        timestamp: new Date()
       };
 
-      setFichiers([...fichiers, newFichier]);
+      await addDoc(collection(db, 'patientRecords'), patientData);
+      setMessage({ type: 'success', text: 'Dossier enregistré avec succès' });
       resetForm();
-      toast.success('Patient et documents enregistrés avec succès');
     } catch (error) {
-      toast.error('Erreur lors de l\'enregistrement');
+      setMessage({ type: 'danger', text: 'Erreur lors de l\'enregistrement' });
     }
+    setLoading(false);
   };
 
-  const handleUpdate = async (e) => {
-    e.preventDefault();
+  const handleUpdate = async (recordId) => {
+    setLoading(true);
     try {
-      const fichierRef = doc(db, 'fichiers', editing);
+      const docRef = doc(db, 'patientRecords', recordId);
       const updateData = {
-        ...fichierInfo,
-        service: userService,
-        commentType,
-        customComment: commentType === 'autre' ? customComment : '',
-        operationDetails,
-        dropboxLinks
+        comment: comment === 'autre' ? customComment : comment,
+        ...formData,
+        updatedAt: new Date()
       };
-
-      await updateDoc(fichierRef, updateData);
-      setFichiers(fichiers.map(p => 
-        p._id === editing ? {...p, ...updateData} : p
-      ));
-      resetForm();
-      setEditing(null);
-      toast.success('Patient et documents modifiés avec succès');
+      await updateDoc(docRef, updateData);
+      setMessage({ type: 'success', text: 'Dossier mis à jour avec succès' });
     } catch (error) {
-      toast.error('Erreur lors de la modification');
+      setMessage({ type: 'danger', text: 'Erreur lors de la mise à jour' });
+    }
+    setLoading(false);
+  };
+
+  const handleDelete = async (recordId) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce dossier ?')) {
+      setLoading(true);
+      try {
+        await deleteDoc(doc(db, 'patientRecords', recordId));
+        setMessage({ type: 'success', text: 'Dossier supprimé avec succès' });
+        resetForm();
+      } catch (error) {
+        setMessage({ type: 'danger', text: 'Erreur lors de la suppression' });
+      }
+      setLoading(false);
     }
   };
 
   const resetForm = () => {
-    setFichierInfo({
-      patientId: '',
-      statut: 'Validé',
-      dropboxLinks: []
-    });
-    setDropboxLinks([]);
-    setCommentType('Normal');
+    setSelectedPatient(null);
+    setComment('');
     setCustomComment('');
-    setOperationDetails({
-      anesthesistes: '',
-      responsablesCEC: '',
-      instrumentistes: '',
+    setSelectedFiles([]);
+    setFormData({
+      anesthesiste: '',
+      responsableCec: '',
+      instrumentiste: '',
       indicationOperatoire: ''
     });
-  };
-
-  const handleDelete = async (fichierId) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce patient et ses documents associés ?')) {
-      try {
-        await deleteDoc(doc(db, 'fichiers', fichierId));
-        setFichiers(fichiers.filter(fichier => fichier._id !== fichierId));
-        toast.success('Patient et documents supprimés avec succès');
-      } catch (error) {
-        toast.error('Erreur lors de la suppression');
-      }
-    }
-  };
-
-  const handleEdit = (fichier) => {
-    setEditing(fichier._id);
-    setFichierInfo({
-      patientId: fichier.patientId,
-      statut: fichier.statut,
-      dropboxLinks: fichier.dropboxLinks || []
-    });
-    setCommentType(fichier.commentType || 'Normal');
-    setCustomComment(fichier.customComment || '');
-    setOperationDetails(fichier.operationDetails || {
-      anesthesistes: '',
-      responsablesCEC: '',
-      instrumentistes: '',
-      indicationOperatoire: ''
-    });
-    setDropboxLinks(fichier.dropboxLinks || []);
-  };
-
-  const exportToExcel = () => {
-    const data = fichiers.map(fichier => {
-      const patient = patients.find(p => p._id === fichier.patientId);
-      return {
-        'Numéro de dossier': patient?.dossierNumber,
-        'Patient': patient?.nom,
-        'Date de naissance': patient?.dateNaissance,
-        'Sexe': patient?.sexe,
-        'Age': patient?.age,
-        'Groupe sanguin': patient?.groupeSanguin,
-        'Adresse': patient?.adresse,
-        'Téléphone': patient?.numeroDeTelephone,
-        'Diagnostic': patient?.diagnostic,
-        'Opérateur': patient?.operateur,
-        'Commentaire': fichier.commentType === 'autre' ? fichier.customComment : fichier.commentType,
-        'Anesthésistes': fichier.operationDetails?.anesthesistes,
-        'Responsables CEC': fichier.operationDetails?.responsablesCEC,
-        'Instrumentistes': fichier.operationDetails?.instrumentistes,
-        'Indication opératoire': fichier.operationDetails?.indicationOperatoire
-      };
-    });
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Patients");
-    XLSX.writeFile(wb, "Patients.xlsx");
   };
 
   return (
-    <Container>
-      <Row className="my-4">
-        <Col md={12} lg={8} className="mx-auto">
-          <Form onSubmit={handleSubmit}>
-            <Form.Group>
-              <Form.Label>Sélectionner un patient</Form.Label>
-              <Form.Control
-                as="select"
-                value={fichierInfo.patientId}
-                onChange={(e) => setFichierInfo({...fichierInfo, patientId: e.target.value})}
-                required
+    <div className="container py-4">
+      {message.text && (
+        <div className={`alert alert-${message.type} alert-dismissible fade show`} role="alert">
+          {message.text}
+          <button type="button" className="btn-close" onClick={() => setMessage({ type: '', text: '' })}></button>
+        </div>
+      )}
+
+      <div className="card shadow-sm">
+        <div className="card-body">
+          <h2 className="card-title text-center mb-4">Gestion des Dossiers Patients</h2>
+
+          <div className="row">
+            <div className="col-md-12 mb-3">
+              <select 
+                className="form-select"
+                onChange={(e) => handlePatientSelect(JSON.parse(e.target.value))}
               >
                 <option value="">Sélectionner un patient</option>
-                {validatedPatients.map(patient => (
-                  <option key={patient._id} value={patient._id}>
-                    {patient.dossierNumber} - {patient.nom} - {patient.dateNaissance} - {patient.sexe} - {patient.age} - {patient.groupeSanguin} - {patient.adresse} - {patient.numeroDeTelephone} - {patient.diagnostic} - {patient.operateur}
+                {patients.map(patient => (
+                  <option key={patient.numeroDossier} value={JSON.stringify(patient)}>
+                    {`${patient.numeroDossier} - ${patient.nom}`}
                   </option>
                 ))}
-              </Form.Control>
-            </Form.Group>
+              </select>
+            </div>
+          </div>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Type de commentaire</Form.Label>
-              <Form.Select 
-                value={commentType}
-                onChange={(e) => setCommentType(e.target.value)}
-              >
-                <option value="Normal">Normal</option>
-                <option value="Mission Canadienne">Mission Canadienne</option>
-                <option value="autre">Autre</option>
-              </Form.Select>
-            </Form.Group>
+          {selectedPatient && (
+            <div className="card mb-4">
+              <div className="card-body">
+                <h4 className="card-title">Informations du patient</h4>
+                <div className="row">
+                  <div className="col-md-6">
+                    <p><strong>Numéro de dossier:</strong> {selectedPatient.numeroDossier}</p>
+                    <p><strong>Nom:</strong> {selectedPatient.nom}</p>
+                    <p><strong>Date de naissance:</strong> {selectedPatient.dateNaissance}</p>
+                    <p><strong>Sexe:</strong> {selectedPatient.sexe}</p>
+                    <p><strong>Age:</strong> {selectedPatient.age}</p>
+                  </div>
+                  <div className="col-md-6">
+                    <p><strong>Groupe sanguin:</strong> {selectedPatient.groupeSanguin}</p>
+                    <p><strong>Adresse:</strong> {selectedPatient.adresse}</p>
+                    <p><strong>Téléphone:</strong> {selectedPatient.telephone}</p>
+                    <p><strong>Diagnostic:</strong> {selectedPatient.diagnostic}</p>
+                    <p><strong>Opérateur:</strong> {selectedPatient.operateur}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
-            {commentType === 'autre' && (
-              <Form.Group className="mb-3">
-                <Form.Label>Commentaire personnalisé</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  value={customComment}
-                  onChange={(e) => setCustomComment(e.target.value)}
-                />
-              </Form.Group>
-            )}
-
-            <Form.Group className="mb-3">
-              <Form.Label>Détails de l'opération</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Anesthésistes"
-                value={operationDetails.anesthesistes}
-                onChange={(e) => setOperationDetails({...operationDetails, anesthesistes: e.target.value})}
-                className="mb-2"
-              />
-              <Form.Control
-                type="text"
-                placeholder="Responsables CEC"
-                value={operationDetails.responsablesCEC}
-                onChange={(e) => setOperationDetails({...operationDetails, responsablesCEC: e.target.value})}
-                className="mb-2"
-              />
-              <Form.Control
-                type="text"
-                placeholder="Instrumentistes"
-                value={operationDetails.instrumentistes}
-                onChange={(e) => setOperationDetails({...operationDetails, instrumentistes: e.target.value})}
-                className="mb-2"
-              />
-              <Form.Control
-                type="text"
-                placeholder="Indication opératoire"
-                value={operationDetails.indicationOperatoire}
-                onChange={(e) => setOperationDetails({...operationDetails, indicationOperatoire: e.target.value})}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Documents (Dropbox)</Form.Label>
-              <DropboxChooser
-                appKey="gmhp5s9h3aup35v"
-                success={handleDropboxSuccess}
-                cancel={() => toast.info('Sélection annulée')}
-                multiselect={true}
-              >
-                <Button variant="outline-primary" type="button">
-                  Choisir des fichiers depuis Dropbox
-                </Button>
-              </DropboxChooser>
-              {dropboxLinks.length > 0 && (
-                <div className="mt-2">
-                  {dropboxLinks.map((link, index) => (
-                    <div key={index}>
-                      <a href={link} target="_blank" rel="noopener noreferrer">
-                        Document {index + 1}
-                      </a>
-                    </div>
-                  ))}
+          <form onSubmit={handleSubmit}>
+            <div className="row mb-3">
+              <div className="col-md-6">
+                <select 
+                  className="form-select"
+                  value={comment}
+                  onChange={handleCommentChange}
+                >
+                  <option value="">Sélectionner un commentaire</option>
+                  <option value="Normal">Normal</option>
+                  <option value="Mission Canadienne">Mission Canadienne</option>
+                  <option value="autre">Autre</option>
+                </select>
+              </div>
+              {comment === 'autre' && (
+                <div className="col-md-6">
+                  <textarea
+                    className="form-control"
+                    value={customComment}
+                    onChange={(e) => setCustomComment(e.target.value)}
+                    placeholder="Entrez votre commentaire"
+                  />
                 </div>
               )}
-            </Form.Group>
+            </div>
 
-            <Button variant="primary" type="submit">
-              {editing ? 'Modifier' : 'Enregistrer'}
-            </Button>
-          </Form>
-        </Col>
-      </Row>
+            <div className="row mb-3">
+              <div className="col-12">
+                <DropboxChooser 
+                  appKey="gmhp5s9h3aup35v"
+                  success={handleFileSuccess}
+                  cancel={() => console.log('Cancelled')}
+                  multiselect={true}
+                >
+                  <button className="btn btn-primary" type="button">
+                    <i className="bi bi-cloud-upload"></i> Sélectionner des fichiers Dropbox
+                  </button>
+                </DropboxChooser>
+              </div>
+            </div>
 
-      <Row>
-        <Col>
-          <Form.Group className="mb-3">
-            <Form.Control
-              type="text"
-              placeholder="Rechercher..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </Form.Group>
-
-          <Button variant="success" onClick={exportToExcel} className="mb-3">
-            Exporter en Excel
-          </Button>
-
-          <Table responsive striped bordered hover>
-            <thead>
-              <tr>
-                <th>Numéro de dossier</th>
-                <th>Patient</th>
-                <th>Date de naissance</th>
-                <th>Sexe</th>
-                <th>Age</th>
-                <th>Groupe sanguin</th>
-                <th>Adresse</th>
-                <th>Téléphone</th>
-                <th>Diagnostic</th>
-                <th>Opérateur</th>
-                <th>Commentaire</th>
-                <th>Détails opération</th>
-                <th>Documents</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredFichiers.map((fichier) => {
-                const patient = patients.find(p => p._id === fichier.patientId);
-                return (
-                  <tr key={fichier._id}>
-                    <td>{patient?.dossierNumber}</td>
-                    <td>{patient?.nom}</td>
-                    <td>{patient?.dateNaissance}</td>
-                    <td>{patient?.sexe}</td>
-                    <td>{patient?.age}</td>
-                    <td>{patient?.groupeSanguin}</td>
-                    <td>{patient?.adresse}</td>
-                    <td>{patient?.numeroDeTelephone}</td>
-                    <td>{patient?.diagnostic}</td>
-                    <td>{patient?.operateur}</td>
-                    <td>{fichier.commentType === 'autre' ? fichier.customComment : fichier.commentType}</td>
-                    <td>
-                      <small>
-                        <strong>Anesthésistes:</strong> {fichier.operationDetails?.anesthesistes}<br/>
-                        <strong>CEC:</strong> {fichier.operationDetails?.responsablesCEC}<br/>
-                        <strong>Instrumentistes:</strong> {fichier.operationDetails?.instrumentistes}<br/>
-                        <strong>Indication:</strong> {fichier.operationDetails?.indicationOperatoire}
-                      </small>
-                    </td>
-                    <td>
-                      {fichier.dropboxLinks?.length > 2 ? (
-                        <>
-                          <Button
-                            variant="info"
-                            size="sm"
-                            onClick={() => setShowFiles({...showFiles, [fichier._id]: !showFiles[fichier._id]})}
+            {selectedFiles.length > 0 && (
+              <div className="row mb-3">
+                <div className="col-12">
+                  <button 
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={() => setShowFiles(!showFiles)}
+                  >
+                    {showFiles ? 'Masquer' : 'Afficher'} les fichiers ({selectedFiles.length})
+                  </button>
+                  {showFiles && (
+                    <ul className="list-group mt-2">
+                      {selectedFiles.map((file, index) => (
+                        <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
+                          {file.name}
+                          <button 
+                            type="button" 
+                            className="btn btn-danger btn-sm"
+                            onClick={() => setSelectedFiles(files => files.filter((_, i) => i !== index))}
                           >
-                            {showFiles[fichier._id] ? 'Masquer' : `Voir ${fichier.dropboxLinks.length} fichiers`}
-                          </Button>
-                          {showFiles[fichier._id] && (
-                            <div className="mt-2">
-                              {fichier.dropboxLinks.map((link, index) => (
-                                <div key={index}>
-                                  <a href={link} target="_blank" rel="noopener noreferrer">
-                                    Document {index + 1}
-                                  </a>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        fichier.dropboxLinks?.map((link, index) => (
-                          <div key={index}>
-                            <a href={link} target="_blank" rel="noopener noreferrer">
-                              Document {index + 1}
-                            </a>
-                          </div>
-                        ))
-                      )}
-                    </td>
-                    <td>
-                      <Button variant="warning" onClick={() => handleEdit(fichier)} className="me-2">
-                        Modifier
-                      </Button>
-                      <Button variant="danger" onClick={() => handleDelete(fichier._id)}>
-                        Supprimer
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Table>
-        </Col>
-      </Row>
-    </Container>
+                            <i className="bi bi-trash"></i>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="row mb-3">
+              <div className="col-md-6 mb-3">
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Anesthésiste"
+                  value={formData.anesthesiste}
+                  onChange={(e) => setFormData({...formData, anesthesiste: e.target.value})}
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Responsable CEC"
+                  value={formData.responsableCec}
+                  onChange={(e) => setFormData({...formData, responsableCec: e.target.value})}
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Instrumentiste"
+                  value={formData.instrumentiste}
+                  onChange={(e) => setFormData({...formData, instrumentiste: e.target.value})}
+                />
+              </div>
+              <div className="col-md-6">
+                <textarea
+                  className="form-control"
+                  placeholder="Indication opératoire"
+                  value={formData.indicationOperatoire}
+                  onChange={(e) => setFormData({...formData, indicationOperatoire: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="d-flex gap-2 justify-content-end">
+              <button 
+                type="submit" 
+                className="btn btn-success"
+                disabled={loading}
+              >
+                {loading ? (
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                ) : (
+                  <i className="bi bi-save"></i>
+                )}
+                Enregistrer
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-warning"
+                onClick={() => handleUpdate(selectedPatient?.id)}
+                disabled={loading}
+              >
+                <i className="bi bi-pencil"></i> Modifier
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-danger"
+                onClick={() => handleDelete(selectedPatient?.id)}
+                disabled={loading}
+              >
+                <i className="bi bi-trash"></i> Supprimer
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {loading && (
+        <div className="position-fixed top-50 start-50 translate-middle">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Chargement...</span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
-export default PatientSolvable;
+export default PatientFileManager;
