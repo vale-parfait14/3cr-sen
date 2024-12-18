@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import DropboxChooser from 'react-dropbox-chooser';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -19,10 +19,6 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 
 const PatientFileManager = () => {
-  const [patients, setPatients] = useState([]);
-  const [validatedPatients, setValidatedPatients] = useState([]);
-  const [filterValidated, setFilterValidated] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState(null);
   const [comment, setComment] = useState('');
   const [customComment, setCustomComment] = useState('');
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -35,31 +31,6 @@ const PatientFileManager = () => {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-
-  useEffect(() => {
-    fetchPatients();
-  }, []);
-
-  const fetchPatients = async () => {
-    setLoading(true);
-    try {
-      const querySnapshot = await getDocs(collection(db, 'patients'));
-      const patientsList = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      const validated = patientsList.filter(patient => patient.validated === true);
-      setValidatedPatients(validated);
-      setPatients(patientsList);
-    } catch (error) {
-      setMessage({ type: 'danger', text: 'Erreur lors du chargement des patients' });
-    }
-    setLoading(false);
-  };
-
-  const handlePatientSelect = (patient) => {
-    setSelectedPatient(patient);
-  };
 
   const handleCommentChange = (e) => {
     if (e.target.value === 'autre') {
@@ -89,7 +60,6 @@ const PatientFileManager = () => {
       );
 
       const patientData = {
-        patient: selectedPatient,
         comment: comment === 'autre' ? customComment : comment,
         files: fileUrls,
         ...formData,
@@ -137,7 +107,6 @@ const PatientFileManager = () => {
   };
 
   const resetForm = () => {
-    setSelectedPatient(null);
     setComment('');
     setCustomComment('');
     setSelectedFiles([]);
@@ -161,63 +130,6 @@ const PatientFileManager = () => {
       <div className="card shadow-sm">
         <div className="card-body">
           <h2 className="card-title text-center mb-4">Gestion des Dossiers Patients</h2>
-
-          <div className="row mb-3">
-            <div className="col-md-12">
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id="filterValidated"
-                  checked={filterValidated}
-                  onChange={(e) => setFilterValidated(e.target.checked)}
-                />
-                <label className="form-check-label" htmlFor="filterValidated">
-                  Afficher uniquement les patients validés
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <div className="row">
-            <div className="col-md-12 mb-3">
-              <select 
-                className="form-select"
-                onChange={(e) => handlePatientSelect(JSON.parse(e.target.value))}
-              >
-                <option value="">Sélectionner un patient</option>
-                {(filterValidated ? validatedPatients : patients).map(patient => (
-                  <option key={patient.numeroDossier} value={JSON.stringify(patient)}>
-                    {`${patient.numeroDossier} - ${patient.nom}`}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {selectedPatient && (
-            <div className="card mb-4">
-              <div className="card-body">
-                <h4 className="card-title">Informations du patient</h4>
-                <div className="row">
-                  <div className="col-md-6">
-                    <p><strong>Numéro de dossier:</strong> {selectedPatient.numeroDossier}</p>
-                    <p><strong>Nom:</strong> {selectedPatient.nom}</p>
-                    <p><strong>Date de naissance:</strong> {selectedPatient.dateNaissance}</p>
-                    <p><strong>Sexe:</strong> {selectedPatient.sexe}</p>
-                    <p><strong>Age:</strong> {selectedPatient.age}</p>
-                  </div>
-                  <div className="col-md-6">
-                    <p><strong>Groupe sanguin:</strong> {selectedPatient.groupeSanguin}</p>
-                    <p><strong>Adresse:</strong> {selectedPatient.adresse}</p>
-                    <p><strong>Téléphone:</strong> {selectedPatient.telephone}</p>
-                    <p><strong>Diagnostic:</strong> {selectedPatient.diagnostic}</p>
-                    <p><strong>Opérateur:</strong> {selectedPatient.operateur}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit}>
             <div className="row mb-3">
@@ -344,7 +256,7 @@ const PatientFileManager = () => {
               <button 
                 type="button" 
                 className="btn btn-warning"
-                onClick={() => handleUpdate(selectedPatient?.id)}
+                onClick={() => handleUpdate()}
                 disabled={loading}
               >
                 <i className="bi bi-pencil"></i> Modifier
@@ -352,7 +264,7 @@ const PatientFileManager = () => {
               <button 
                 type="button" 
                 className="btn btn-danger"
-                onClick={() => handleDelete(selectedPatient?.id)}
+                onClick={() => handleDelete()}
                 disabled={loading}
               >
                 <i className="bi bi-trash"></i> Supprimer
