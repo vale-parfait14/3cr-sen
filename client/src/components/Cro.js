@@ -66,29 +66,27 @@ const FileChooserWithComment = () => {
 
   const handleSuccess = async (files) => {
     const comment = commentType === 'autre' ? customComment : predefinedComments[commentType];
+    
+    // Si des fichiers sont déjà sélectionnés, les ajouter à la liste des fichiers existants.
+    const newFiles = files.map(file => ({
+      fileName: file.name,
+      fileLink: file.link,
+    }));
 
-    for (const file of files) {
-      try {
-        const docRef = await addDoc(collection(db, 'fileEntries'), {
-          fileName: file.name,
-          fileLink: file.link,
-          comment: comment,
-          timestamp: new Date().toISOString()
-        });
+    const docRef = await addDoc(collection(db, 'fileEntries'), {
+      files: newFiles, // Ajout des fichiers dans un seul enregistrement
+      comment: comment,
+      timestamp: new Date().toISOString()
+    });
 
-        const newEntry = {
-          id: docRef.id,
-          fileName: file.name,
-          fileLink: file.link,
-          comment: comment,
-          timestamp: new Date().toISOString()
-        };
+    const newEntry = {
+      id: docRef.id,
+      files: newFiles,
+      comment: comment,
+      timestamp: new Date().toISOString()
+    };
 
-        setFileEntries(prev => [newEntry, ...prev]);
-      } catch (error) {
-        console.error("Erreur lors de l'ajout du fichier:", error);
-      }
-    }
+    setFileEntries(prev => [newEntry, ...prev]);
   };
 
   const handleDelete = async (id) => {
@@ -100,25 +98,36 @@ const FileChooserWithComment = () => {
     }
   };
 
-  const handleEdit = async (id, newComment) => {
+  const handleEdit = async (id, newComment, newFiles) => {
     try {
       const docRef = doc(db, 'fileEntries', id);
       await updateDoc(docRef, {
-        comment: newComment
+        comment: newComment,
+        files: newFiles // Met à jour les fichiers
       });
 
       setFileEntries(fileEntries.map(entry => 
-        entry.id === id ? { ...entry, comment: newComment } : entry
+        entry.id === id ? { ...entry, comment: newComment, files: newFiles } : entry
       ));
     } catch (error) {
       console.error("Erreur lors de la modification:", error);
     }
   };
 
+  const handleFileEdit = (id, entry) => {
+    const newFiles = [...entry.files];
+    const newComment = prompt('Modifier le commentaire:', entry.comment);
+    if (newComment !== null) {
+      // Modifications de fichiers si nécessaire
+      // Ajouter ou supprimer des fichiers ici selon l'interaction souhaitée
+      handleEdit(id, newComment, newFiles);
+    }
+  };
+
   return (
     <div className="container py-4">
       <div className="mb-4">
-        {/* Step 1: Choose the comment type */}
+        {/* Step 1: Choisir le commentaire */}
         <div className="form-group">
           <label htmlFor="commentType">Choisissez un type de commentaire</label>
           <select 
@@ -133,7 +142,7 @@ const FileChooserWithComment = () => {
           </select>
         </div>
 
-        {/* Step 2: Input for custom comment if "Autre" is selected */}
+        {/* Step 2: Input pour commentaire personnalisé si "Autre" est sélectionné */}
         {commentType === 'autre' && (
           <div className="form-group mt-2">
             <input
@@ -147,7 +156,7 @@ const FileChooserWithComment = () => {
         )}
       </div>
 
-      {/* Step 3: Dropbox file chooser */}
+      {/* Step 3: Choisir les fichiers */}
       <div className="mb-4">
         <DropboxChooser 
           appKey={APP_KEY}
@@ -172,17 +181,22 @@ const FileChooserWithComment = () => {
         />
       </div>
 
-      {/* Step 4: Displaying files as cards */}
+      {/* Step 4: Affichage des fichiers en cartes */}
       <div className="row">
         <h3 className="h4 mb-4 w-100">Fichiers sélectionnés:</h3>
         {filteredEntries.map((entry) => (
           <div key={entry.id} className="col-12 col-sm-6 col-md-4 mb-4">
             <div className="card h-100">
               <div className="card-body">
-                <h5 className="card-title">{entry.fileName}</h5>
-                <a href={entry.fileLink} target="_blank" rel="noopener noreferrer" className="card-link text-primary">
-                  Voir le fichier
-                </a>
+                <h5 className="card-title">Fichiers :</h5>
+                {entry.files.map((file, index) => (
+                  <div key={index}>
+                    <p>{file.fileName}</p>
+                    <a href={file.fileLink} target="_blank" rel="noopener noreferrer" className="card-link text-primary">
+                      Voir le fichier
+                    </a>
+                  </div>
+                ))}
                 <p className="card-text"><strong>Commentaire:</strong> {entry.comment}</p>
                 <p className="card-text"><strong>Date:</strong> {new Date(entry.timestamp).toLocaleString()}</p>
               </div>
@@ -194,10 +208,7 @@ const FileChooserWithComment = () => {
                   Supprimer
                 </button>
                 <button
-                  onClick={() => {
-                    const newComment = prompt('Modifier le commentaire:', entry.comment);
-                    if (newComment) handleEdit(entry.id, newComment);
-                  }}
+                  onClick={() => handleFileEdit(entry.id, entry)}
                   className="btn btn-success btn-sm"
                 >
                   Modifier
