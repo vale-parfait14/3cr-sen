@@ -28,7 +28,7 @@ const FileChooserWithComment = () => {
   const predefinedComments = {
     normal: 'Normal',
     mission: 'Mission Canadienne',
-    autre: 'autre'
+    autre: 'Autre'
   };
 
   useEffect(() => {
@@ -116,7 +116,7 @@ const FileChooserWithComment = () => {
   };
 
   return (
-    <div className="container p-4">
+    <div className="container-fluid p-4">
       <div className="mb-4">
         <DropboxChooser 
           appKey={APP_KEY}
@@ -124,31 +124,37 @@ const FileChooserWithComment = () => {
           cancel={() => console.log('Cancelled')}
           multiselect={true}
         >
-          <button className="bg-blue-500 text-white px-4 py-2 rounded">
+          <button className="btn btn-primary btn-block">
             Choisir des fichiers Dropbox
           </button>
         </DropboxChooser>
       </div>
 
       <div className="mb-4">
-        <select 
-          value={commentType}
-          onChange={(e) => setCommentType(e.target.value)}
-          className="border p-2 rounded"
-        >
-          <option value="normal">Normal</option>
-          <option value="mission">Mission Canadienne</option>
-          <option value="autre">Autre</option>
-        </select>
+        <div className="form-group">
+          <label htmlFor="commentType">Type de commentaire</label>
+          <select 
+            id="commentType"
+            value={commentType}
+            onChange={(e) => setCommentType(e.target.value)}
+            className="form-control"
+          >
+            <option value="normal">Normal</option>
+            <option value="mission">Mission Canadienne</option>
+            <option value="autre">Autre</option>
+          </select>
+        </div>
 
         {commentType === 'autre' && (
-          <input
-            type="text"
-            value={customComment}
-            onChange={(e) => setCustomComment(e.target.value)}
-            placeholder="Entrez votre commentaire"
-            className="border p-2 rounded ml-2"
-          />
+          <div className="form-group mt-2">
+            <input
+              type="text"
+              value={customComment}
+              onChange={(e) => setCustomComment(e.target.value)}
+              placeholder="Entrez votre commentaire"
+              className="form-control"
+            />
+          </div>
         )}
       </div>
 
@@ -158,39 +164,41 @@ const FileChooserWithComment = () => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Rechercher..."
-          className="w-full border p-2 rounded"
+          className="form-control"
         />
       </div>
 
-      <div className="mt-8">
-        <h3 className="text-xl font-bold mb-4">Fichiers sélectionnés:</h3>
-        {filteredEntries.map((entry) => (
-          <div key={entry.id} className="border p-4 mb-2 rounded">
-            <p>Fichier: {entry.fileName}</p>
-            <a href={entry.fileLink} target="_blank" rel="noopener noreferrer" className="text-blue-500">
-              Voir le fichier
-            </a>
-            <p>Commentaire: {entry.comment}</p>
-            <p>Date: {new Date(entry.timestamp).toLocaleString()}</p>
-            <div className="mt-2">
-              <button
-                onClick={() => handleDelete(entry.id)}
-                className="bg-red-500 text-white px-2 py-1 rounded mr-2"
-              >
-                Supprimer
-              </button>
-              <button
-                onClick={() => {
-                  const newComment = prompt('Modifier le commentaire:', entry.comment);
-                  if (newComment) handleEdit(entry.id, newComment);
-                }}
-                className="bg-green-500 text-white px-2 py-1 rounded"
-              >
-                Modifier
-              </button>
+      <div className="mt-4">
+        <h3 className="h4 mb-4">Fichiers sélectionnés:</h3>
+        <div className="list-group">
+          {filteredEntries.map((entry) => (
+            <div key={entry.id} className="list-group-item">
+              <p><strong>Fichier:</strong> {entry.fileName}</p>
+              <a href={entry.fileLink} target="_blank" rel="noopener noreferrer" className="text-primary">
+                Voir le fichier
+              </a>
+              <p><strong>Commentaire:</strong> {entry.comment}</p>
+              <p><strong>Date:</strong> {new Date(entry.timestamp).toLocaleString()}</p>
+              <div className="mt-2">
+                <button
+                  onClick={() => handleDelete(entry.id)}
+                  className="btn btn-danger btn-sm mr-2"
+                >
+                  Supprimer
+                </button>
+                <button
+                  onClick={() => {
+                    const newComment = prompt('Modifier le commentaire:', entry.comment);
+                    if (newComment) handleEdit(entry.id, newComment);
+                  }}
+                  className="btn btn-success btn-sm"
+                >
+                  Modifier
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
