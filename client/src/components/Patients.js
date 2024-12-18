@@ -11,6 +11,7 @@ import { TbHistoryToggle } from "react-icons/tb";
 import { CgUserList } from "react-icons/cg";
 import { MdOutlineContentPasteSearch } from "react-icons/md";
 import { FaBookReader } from "react-icons/fa";
+import { MdImageSearch } from "react-icons/md";
 import PatientSolvable from "./PatientSolvable";
 import Fichier from "./Fichier";
 import Archive from "./Archive";
@@ -1437,6 +1438,47 @@ const [formData, setFormData] = useState({
                     }}
                   >
                     <MdOutlineContentPasteSearch
+                      style={{ width: "30px", height: "30px" }}
+                    />
+                  </button>
+                      <button
+                    className="btn3 "
+                    title="Staff"
+                    onClick={() => navigate("/filesCro")}
+
+                    style={{
+                      display:
+                        localStorage.getItem("userName") === "Ad" ||
+                        (userRole === "Secrétaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
+                        (userRole === "Infirmier(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
+                        (userRole === "Archiviste" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
+                        (userRole === "Gestionnaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
+                        (userRole === "Etudiant(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
+            
+                        (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
+                        (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
+                        (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
+                        (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
+                        (userRole === "Gestionnaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
+            
+                        (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
+                        (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
+                        (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
+                        (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
+                        (userRole === "Gestionnaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
+            
+            
+                        (userRole === "Secrétaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
+                        (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
+                        (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
+                        (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
+                        (userRole === "Gestionnaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) 
+                          ? "none"
+                          : "block",
+                          
+                    }}
+                  >
+                    <MdImageSearch 
                       style={{ width: "30px", height: "30px" }}
                     />
                   </button>
