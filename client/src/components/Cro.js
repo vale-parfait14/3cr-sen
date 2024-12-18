@@ -20,7 +20,6 @@ const APP_KEY = 'gmhp5s9h3aup35v';
 const FileChooserWithComment = () => {
   const [commentType, setCommentType] = useState('normal');
   const [customComment, setCustomComment] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState([]);
   const [fileEntries, setFileEntries] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredEntries, setFilteredEntries] = useState([]);
@@ -57,7 +56,6 @@ const FileChooserWithComment = () => {
   const handleSearch = (term) => {
     const searchTermLower = term.toLowerCase();
     const filtered = fileEntries.filter(entry => 
-      entry.fileName.toLowerCase().includes(searchTermLower) ||
       entry.comment.toLowerCase().includes(searchTermLower) ||
       entry.timestamp.toLowerCase().includes(searchTermLower)
     );
@@ -67,27 +65,35 @@ const FileChooserWithComment = () => {
   const handleSuccess = async (files) => {
     const comment = commentType === 'autre' ? customComment : predefinedComments[commentType];
 
-    for (const file of files) {
-      try {
-        const docRef = await addDoc(collection(db, 'fileEntries'), {
-          fileName: file.name,
-          fileLink: file.link,
-          comment: comment,
-          timestamp: new Date().toISOString()
-        });
+    // Si aucun fichier n'a été sélectionné, ne rien faire
+    if (files.length === 0) return;
 
-        const newEntry = {
-          id: docRef.id,
-          fileName: file.name,
-          fileLink: file.link,
-          comment: comment,
-          timestamp: new Date().toISOString()
-        };
+    // Structure de l'enregistrement avec plusieurs fichiers
+    const newFiles = files.map(file => ({
+      fileName: file.name,
+      fileLink: file.link,
+      comment: comment,
+      timestamp: new Date().toISOString()
+    }));
 
-        setFileEntries(prev => [newEntry, ...prev]);
-      } catch (error) {
-        console.error("Erreur lors de l'ajout du fichier:", error);
-      }
+    try {
+      const docRef = await addDoc(collection(db, 'fileEntries'), {
+        files: newFiles, // Stocker les fichiers sous forme de tableau
+        comment: comment,
+        timestamp: new Date().toISOString()
+      });
+
+      // Mettre à jour les entrées avec l'enregistrement contenant les fichiers
+      const newEntry = {
+        id: docRef.id,
+        files: newFiles,
+        comment: comment,
+        timestamp: new Date().toISOString()
+      };
+
+      setFileEntries(prev => [newEntry, ...prev]);
+    } catch (error) {
+      console.error("Erreur lors de l'ajout du fichier:", error);
     }
   };
 
@@ -118,7 +124,7 @@ const FileChooserWithComment = () => {
   return (
     <div className="container py-4">
       <div className="mb-4">
-        {/* Step 1: Choose the comment type */}
+        {/* Step 1: Choisir le type de commentaire */}
         <div className="form-group">
           <label htmlFor="commentType">Choisissez un type de commentaire</label>
           <select 
@@ -133,7 +139,7 @@ const FileChooserWithComment = () => {
           </select>
         </div>
 
-        {/* Step 2: Input for custom comment if "Autre" is selected */}
+        {/* Step 2: Commentaire personnalisé si "Autre" sélectionné */}
         {commentType === 'autre' && (
           <div className="form-group mt-2">
             <input
@@ -147,7 +153,7 @@ const FileChooserWithComment = () => {
         )}
       </div>
 
-      {/* Step 3: Dropbox file chooser */}
+      {/* Step 3: Choix des fichiers Dropbox */}
       <div className="mb-4">
         <DropboxChooser 
           appKey={APP_KEY}
@@ -161,7 +167,7 @@ const FileChooserWithComment = () => {
         </DropboxChooser>
       </div>
 
-      {/* Search bar */}
+      {/* Barre de recherche */}
       <div className="mb-4">
         <input
           type="text"
@@ -172,19 +178,27 @@ const FileChooserWithComment = () => {
         />
       </div>
 
-      {/* Step 4: Displaying files as cards */}
+      {/* Affichage des fichiers dans une seule carte */}
       <div className="row">
-        <h3 className="h4 mb-4 w-100">Fichiers sélectionnés:</h3>
+        <h3 className="h4 mb-4 w-100">Enregistrements :</h3>
         {filteredEntries.map((entry) => (
-          <div key={entry.id} className="col-12 col-sm-6 col-md-4 mb-4">
+          <div key={entry.id} className="col-12 mb-4">
             <div className="card h-100">
               <div className="card-body">
-                <h5 className="card-title">{entry.fileName}</h5>
-                <a href={entry.fileLink} target="_blank" rel="noopener noreferrer" className="card-link text-primary">
-                  Voir le fichier
-                </a>
+                <h5 className="card-title">Enregistrement</h5>
                 <p className="card-text"><strong>Commentaire:</strong> {entry.comment}</p>
                 <p className="card-text"><strong>Date:</strong> {new Date(entry.timestamp).toLocaleString()}</p>
+
+                <ul>
+                  {entry.files.map((file, index) => (
+                    <li key={index}>
+                      <a href={file.fileLink} target="_blank" rel="noopener noreferrer" className="text-primary">
+                        {file.fileName}
+                      </a>
+                      <p>{file.comment}</p>
+                    </li>
+                  ))}
+                </ul>
               </div>
               <div className="card-footer text-center">
                 <button
