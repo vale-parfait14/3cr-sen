@@ -22,8 +22,9 @@ const FileChooserWithComment = () => {
   const [customComment, setCustomComment] = useState('');
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [fileEntries, setFileEntries] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [filteredEntries, setFilteredEntries] = useState([]);
+  const [editEntry, setEditEntry] = useState(null); // Store the entry being edited
+  const [searchTerm, setSearchTerm] = useState('');
 
   const predefinedComments = {
     normal: 'Normal',
@@ -74,7 +75,7 @@ const FileChooserWithComment = () => {
           fileLink: file.link,
           comment: comment,
           timestamp: new Date().toISOString(),
-          files: [file.link] // Enregistrez les fichiers dans un tableau
+          files: [file.link] // Save the files in an array
         });
 
         const newEntry = {
@@ -83,7 +84,7 @@ const FileChooserWithComment = () => {
           fileLink: file.link,
           comment: comment,
           timestamp: new Date().toISOString(),
-          files: [file.link] // Enregistrez les fichiers dans un tableau
+          files: [file.link] // Save the files in an array
         };
 
         setFileEntries(prev => [newEntry, ...prev]);
@@ -106,12 +107,12 @@ const FileChooserWithComment = () => {
     try {
       const docRef = doc(db, 'fileEntries', id);
 
-      // Mise à jour du commentaire
+      // Update the comment
       await updateDoc(docRef, {
         comment: newComment
       });
 
-      // Mise à jour des fichiers (ajout ou suppression)
+      // Update the files (add or remove)
       for (const file of newFiles.addedFiles) {
         await updateDoc(docRef, {
           files: arrayUnion(file)
@@ -127,27 +128,33 @@ const FileChooserWithComment = () => {
       setFileEntries(fileEntries.map(entry => 
         entry.id === id ? { ...entry, comment: newComment, files: [...entry.files, ...newFiles.addedFiles] } : entry
       ));
+
+      // Reset the edit form
+      setEditEntry(null);
+      setCustomComment('');
+      setSelectedFiles([]);
+      setCommentType('normal');
     } catch (error) {
       console.error("Erreur lors de la modification:", error);
     }
   };
 
   const handleFileUpdate = async (id, currentFiles) => {
-    // Ouvrir DropboxChooser pour ajouter de nouveaux fichiers
+    // Open DropboxChooser to add new files
     DropboxChooser.open({
       appKey: APP_KEY,
       multiselect: true,
       success: async (newFiles) => {
-        // Créer une liste de nouveaux fichiers ajoutés
+        // Create a list of added files
         const addedFiles = newFiles.filter(file => !currentFiles.some(existingFile => existingFile === file.link));
 
-        // Créer une liste de fichiers supprimés
+        // Create a list of removed files
         const removedFiles = currentFiles.filter(existingFile => !newFiles.some(file => file.link === existingFile));
 
         if (addedFiles.length > 0 || removedFiles.length > 0) {
           const newComment = prompt('Modifiez le commentaire:', fileEntries.find(entry => entry.id === id).comment);
           if (newComment) {
-            // Mettre à jour l'enregistrement avec les nouveaux fichiers et le nouveau commentaire
+            // Update the entry with new files and new comment
             await handleEdit(id, newComment, { addedFiles, removedFiles });
           }
         }
@@ -155,66 +162,97 @@ const FileChooserWithComment = () => {
     });
   };
 
+  const handleStartEditing = (entry) => {
+    setEditEntry(entry); // Set the entry to edit
+    setCustomComment(entry.comment); // Pre-fill the comment
+    setSelectedFiles(entry.files); // Pre-fill the files
+    setCommentType('normal'); // Reset the comment type (you can modify this depending on your needs)
+  };
+
   return (
     <div className="container py-4">
       <div className="mb-4">
-        {/* Step 1: Choose the comment type */}
-        <div className="form-group">
-          <label htmlFor="commentType">Choisissez un type de commentaire</label>
-          <select 
-            id="commentType"
-            value={commentType}
-            onChange={(e) => setCommentType(e.target.value)}
-            className="form-control"
-          >
-            <option value="normal">Normal</option>
-            <option value="mission">Mission Canadienne</option>
-            <option value="autre">Autre</option>
-          </select>
-        </div>
+        {/* Step 1: Form for editing comment and files */}
+        {editEntry && (
+          <>
+            <div className="form-group">
+              <label htmlFor="commentType">Choisissez un type de commentaire</label>
+              <select 
+                id="commentType"
+                value={commentType}
+                onChange={(e) => setCommentType(e.target.value)}
+                className="form-control"
+              >
+                <option value="normal">Normal</option>
+                <option value="mission">Mission Canadienne</option>
+                <option value="autre">Autre</option>
+              </select>
+            </div>
 
-        {/* Step 2: Input for custom comment if "Autre" is selected */}
-        {commentType === 'autre' && (
-          <div className="form-group mt-2">
-            <input
-              type="text"
-              value={customComment}
-              onChange={(e) => setCustomComment(e.target.value)}
-              placeholder="Entrez votre commentaire"
-              className="form-control"
-            />
-          </div>
+            {commentType === 'autre' && (
+              <div className="form-group mt-2">
+                <input
+                  type="text"
+                  value={customComment}
+                  onChange={(e) => setCustomComment(e.target.value)}
+                  placeholder="Entrez votre commentaire"
+                  className="form-control"
+                />
+              </div>
+            )}
+
+            {/* Dropbox file chooser for adding new files */}
+            <div className="mb-4">
+              <DropboxChooser 
+                appKey={APP_KEY}
+                success={handleSuccess}
+                cancel={() => console.log('Cancelled')}
+                multiselect={true}
+              >
+                <button className="btn btn-primary w-100">
+                  Choisir des fichiers Dropbox
+                </button>
+              </DropboxChooser>
+            </div>
+
+            <h4>Fichiers associés :</h4>
+            <ul>
+              {selectedFiles.map((file, index) => (
+                <li key={index}>
+                  {file}
+                  <button
+                    onClick={() => {
+                      setSelectedFiles(selectedFiles.filter(f => f !== file));
+                    }}
+                    className="btn btn-danger btn-sm ml-2"
+                  >
+                    Supprimer
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mb-4">
+              <button
+                className="btn btn-success"
+                onClick={() => handleEdit(editEntry.id, customComment, { addedFiles: selectedFiles, removedFiles: [] })}
+              >
+                Sauvegarder les modifications
+              </button>
+              <button
+                className="btn btn-secondary ml-2"
+                onClick={() => setEditEntry(null)}
+              >
+                Annuler
+              </button>
+            </div>
+          </>
         )}
       </div>
 
-      {/* Step 3: Dropbox file chooser */}
-      <div className="mb-4">
-        <DropboxChooser 
-          appKey={APP_KEY}
-          success={handleSuccess}
-          cancel={() => console.log('Cancelled')}
-          multiselect={true}
-        >
-          <button className="btn btn-primary w-100">
-            Choisir des fichiers Dropbox
-          </button>
-        </DropboxChooser>
-      </div>
-
-      {/* Search bar */}
-      <div className="mb-4">
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Rechercher..."
-          className="form-control"
-        />
-      </div>
-
-      {/* Step 4: Displaying files as cards */}
+      {/* Step 2: Displaying files as cards */}
       <div className="row">
-        <h3 className="h4 mb-4 w-100">Fichiers sélectionnés:</h3>
+        <h3 className="h4 mb-4 w-100">Fichiers enregistrés:</h3>
         {filteredEntries.map((entry) => (
           <div key={entry.id} className="col-12 col-sm-6 col-md-4 mb-4">
             <div className="card h-100">
@@ -234,7 +272,7 @@ const FileChooserWithComment = () => {
                   Supprimer
                 </button>
                 <button
-                  onClick={() => handleFileUpdate(entry.id, entry.files)}
+                  onClick={() => handleStartEditing(entry)}
                   className="btn btn-success btn-sm"
                 >
                   Modifier
