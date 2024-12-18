@@ -116,7 +116,7 @@ const FileChooserWithComment = () => {
   };
 
   return (
-    <div className="container-fluid p-4">
+    <div className="container py-4">
       <div className="mb-4">
         <DropboxChooser 
           appKey={APP_KEY}
@@ -124,7 +124,7 @@ const FileChooserWithComment = () => {
           cancel={() => console.log('Cancelled')}
           multiselect={true}
         >
-          <button className="btn btn-primary btn-block">
+          <button className="btn btn-primary w-100">
             Choisir des fichiers Dropbox
           </button>
         </DropboxChooser>
