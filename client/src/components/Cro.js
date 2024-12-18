@@ -18,9 +18,9 @@ const db = getFirestore(app);
 const APP_KEY = 'gmhp5s9h3aup35v';
 
 const FileChooserWithComment = () => {
-  const [selectedFiles, setSelectedFiles] = useState([]);
   const [commentType, setCommentType] = useState('normal');
   const [customComment, setCustomComment] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [fileEntries, setFileEntries] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredEntries, setFilteredEntries] = useState([]);
@@ -66,7 +66,7 @@ const FileChooserWithComment = () => {
 
   const handleSuccess = async (files) => {
     const comment = commentType === 'autre' ? customComment : predefinedComments[commentType];
-    
+
     for (const file of files) {
       try {
         const docRef = await addDoc(collection(db, 'fileEntries'), {
@@ -106,7 +106,7 @@ const FileChooserWithComment = () => {
       await updateDoc(docRef, {
         comment: newComment
       });
-      
+
       setFileEntries(fileEntries.map(entry => 
         entry.id === id ? { ...entry, comment: newComment } : entry
       ));
@@ -118,21 +118,9 @@ const FileChooserWithComment = () => {
   return (
     <div className="container py-4">
       <div className="mb-4">
-        <DropboxChooser 
-          appKey={APP_KEY}
-          success={handleSuccess}
-          cancel={() => console.log('Cancelled')}
-          multiselect={true}
-        >
-          <button className="btn btn-primary w-100">
-            Choisir des fichiers Dropbox
-          </button>
-        </DropboxChooser>
-      </div>
-
-      <div className="mb-4">
+        {/* Step 1: Choose the comment type */}
         <div className="form-group">
-          <label htmlFor="commentType">Type de commentaire</label>
+          <label htmlFor="commentType">Choisissez un type de commentaire</label>
           <select 
             id="commentType"
             value={commentType}
@@ -145,6 +133,7 @@ const FileChooserWithComment = () => {
           </select>
         </div>
 
+        {/* Step 2: Input for custom comment if "Autre" is selected */}
         {commentType === 'autre' && (
           <div className="form-group mt-2">
             <input
@@ -158,6 +147,21 @@ const FileChooserWithComment = () => {
         )}
       </div>
 
+      {/* Step 3: Dropbox file chooser */}
+      <div className="mb-4">
+        <DropboxChooser 
+          appKey={APP_KEY}
+          success={handleSuccess}
+          cancel={() => console.log('Cancelled')}
+          multiselect={true}
+        >
+          <button className="btn btn-primary w-100">
+            Choisir des fichiers Dropbox
+          </button>
+        </DropboxChooser>
+      </div>
+
+      {/* Search bar */}
       <div className="mb-4">
         <input
           type="text"
@@ -168,18 +172,21 @@ const FileChooserWithComment = () => {
         />
       </div>
 
-      <div className="mt-4">
-        <h3 className="h4 mb-4">Fichiers sélectionnés:</h3>
-        <div className="list-group">
-          {filteredEntries.map((entry) => (
-            <div key={entry.id} className="list-group-item">
-              <p><strong>Fichier:</strong> {entry.fileName}</p>
-              <a href={entry.fileLink} target="_blank" rel="noopener noreferrer" className="text-primary">
-                Voir le fichier
-              </a>
-              <p><strong>Commentaire:</strong> {entry.comment}</p>
-              <p><strong>Date:</strong> {new Date(entry.timestamp).toLocaleString()}</p>
-              <div className="mt-2">
+      {/* Step 4: Displaying files as cards */}
+      <div className="row">
+        <h3 className="h4 mb-4 w-100">Fichiers sélectionnés:</h3>
+        {filteredEntries.map((entry) => (
+          <div key={entry.id} className="col-12 col-sm-6 col-md-4 mb-4">
+            <div className="card h-100">
+              <div className="card-body">
+                <h5 className="card-title">{entry.fileName}</h5>
+                <a href={entry.fileLink} target="_blank" rel="noopener noreferrer" className="card-link text-primary">
+                  Voir le fichier
+                </a>
+                <p className="card-text"><strong>Commentaire:</strong> {entry.comment}</p>
+                <p className="card-text"><strong>Date:</strong> {new Date(entry.timestamp).toLocaleString()}</p>
+              </div>
+              <div className="card-footer text-center">
                 <button
                   onClick={() => handleDelete(entry.id)}
                   className="btn btn-danger btn-sm mr-2"
@@ -197,8 +204,8 @@ const FileChooserWithComment = () => {
                 </button>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   );
