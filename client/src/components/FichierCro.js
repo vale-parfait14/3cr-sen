@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+ import React, { useState, useEffect } from 'react';
 import DropboxChooser from 'react-dropbox-chooser';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, deleteDoc, query, where } from 'firebase/firestore';
-import 'bootstrap/dist/css/bootstrap.min.css';
+import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import 'bootstrap/dist/css/bootstrap.min.css'; // Assurez-vous d'importer Bootstrap
 
 const firebaseConfig = {
   apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
@@ -17,130 +17,79 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const SurgicalForm = () => {
-  const backgroundColors = [
-    '#f0f7ff', '#fff0f0', '#f0fff0', '#fff0ff', '#fffff0', '#f0ffff'
-  ];
-
-  const getBackgroundColor = (index) => {
-    return backgroundColors[index % backgroundColors.length];
-  };
-
   const [formData, setFormData] = useState({
     commentType: 'Normal',
     customComment: '',
-    cro: [],
+    files: [],
     anesthesists: '',
     surgeons: '',
     diagnosis: '',
-    operativeIndication: '',
-    patientId: ''
+    operativeIndication: ''
   });
 
   const [savedRecords, setSavedRecords] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [validatedPatients, setValidatedPatients] = useState([]);
-  const [cros, setCros] = useState([]);
-  const [filteredCros, setFilteredCros] = useState([]);
-  const [croVisibility, setCroVisibility] = useState({});
-  const [searchTerm, setSearchTerm] = useState('');
-  const userService = localStorage.getItem('userService');
-  console.log('Service utilisateur:', userService);
 
   const commentTypes = ['Normal', 'Mission Canadienne', 'Mission Suisse', 'Autre'];
 
-  // Récupérer les fichiers des patients depuis Firestore
+  // L'état qui gère l'affichage des fichiers pour chaque enregistrement
+  const [fileVisibility, setFileVisibility] = useState({});
+
   useEffect(() => {
-    const fetchCros = async () => {
-      try {
-        const crosRef = collection(db, 'cros');
-        const q = query(crosRef, where('service', '==', userService));
-        const querySnapshot = await getDocs(q);
-        const crosData = querySnapshot.docs.map(doc => ({
-          _id: doc.id,
-          ...doc.data()
-        }));
-        setCros(crosData);
-      } catch (error) {
-        console.error('Erreur lors du chargement des cros', error);
-      }
+    const fetchRecords = async () => {
+      const querySnapshot = await getDocs(collection(db, "surgicalForms"));
+      const records = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setSavedRecords(records);
     };
-
-    fetchCros();
-  }, [userService]);
-
-  // Récupérer les patients validés
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const patientsRef = collection(db, 'patients');
-        const q = query(patientsRef, 
-          where('validation', '==', 'Validé'),
-          where('services', '==', userService)
-        );
-        const validatedPatientsSnapshot = await getDocs(q);
-        const validatedPatientsData = validatedPatientsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        console.log('Patients validés:', validatedPatientsData);
-        setValidatedPatients(validatedPatientsData);
-      } catch (error) {
-        console.error('Erreur lors de la récupération des patients validés:', error);
-      }
-    };
-
-    fetchData();
-  }, [userService]);
+    fetchRecords();
+  }, []);
 
   const handleDropboxSuccess = (files) => {
     setFormData(prev => ({
       ...prev,
-      cro: [...prev.cro, ...files]
+      files: [...prev.files, ...files]
     }));
   };
 
-  const removeCro = (linkToRemove) => {
+  const removeFile = (linkToRemove) => {
     setFormData(prev => ({
       ...prev,
-      cro: prev.cro.filter(file => file.link !== linkToRemove)
+      files: prev.files.filter(file => file.link !== linkToRemove)
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      if (isEditing) {
-        const recordRef = doc(db, "surgicalForms", editingId);
-        await updateDoc(recordRef, formData);
-        setSavedRecords(prev =>
-          prev.map(record =>
-            record.id === editingId ? { ...formData, id: editingId } : record
-          )
-        );
-        setIsEditing(false);
-        setEditingId(null);
-      } else {
-        const newRecordRef = await addDoc(collection(db, "surgicalForms"), {
-          ...formData,
-          service: userService,
-          createdAt: new Date().toISOString()
-        });
-        setSavedRecords(prev => [...prev, { ...formData, id: newRecordRef.id }]);
-      }
-      setFormData({
-        commentType: 'Normal',
-        customComment: '',
-        cro: [],
-        anesthesists: '',
-        surgeons: '',
-        diagnosis: '',
-        operativeIndication: '',
-        patientId: ''
-      });
-    } catch (error) {
-      console.error('Erreur lors de l\'envoi du formulaire:', error);
+
+    if (isEditing) {
+      const recordRef = doc(db, "surgicalForms", editingId);
+      await updateDoc(recordRef, formData);
+
+      setSavedRecords(prev =>
+        prev.map(record =>
+          record.id === editingId ? { ...formData, id: editingId } : record
+        )
+      );
+      setIsEditing(false);
+      setEditingId(null);
+    } else {
+      const newRecordRef = await addDoc(collection(db, "surgicalForms"), formData);
+      setSavedRecords(prev => [
+        ...prev, 
+        { ...formData, id: newRecordRef.id }
+      ]);
     }
+
+    setFormData({
+      commentType: 'Normal',
+      customComment: '',
+      files: [],
+      anesthesists: '',
+      surgeons: '',
+      diagnosis: '',
+      operativeIndication: ''
+    });
   };
 
   const editRecord = (record) => {
@@ -150,100 +99,67 @@ const SurgicalForm = () => {
   };
 
   const deleteRecord = async (id) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet enregistrement ?')) {
-      try {
-        await deleteDoc(doc(db, "surgicalForms", id));
-        setSavedRecords(prev => prev.filter(record => record.id !== id));
-      } catch (error) {
-        console.error('Erreur lors de la suppression de l\'enregistrement:', error);
-      }
-    }
+    await deleteDoc(doc(db, "surgicalForms", id));
+    setSavedRecords(prev => prev.filter(record => record.id !== id));
   };
 
-  const toggleCrosVisibility = (id) => {
-    setCroVisibility(prev => ({
+  // Fonction pour basculer la visibilité des fichiers d'un enregistrement
+  const toggleFilesVisibility = (id) => {
+    setFileVisibility(prev => ({
       ...prev,
-      [id]: !prev[id]
+      [id]: !prev[id] // Change la visibilité du fichier pour cet enregistrement
     }));
   };
-
-  // Filtrer et rechercher dans les cros
-  useEffect(() => {
-    if (!searchTerm) {
-      setFilteredCros(cros);
-      return;
-    }
-
-    const searchResults = cros.filter(cro => {
-      const patient = validatedPatients.find(p => p.id === cro.patientId);
-      const searchString = `
-        ${patient?.dossierNumber.toLowerCase()}
-        ${cro.ordre.toLowerCase()}
-        ${patient?.nom.toLowerCase()}
-        ${patient?.sexe.toLowerCase()}
-        ${patient?.diagnostic.toLowerCase()}
-        ${patient?.numeroDeTelephone}
-        ${new Date(cro.datePatient).toLocaleDateString().toLowerCase()}
-      `;
-      return searchString.includes(searchTerm.toLowerCase());
-    });
-
-    setFilteredCros(searchResults);
-  }, [searchTerm, cros, validatedPatients]);
 
   return (
     <div className="container-fluid p-4">
       <form onSubmit={handleSubmit} className="row g-3">
         <div className="col-md-6">
-          <label className="form-label">Patient validé:</label>
+          <label className="form-label">Type de commentaire:</label>
           <select
+            value={formData.commentType}
+            onChange={(e) => setFormData(prev => ({ ...prev, commentType: e.target.value }))}
             className="form-select"
-            value={formData.patientId}
-            onChange={(e) => {
-              console.log('ID du patient sélectionné:', e.target.value);
-              const selectedPatient = validatedPatients.find(p => p.id === e.target.value);
-              if (selectedPatient) {
-                setFormData(prev => ({
-                  ...prev,
-                  patientId: selectedPatient.id,
-                  diagnosis: selectedPatient.diagnostic || ''
-                }));
-              }
-            }}
-            required
           >
-            <option value="">Sélectionner un patient</option>
-            {validatedPatients.map(patient => (
-              <option key={patient.id} value={patient.id}>
-                {patient.dossierNumber} - {patient.nom} - {patient.diagnostic}
-              </option>
+            {commentTypes.map(type => (
+              <option key={type} value={type}>{type}</option>
             ))}
           </select>
         </div>
 
-        {/* Autres champs du formulaire... */}
+        {formData.commentType === 'Autre' && (
+          <div className="col-md-6">
+            <label className="form-label">Commentaire personnalisé:</label>
+            <textarea
+              value={formData.customComment}
+              onChange={(e) => setFormData(prev => ({ ...prev, customComment: e.target.value }))}
+              className="form-control"
+            />
+          </div>
+        )}
 
         <div className="col-md-6">
-          <label className="form-label">Cros:</label>
+          <label className="form-label">Fichiers:</label>
           <DropboxChooser
             appKey="gmhp5s9h3aup35v"
             success={handleDropboxSuccess}
-            cancel={() => console.log('Annulé')}
+            cancel={() => console.log('Cancelled')}
             multiselect={true}
           >
             <button type="button" className="btn btn-primary w-100">
-              Choisir des cros
+              Choisir des fichiers
             </button>
           </DropboxChooser>
+
           <div className="mt-2">
-            {formData.cro.map(cro => (
-              <div key={cro.link} className="d-flex justify-content-between align-items-center">
-                <a href={cro.link} target="_blank" rel="noopener noreferrer">
-                  {cro.name}
+            {formData.files.map(file => (
+              <div key={file.link} className="d-flex justify-content-between align-items-center">
+                <a href={file.link} target="_blank" rel="noopener noreferrer">
+                  {file.name}
                 </a>
                 <button
                   type="button"
-                  onClick={() => removeCro(cro.link)}
+                  onClick={() => removeFile(file.link)}
                   className="btn btn-danger btn-sm"
                 >
                   Supprimer
@@ -253,66 +169,109 @@ const SurgicalForm = () => {
           </div>
         </div>
 
+        <div className="col-md-6">
+          <label className="form-label">Anesthésiste(s):</label>
+          <input
+            type="text"
+            value={formData.anesthesists}
+            onChange={(e) => setFormData(prev => ({ ...prev, anesthesists: e.target.value }))}
+            className="form-control"
+          />
+        </div>
+
+        <div className="col-md-6">
+          <label className="form-label">Chirurgien(s):</label>
+          <input
+            type="text"
+            value={formData.surgeons}
+            onChange={(e) => setFormData(prev => ({ ...prev, surgeons: e.target.value }))}
+            className="form-control"
+          />
+        </div>
+
+        <div className="col-md-6">
+          <label className="form-label">Diagnostic:</label>
+          <input
+            type="text"
+            value={formData.diagnosis}
+            onChange={(e) => setFormData(prev => ({ ...prev, diagnosis: e.target.value }))}
+            className="form-control"
+          />
+        </div>
+
+        <div className="col-md-6">
+          <label className="form-label">Indication Opératoire:</label>
+          <input
+            type="text"
+            value={formData.operativeIndication}
+            onChange={(e) => setFormData(prev => ({ ...prev, operativeIndication: e.target.value }))}
+            className="form-control"
+          />
+        </div>
+
         <div className="col-12">
-          <button type="submit" className="btn btn-success w-100">
+          <button
+            type="submit"
+            className="btn btn-success w-100"
+          >
             {isEditing ? 'Mettre à jour' : 'Enregistrer'}
           </button>
         </div>
       </form>
 
       <div className="mt-5">
-        <h2 className="mb-3">Dossiers Chirurgicaux</h2>
-        <div className="mb-3">
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Rechercher par numéro, ordre, nom, etc."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <table className="table table-bordered">
-          <thead>
-            <tr>
-              <th>Numéro Dossier</th>
-              <th>Ordre</th>
-              <th>Nom</th>
-              <th>Sexe</th>
-              <th>Diagnostic</th>
-              <th>Date Patient</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredCros.map(cro => {
-              const patient = validatedPatients.find(p => p.id === cro.patientId);
-              return (
-                <tr key={cro._id} style={{ backgroundColor: getBackgroundColor(cro.ordre) }}>
-                  <td>{patient?.dossierNumber}</td>
-                  <td>{cro.ordre}</td>
-                  <td>{patient?.nom}</td>
-                  <td>{patient?.sexe}</td>
-                  <td>{patient?.diagnostic}</td>
-                  <td>{new Date(cro.datePatient).toLocaleDateString()}</td>
-                  <td>
+        <h2 className="h4 mb-4">Enregistrements</h2>
+        <div className="row">
+          {savedRecords.map(record => (
+            <div key={record.id} className="col-sm-12 col-md-6 col-lg-4 mb-3">
+              <div className="card">
+                <div className="card-body">
+                  <p><strong>Type de commentaire:</strong> {record.commentType}</p>
+                  {record.commentType === 'Autre' && <p><strong>Commentaire:</strong> {record.customComment}</p>}
+                  <p><strong>Anesthésiste(s):</strong> {record.anesthesists}</p>
+                  <p><strong>Chirurgien(s):</strong> {record.surgeons}</p>
+                  <p><strong>Diagnostic:</strong> {record.diagnosis}</p>
+                  <p><strong>Indication Opératoire:</strong> {record.operativeIndication}</p>
+                  
+                  <button
+                    type="button"
+                    onClick={() => toggleFilesVisibility(record.id)} // Toggle files visibility for this record
+                    className="btn btn-info btn-sm w-100 mt-2"
+                  >
+                    Fichiers ({record.files.length})
+                  </button>
+
+                  {fileVisibility[record.id] && (
+                    <div className="mt-2">
+                      {record.files.map(file => (
+                        <div key={file.link} className="d-flex justify-content-between align-items-center">
+                          <a href={file.link} target="_blank" rel="noopener noreferrer">
+                            {file.name}
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-3 d-flex justify-content-between">
                     <button
-                      className="btn btn-warning"
-                      onClick={() => editRecord(cro)}
+                      onClick={() => editRecord(record)}
+                      className="btn btn-warning btn-sm"
                     >
-                      Éditer
+                      Modifier
                     </button>
                     <button
-                      className="btn btn-danger ms-2"
-                      onClick={() => deleteRecord(cro._id)}
+                      onClick={() => deleteRecord(record.id)}
+                      className="btn btn-danger btn-sm"
                     >
                       Supprimer
                     </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
