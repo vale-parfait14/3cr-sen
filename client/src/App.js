@@ -34,6 +34,7 @@ import Programme from './components/Programme';
 import Observation from './components/Observation';
 import filePatient from './components/fichiersPatients';
 import Message from './components/Message';
+import FichierCro from '.components/FichierCro';
 import Iconographie from "./components/Iconographie";
 import Garde from "./components/Garde";
 
@@ -97,6 +98,7 @@ const App = () => {
             <Route path="/garde" element={<ProtectedRoute element={<Garde token={token} />} token={token} />} />
 
             <Route path="/message" element={<ProtectedRoute element={<Message token={token} />} token={token} />} />
+            <Route path="/Fichier-Cro" element={<ProtectedRoute element={<FichierCro token={token} />} token={token} />} />
             <Route path="/patients" element={<ProtectedRoute element={<Patients token={token} />} token={token} />} />
             <Route path="/docaccess" element={<ProtectedRoute element={<DocAccess token={token} />} token={token} />} />
             <Route path="/doctors" element={<ProtectedRoute element={<Doctors token={token} />} token={token} />} />
