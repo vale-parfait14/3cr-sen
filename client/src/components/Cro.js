@@ -38,12 +38,12 @@ const PatientSolvable = ({ patients }) => {
   const [userRole] = useState(localStorage.getItem("userRole"));
   const [userAccessLevel] = useState(localStorage.getItem("userAccessLevel"));
 
-  const validatedPatients = patients.filter(patient =>
+  const validatedPatients = (patients || []).filter(patient =>
     patient.validation === 'Validé' && patient.services === userService
   );
 
-  const filteredFichiers = fichiers.filter(fichier => {
-    const patient = patients.find(p => p._id === fichier.patientId);
+  const filteredFichiers = (fichiers || []).filter(fichier => {
+    const patient = (patients || []).find(p => p._id === fichier.patientId);
     const searchString = searchTerm.toLowerCase();
     return (
       patient?.dossierNumber?.toLowerCase().includes(searchString) ||
@@ -183,8 +183,8 @@ const PatientSolvable = ({ patients }) => {
   };
 
   const exportToExcel = () => {
-    const data = fichiers.map(fichier => {
-      const patient = patients.find(p => p._id === fichier.patientId);
+    const data = (fichiers || []).map(fichier => {
+      const patient = (patients || []).find(p => p._id === fichier.patientId);
       return {
         'Numéro de dossier': patient?.dossierNumber,
         'Résumé': fichier.ordre,
@@ -244,7 +244,7 @@ const PatientSolvable = ({ patients }) => {
             </Form.Group>
 
             <Form.Group>
-              <Form.Label>Groupe sanguin</Form.Label>
+              <Form.Label>Groupe Sanguin</Form.Label>
               <Form.Control
                 type="text"
                 value={fichierInfo.groupeSanguin}
@@ -256,7 +256,7 @@ const PatientSolvable = ({ patients }) => {
             <Form.Group>
               <Form.Label>Age</Form.Label>
               <Form.Control
-                type="number"
+                type="text"
                 value={fichierInfo.age}
                 onChange={(e) => setFichierInfo({ ...fichierInfo, age: e.target.value })}
                 required
@@ -274,7 +274,7 @@ const PatientSolvable = ({ patients }) => {
             </Form.Group>
 
             <Form.Group>
-              <Form.Label>Adresse domicile</Form.Label>
+              <Form.Label>Adresse Domicile</Form.Label>
               <Form.Control
                 type="text"
                 value={fichierInfo.addressDomicile}
@@ -283,78 +283,49 @@ const PatientSolvable = ({ patients }) => {
               />
             </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Documents</Form.Label>
+            <Form.Group>
+              <Form.Label>Documents Dropbox</Form.Label>
               <DropboxChooser
-                appKey="gmhp5s9h3aup35v"
+                appKey="app_key_here"
                 success={handleDropboxSuccess}
-                cancel={() => toast.info('Sélection annulée')}
-                multiselect={true}
+                cancel={() => toast.info("Sélection annulée")}
+                multiselect
               >
-                <Button variant="outline-primary" type="button">
-                  Ajouter des documents
-                </Button>
+                <Button variant="primary">Choisir des fichiers Dropbox</Button>
               </DropboxChooser>
-
-              {fichierInfo.dropboxLinks.length > 0 && (
-                <div className="mt-2">
-                  {fichierInfo.dropboxLinks.map((doc, index) => (
-                    <div key={index} className="d-flex align-items-center mb-1">
-                      <a href={doc.link} target="_blank" rel="noopener noreferrer">
-                        {doc.name || `Document ${index + 1}`}
-                      </a>
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        className="ms-2"
-                        onClick={() => removeDocument(index)}
-                      >
-                        ×
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <ul>
+                {fichierInfo.dropboxLinks.map((link, index) => (
+                  <li key={index}>
+                    <a href={link.link} target="_blank" rel="noopener noreferrer">{link.name}</a>
+                    <Button variant="danger" onClick={() => removeDocument(index)}>Supprimer</Button>
+                  </li>
+                ))}
+              </ul>
             </Form.Group>
 
-            <Button variant="primary" type="submit">
-              {editing ? 'Modifier' : 'Enregistrer'}
+            <Button type="submit" variant="success" className="w-100">
+              {editing ? 'Mettre à jour le fichier' : 'Ajouter un fichier'}
             </Button>
-            {editing && (
-              <Button variant="secondary" className="ms-2" onClick={resetForm}>
-                Annuler
-              </Button>
-            )}
           </Form>
         </Col>
       </Row>
+      
+      {/* Exportation vers Excel */}
+      <Button onClick={exportToExcel} className="mb-4">Exporter vers Excel</Button>
 
       <Row>
         <Col>
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h3>Liste des documents</h3>
-            <div className="d-flex flex-column gap-2">
-              <Form.Control
-                type="search"
-                placeholder="Rechercher..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-auto"
-              />
-              <Button variant="success" onClick={exportToExcel}>
-                Exporter en Excel
-              </Button>
-            </div>
-          </div>
-
-          <Table responsive striped bordered hover>
+          <Table striped bordered hover>
             <thead>
               <tr>
-                <th>N° Dossier</th>
+                <th>Numéro de Dossier</th>
                 <th>Résumé</th>
                 <th>Patient</th>
-                <th>Documents</th>
-                <th>Date</th>
+                <th>Sexe</th>
+                <th>Groupe Sanguin</th>
+                <th>Age</th>
+                <th>Téléphone</th>
+                <th>Adresse</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -366,23 +337,14 @@ const PatientSolvable = ({ patients }) => {
                     <td>{patient?.dossierNumber}</td>
                     <td>{fichier.ordre}</td>
                     <td>{patient?.nom}</td>
+                    <td>{patient?.sexe}</td>
+                    <td>{patient?.groupeSanguin}</td>
+                    <td>{patient?.age}</td>
+                    <td>{patient?.numeroDeTelephone}</td>
+                    <td>{patient?.addressDomicile}</td>
                     <td>
-                      {fichier.dropboxLinks?.map((doc, index) => (
-                        <div key={index}>
-                          <a href={doc.link} target="_blank" rel="noopener noreferrer">
-                            {doc.name || `Document ${index + 1}`}
-                          </a>
-                        </div>
-                      ))}
-                    </td>
-                    <td>{formatDate(fichier.datePatient)}</td>
-                    <td>
-                      <Button variant="warning" size="sm" onClick={() => handleEdit(fichier)}>
-                        Modifier
-                      </Button>{' '}
-                      <Button variant="danger" size="sm" onClick={() => handleDelete(fichier._id)}>
-                        Supprimer
-                      </Button>
+                      <Button variant="warning" onClick={() => handleEdit(fichier)}>Modifier</Button>
+                      <Button variant="danger" onClick={() => handleDelete(fichier._id)}>Supprimer</Button>
                     </td>
                   </tr>
                 );
