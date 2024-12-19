@@ -20,7 +20,7 @@ const UserManagement = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get('https://threecr-sen.onrender.com/users');
+        const response = await axios.get('https://threecr-sen-1.onrender.com/users');
         setUsers(response.data);
       } catch (error) {
         toast.error('Erreur de chargement des utilisateurs');
@@ -46,7 +46,7 @@ const UserManagement = () => {
       return;
     }
 
-    const API_URL = 'https://threecr-sen.onrender.com/users';
+    const API_URL = 'https://threecr-sen-1.onrender.com/users';
     
     try {
       if (editUserId !== null) {
@@ -89,7 +89,7 @@ const UserManagement = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Confirmer la suppression ?")) {
       try {
-        await axios.delete(`https://threecr-sen.onrender.com/users/${id}`);
+        await axios.delete(`https://threecr-sen-1.onrender.com/users/${id}`);
         setUsers(users.filter(user => user._id !== id));
         toast.success('Utilisateur supprimé avec succès');
       } catch (error) {
