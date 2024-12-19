@@ -34,7 +34,7 @@ import Programme from './components/Programme';
 import Observation from './components/Observation';
 import filePatient from './components/fichiersPatients';
 import Message from './components/Message';
-import Opera from '.components/Opera';
+import Opera from './components/Opera';
 import Iconographie from "./components/Iconographie";
 import Garde from "./components/Garde";
 
