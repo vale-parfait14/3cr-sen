@@ -18,7 +18,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const PatientSolvable = ({ patients }) => {
+const PatientSolvable = ({ patients = [] }) => {
   const [editing, setEditing] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [fichierInfo, setFichierInfo] = useState({
@@ -43,17 +43,18 @@ const PatientSolvable = ({ patients }) => {
   );
 
   const filteredFichiers = (fichiers || []).filter(fichier => {
-    const patient = (patients || []).find(p => p._id === fichier.patientId);
+    const patient = (patients && patients.find(p => p._id === fichier.patientId)) || null;
     const searchString = searchTerm.toLowerCase();
     return (
-      patient?.dossierNumber?.toLowerCase().includes(searchString) ||
-      patient?.nom?.toLowerCase().includes(searchString) ||
-      patient?.diagnostic?.toLowerCase().includes(searchString) ||
-      patient?.sexe?.toLowerCase().includes(searchString) ||
-      patient?.numeroDeTelephone?.toLowerCase().includes(searchString) ||
+      patient &&
+      (patient.dossierNumber?.toLowerCase().includes(searchString) ||
+      patient.nom?.toLowerCase().includes(searchString) ||
+      patient.diagnostic?.toLowerCase().includes(searchString) ||
+      patient.sexe?.toLowerCase().includes(searchString) ||
+      patient.numeroDeTelephone?.toLowerCase().includes(searchString) ||
       fichier.ordre?.toLowerCase().includes(searchString) ||
       fichier.datePatient?.toLowerCase().includes(searchString)
-    );
+    ));
   });
 
   useEffect(() => {
@@ -239,118 +240,130 @@ const PatientSolvable = ({ patients }) => {
                 type="text"
                 value={fichierInfo.genre}
                 onChange={(e) => setFichierInfo({ ...fichierInfo, genre: e.target.value })}
-                required
+                placeholder="Genre"
               />
             </Form.Group>
 
             <Form.Group>
-              <Form.Label>Groupe Sanguin</Form.Label>
+              <Form.Label>Groupe sanguin</Form.Label>
               <Form.Control
                 type="text"
                 value={fichierInfo.groupeSanguin}
                 onChange={(e) => setFichierInfo({ ...fichierInfo, groupeSanguin: e.target.value })}
-                required
+                placeholder="Groupe sanguin"
               />
             </Form.Group>
 
             <Form.Group>
-              <Form.Label>Age</Form.Label>
+              <Form.Label>Âge</Form.Label>
               <Form.Control
-                type="text"
+                type="number"
                 value={fichierInfo.age}
                 onChange={(e) => setFichierInfo({ ...fichierInfo, age: e.target.value })}
-                required
+                placeholder="Âge"
               />
             </Form.Group>
 
             <Form.Group>
-              <Form.Label>Numéro de téléphone</Form.Label>
+              <Form.Label>Téléphone</Form.Label>
               <Form.Control
                 type="text"
                 value={fichierInfo.numeroDeTelephone}
                 onChange={(e) => setFichierInfo({ ...fichierInfo, numeroDeTelephone: e.target.value })}
-                required
+                placeholder="Téléphone"
               />
             </Form.Group>
 
             <Form.Group>
-              <Form.Label>Adresse Domicile</Form.Label>
+              <Form.Label>Adresse</Form.Label>
               <Form.Control
                 type="text"
                 value={fichierInfo.addressDomicile}
                 onChange={(e) => setFichierInfo({ ...fichierInfo, addressDomicile: e.target.value })}
-                required
+                placeholder="Adresse"
               />
             </Form.Group>
 
             <Form.Group>
-              <Form.Label>Documents Dropbox</Form.Label>
-              <DropboxChooser
-                appKey="app_key_here"
-                success={handleDropboxSuccess}
-                cancel={() => toast.info("Sélection annulée")}
-                multiselect
-              >
-                <Button variant="primary">Choisir des fichiers Dropbox</Button>
-              </DropboxChooser>
-              <ul>
-                {fichierInfo.dropboxLinks.map((link, index) => (
-                  <li key={index}>
-                    <a href={link.link} target="_blank" rel="noopener noreferrer">{link.name}</a>
-                    <Button variant="danger" onClick={() => removeDocument(index)}>Supprimer</Button>
-                  </li>
-                ))}
-              </ul>
+              <Form.Label>Ordre</Form.Label>
+              <Form.Control
+                type="text"
+                value={fichierInfo.ordre}
+                onChange={(e) => setFichierInfo({ ...fichierInfo, ordre: e.target.value })}
+                placeholder="Ordre"
+              />
             </Form.Group>
 
-            <Button type="submit" variant="success" className="w-100">
-              {editing ? 'Mettre à jour le fichier' : 'Ajouter un fichier'}
+            <Form.Group>
+              <Form.Label>Date du patient</Form.Label>
+              <Form.Control
+                type="date"
+                value={fichierInfo.datePatient}
+                onChange={(e) => setFichierInfo({ ...fichierInfo, datePatient: e.target.value })}
+                required
+              />
+            </Form.Group>
+
+            {/* Ajout des documents Dropbox */}
+            <DropboxChooser
+              appKey="YOUR_APP_KEY"
+              success={handleDropboxSuccess}
+              cancel={() => toast.info('Annulation de la sélection')}
+            >
+              <Button className="my-3">Sélectionner des documents Dropbox</Button>
+            </DropboxChooser>
+
+            {/* Affichage des liens Dropbox sélectionnés */}
+            <ul>
+              {fichierInfo.dropboxLinks.map((link, index) => (
+                <li key={index}>
+                  <a href={link.link} target="_blank" rel="noopener noreferrer">{link.name}</a>
+                  <Button variant="danger" size="sm" onClick={() => removeDocument(index)} className="ml-2">
+                    Supprimer
+                  </Button>
+                </li>
+              ))}
+            </ul>
+
+            <Button type="submit" variant="primary" className="mt-4">
+              {editing ? 'Modifier' : 'Ajouter'} le fichier
             </Button>
           </Form>
-        </Col>
-      </Row>
-      
-      {/* Exportation vers Excel */}
-      <Button onClick={exportToExcel} className="mb-4">Exporter vers Excel</Button>
 
-      <Row>
-        <Col>
+          {/* Table pour l'affichage des fichiers */}
+          <h3 className="my-4">Liste des fichiers</h3>
           <Table striped bordered hover>
             <thead>
               <tr>
-                <th>Numéro de Dossier</th>
-                <th>Résumé</th>
-                <th>Patient</th>
-                <th>Sexe</th>
-                <th>Groupe Sanguin</th>
-                <th>Age</th>
-                <th>Téléphone</th>
-                <th>Adresse</th>
+                <th>Nom du patient</th>
+                <th>Ordre</th>
+                <th>Date</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredFichiers.map((fichier) => {
-                const patient = patients.find(p => p._id === fichier.patientId);
+              {filteredFichiers.map(fichier => {
+                const patient = (patients || []).find(p => p._id === fichier.patientId);
                 return (
                   <tr key={fichier._id}>
-                    <td>{patient?.dossierNumber}</td>
-                    <td>{fichier.ordre}</td>
                     <td>{patient?.nom}</td>
-                    <td>{patient?.sexe}</td>
-                    <td>{patient?.groupeSanguin}</td>
-                    <td>{patient?.age}</td>
-                    <td>{patient?.numeroDeTelephone}</td>
-                    <td>{patient?.addressDomicile}</td>
+                    <td>{fichier.ordre}</td>
+                    <td>{formatDate(fichier.datePatient)}</td>
                     <td>
-                      <Button variant="warning" onClick={() => handleEdit(fichier)}>Modifier</Button>
-                      <Button variant="danger" onClick={() => handleDelete(fichier._id)}>Supprimer</Button>
+                      <Button variant="warning" onClick={() => handleEdit(fichier)}>
+                        Modifier
+                      </Button>
+                      <Button variant="danger" onClick={() => handleDelete(fichier._id)} className="ml-2">
+                        Supprimer
+                      </Button>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </Table>
+
+          <Button variant="secondary" onClick={exportToExcel}>Exporter en Excel</Button>
         </Col>
       </Row>
     </Container>
