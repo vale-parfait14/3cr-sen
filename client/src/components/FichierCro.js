@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import DropboxChooser from 'react-dropbox-chooser';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, deleteDoc, query, where } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
-    authDomain: "basecenterdb.firebaseapp.com",
-    projectId: "basecenterdb",
-    storageBucket: "basecenterdb.firebasestorage.app",
-    messagingSenderId: "919766148380",
-    appId: "1:919766148380:web:30db9986fa2cd8bb7106d9"
+  apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
+  authDomain: "basecenterdb.firebaseapp.com",
+  projectId: "basecenterdb",
+  storageBucket: "basecenterdb.firebasestorage.app",
+  messagingSenderId: "919766148380",
+  appId: "1:919766148380:web:30db9986fa2cd8bb7106d9"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-
 
 const SurgicalForm = () => {
   const [formData, setFormData] = useState({
@@ -26,15 +25,15 @@ const SurgicalForm = () => {
     diagnosis: '',
     operativeIndication: ''
   });
-  
+
   const [savedRecords, setSavedRecords] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [showFiles, setShowFiles] = useState(false); // Etat pour afficher/masquer les fichiers
 
   const commentTypes = ['Normal', 'Mission Canadienne', 'Mission Suisse', 'Autre'];
 
   useEffect(() => {
-    // Fetch saved records from Firestore when the component mounts
     const fetchRecords = async () => {
       const querySnapshot = await getDocs(collection(db, "surgicalForms"));
       const records = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -61,7 +60,6 @@ const SurgicalForm = () => {
     e.preventDefault();
 
     if (isEditing) {
-      // Update record in Firestore
       const recordRef = doc(db, "surgicalForms", editingId);
       await updateDoc(recordRef, formData);
 
@@ -73,7 +71,6 @@ const SurgicalForm = () => {
       setIsEditing(false);
       setEditingId(null);
     } else {
-      // Add new record to Firestore
       const newRecordRef = await addDoc(collection(db, "surgicalForms"), formData);
       setSavedRecords(prev => [
         ...prev, 
@@ -99,9 +96,7 @@ const SurgicalForm = () => {
   };
 
   const deleteRecord = async (id) => {
-    // Delete record from Firestore
     await deleteDoc(doc(db, "surgicalForms", id));
-
     setSavedRecords(prev => prev.filter(record => record.id !== id));
   };
 
@@ -221,6 +216,27 @@ const SurgicalForm = () => {
             <p>Chirurgien(s): {record.surgeons}</p>
             <p>Diagnostic: {record.diagnosis}</p>
             <p>Indication Opératoire: {record.operativeIndication}</p>
+            
+            <button
+              type="button"
+              onClick={() => setShowFiles(prev => !prev)} // Toggle files visibility
+              className="bg-blue-500 text-white p-2 rounded mt-2"
+            >
+              Fichiers ({record.files.length})
+            </button>
+
+            {showFiles && (
+              <div className="mt-2">
+                {record.files.map(file => (
+                  <div key={file.link} className="flex items-center gap-2">
+                    <a href={file.link} target="_blank" rel="noopener noreferrer">
+                      {file.name}
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="mt-2">
               <button
                 onClick={() => editRecord(record)}
