@@ -18,7 +18,6 @@ const connectsRouter = require('./routes/connects'); // Importer les routes des 
 const usersRoutes = require('./routes/users');
 const loginHistoryRoutes = require('./routes/loginHistory');
 const notificationsRoutes = require('./routes/notifications');
-
 const paymentRoutes = require('./routes/payments');
 const fichiersRouter = require("./routes/fichiers");
 const alertRoutes = require('./routes/alertRoutes');
