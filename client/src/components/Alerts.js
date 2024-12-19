@@ -8,7 +8,7 @@ const Alerts = () => {
   const [searchTerm, setSearchTerm] = useState(''); // État pour la recherche
   useEffect(() => {
     const intervalId = setInterval(() => {
-      fetch('https://threecr-sen.onrender.com/api/alerts') // URL du backend pour récupérer les alertes
+      fetch('https://threecr-sen-1.onrender.com/api/alerts') // URL du backend pour récupérer les alertes
         .then((response) => response.json())
         .then((data) => setAlerts(data)) // Mettre à jour l'état avec les alertes récupérées
         .catch((err) => console.error('Erreur lors de la récupération des alertes', err));
@@ -30,7 +30,7 @@ const Alerts = () => {
     
     if(window.confirm("Confirmez la suppression !")){
        
-    fetch(`https://threecr-sen.onrender.com/api/alerts/${id}`, {
+    fetch(`https://threecr-sen-1.onrender.com/api/alerts/${id}`, {
       method: 'DELETE', // Méthode HTTP DELETE
     })
       .then((response) => response.json())
