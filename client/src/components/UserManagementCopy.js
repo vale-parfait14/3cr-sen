@@ -19,7 +19,7 @@ const UserManagement = () => {
   // Charger les utilisateurs depuis l'API
   const fetchUsers = async () => {
     try {
-      const response = await axios.get('https://threecr-sen.onrender.com/users'); // API avec /users
+      const response = await axios.get('https://threecr-sen-1.onrender.com/users'); // API avec /users
       setUsers(response.data);
     } catch (error) {
       toast.error('Erreur de chargement des utilisateurs');
@@ -57,7 +57,7 @@ const UserManagement = () => {
     if (editUserId !== null) {
       // Modifier un utilisateur existant
       try {
-        await axios.put(`https://threecr-sen.onrender.com/users/${users[editUserId]._id}`, userData); // API PUT
+        await axios.put(`https://threecr-sen-1.onrender.com/users/${users[editUserId]._id}`, userData); // API PUT
         alert('Utilisateur modifié avec succès');
         setEditUserId(null);
         setUserData({ name: '', password: '', role: '', accessLevel: '', service: '' });
@@ -68,7 +68,7 @@ const UserManagement = () => {
     } else {
       // Ajouter un nouvel utilisateur
       try {
-        await axios.post('https://threecr-sen.onrender.com/users', userData); // API POST
+        await axios.post('https://threecr-sen-1.onrender.com/users', userData); // API POST
         alert('Utilisateur ajouté avec succès');
         setUserData({ name: '', password: '', role: '', accessLevel: '', service: '' });
         fetchUsers(); // Recharger la liste des utilisateurs après ajout
@@ -90,7 +90,7 @@ const UserManagement = () => {
   // Supprimer un utilisateur
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`https://threecr-sen.onrender.com/users/${id}`); // API DELETE
+      await axios.delete(`https://threecr-sen-1.onrender.com/users/${id}`); // API DELETE
       setUsers(users.filter(user => user._id !== id));
       alert('Utilisateur supprimé avec succès');
       fetchUsers(); // Recharger la liste des utilisateurs après suppression
