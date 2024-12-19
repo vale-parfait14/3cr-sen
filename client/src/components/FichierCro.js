@@ -30,9 +30,11 @@ const SurgicalForm = () => {
   const [savedRecords, setSavedRecords] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [showFiles, setShowFiles] = useState(false); // Etat pour afficher/masquer les fichiers
 
   const commentTypes = ['Normal', 'Mission Canadienne', 'Mission Suisse', 'Autre'];
+
+  // L'état qui gère l'affichage des fichiers pour chaque enregistrement
+  const [fileVisibility, setFileVisibility] = useState({});
 
   useEffect(() => {
     const fetchRecords = async () => {
@@ -99,6 +101,14 @@ const SurgicalForm = () => {
   const deleteRecord = async (id) => {
     await deleteDoc(doc(db, "surgicalForms", id));
     setSavedRecords(prev => prev.filter(record => record.id !== id));
+  };
+
+  // Fonction pour basculer la visibilité des fichiers d'un enregistrement
+  const toggleFilesVisibility = (id) => {
+    setFileVisibility(prev => ({
+      ...prev,
+      [id]: !prev[id] // Change la visibilité du fichier pour cet enregistrement
+    }));
   };
 
   return (
@@ -225,13 +235,13 @@ const SurgicalForm = () => {
                   
                   <button
                     type="button"
-                    onClick={() => setShowFiles(prev => !prev)} // Toggle files visibility
+                    onClick={() => toggleFilesVisibility(record.id)} // Toggle files visibility for this record
                     className="btn btn-info btn-sm w-100 mt-2"
                   >
                     Fichiers ({record.files.length})
                   </button>
 
-                  {showFiles && (
+                  {fileVisibility[record.id] && (
                     <div className="mt-2">
                       {record.files.map(file => (
                         <div key={file.link} className="d-flex justify-content-between align-items-center">
@@ -243,16 +253,16 @@ const SurgicalForm = () => {
                     </div>
                   )}
 
-                  <div className="mt-3">
+                  <div className="mt-3 d-flex justify-content-between">
                     <button
                       onClick={() => editRecord(record)}
-                      className="btn btn-warning btn-sm w-48 mr-2"
+                      className="btn btn-warning btn-sm"
                     >
                       Modifier
                     </button>
                     <button
                       onClick={() => deleteRecord(record.id)}
-                      className="btn btn-danger btn-sm w-48"
+                      className="btn btn-danger btn-sm"
                     >
                       Supprimer
                     </button>
