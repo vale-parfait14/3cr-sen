@@ -28,7 +28,7 @@ const SurgicalForm = () => {
   const [formData, setFormData] = useState({
     commentType: 'Normal',
     customComment: '',
-    files: [],
+    cro: [],
     anesthesists: '',
     surgeons: '',
     diagnosis: '',
@@ -40,21 +40,39 @@ const SurgicalForm = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [validatedPatients, setValidatedPatients] = useState([]);
-  const [fileVisibility, setFileVisibility] = useState({});
+  const [cros, setCros] = useState([]);
+  const [filteredCros, setFilteredCros] = useState([]);
+  const [croVisibility, setCroVisibility] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
   const userService = localStorage.getItem('userService');
-  console.log('User Service:', userService);
+  console.log('Service utilisateur:', userService);
 
   const commentTypes = ['Normal', 'Mission Canadienne', 'Mission Suisse', 'Autre'];
 
+  // Récupérer les fichiers des patients depuis Firestore
+  useEffect(() => {
+    const fetchCros = async () => {
+      try {
+        const crosRef = collection(db, 'cros');
+        const q = query(crosRef, where('service', '==', userService));
+        const querySnapshot = await getDocs(q);
+        const crosData = querySnapshot.docs.map(doc => ({
+          _id: doc.id,
+          ...doc.data()
+        }));
+        setCros(crosData);
+      } catch (error) {
+        console.error('Erreur lors du chargement des cros', error);
+      }
+    };
+
+    fetchCros();
+  }, [userService]);
+
+  // Récupérer les patients validés
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch surgical forms
-        const surgicalFormsSnapshot = await getDocs(collection(db, "surgicalForms"));
-        const records = surgicalFormsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setSavedRecords(records);
-
-        // Fetch validated patients
         const patientsRef = collection(db, 'patients');
         const q = query(patientsRef, 
           where('validation', '==', 'Validé'),
@@ -65,10 +83,10 @@ const SurgicalForm = () => {
           id: doc.id,
           ...doc.data()
         }));
-        console.log('Validated Patients:', validatedPatientsData);
+        console.log('Patients validés:', validatedPatientsData);
         setValidatedPatients(validatedPatientsData);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Erreur lors de la récupération des patients validés:', error);
       }
     };
 
@@ -78,14 +96,14 @@ const SurgicalForm = () => {
   const handleDropboxSuccess = (files) => {
     setFormData(prev => ({
       ...prev,
-      files: [...prev.files, ...files]
+      cro: [...prev.cro, ...files]
     }));
   };
 
-  const removeFile = (linkToRemove) => {
+  const removeCro = (linkToRemove) => {
     setFormData(prev => ({
       ...prev,
-      files: prev.files.filter(file => file.link !== linkToRemove)
+      cro: prev.cro.filter(file => file.link !== linkToRemove)
     }));
   };
 
@@ -113,7 +131,7 @@ const SurgicalForm = () => {
       setFormData({
         commentType: 'Normal',
         customComment: '',
-        files: [],
+        cro: [],
         anesthesists: '',
         surgeons: '',
         diagnosis: '',
@@ -121,7 +139,7 @@ const SurgicalForm = () => {
         patientId: ''
       });
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error('Erreur lors de l\'envoi du formulaire:', error);
     }
   };
 
@@ -137,17 +155,41 @@ const SurgicalForm = () => {
         await deleteDoc(doc(db, "surgicalForms", id));
         setSavedRecords(prev => prev.filter(record => record.id !== id));
       } catch (error) {
-        console.error('Error deleting record:', error);
+        console.error('Erreur lors de la suppression de l\'enregistrement:', error);
       }
     }
   };
 
-  const toggleFilesVisibility = (id) => {
-    setFileVisibility(prev => ({
+  const toggleCrosVisibility = (id) => {
+    setCroVisibility(prev => ({
       ...prev,
       [id]: !prev[id]
     }));
   };
+
+  // Filtrer et rechercher dans les cros
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredCros(cros);
+      return;
+    }
+
+    const searchResults = cros.filter(cro => {
+      const patient = validatedPatients.find(p => p.id === cro.patientId);
+      const searchString = `
+        ${patient?.dossierNumber.toLowerCase()}
+        ${cro.ordre.toLowerCase()}
+        ${patient?.nom.toLowerCase()}
+        ${patient?.sexe.toLowerCase()}
+        ${patient?.diagnostic.toLowerCase()}
+        ${patient?.numeroDeTelephone}
+        ${new Date(cro.datePatient).toLocaleDateString().toLowerCase()}
+      `;
+      return searchString.includes(searchTerm.toLowerCase());
+    });
+
+    setFilteredCros(searchResults);
+  }, [searchTerm, cros, validatedPatients]);
 
   return (
     <div className="container-fluid p-4">
@@ -158,7 +200,7 @@ const SurgicalForm = () => {
             className="form-select"
             value={formData.patientId}
             onChange={(e) => {
-              console.log('Selected Patient ID:', e.target.value);
+              console.log('ID du patient sélectionné:', e.target.value);
               const selectedPatient = validatedPatients.find(p => p.id === e.target.value);
               if (selectedPatient) {
                 setFormData(prev => ({
@@ -179,55 +221,29 @@ const SurgicalForm = () => {
           </select>
         </div>
 
-        {/* Rest of your form fields remain the same */}
-        
-        <div className="col-md-6">
-          <label className="form-label">Type de commentaire:</label>
-          <select
-            value={formData.commentType}
-            onChange={(e) => setFormData(prev => ({ ...prev, commentType: e.target.value }))}
-            className="form-select"
-            required
-          >
-            {commentTypes.map(type => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
-        </div>
-
-        {formData.commentType === 'Autre' && (
-          <div className="col-md-6">
-            <label className="form-label">Commentaire personnalisé:</label>
-            <textarea
-              value={formData.customComment}
-              onChange={(e) => setFormData(prev => ({ ...prev, customComment: e.target.value }))}
-              className="form-control"
-              required
-            />
-          </div>
-        )}
+        {/* Autres champs du formulaire... */}
 
         <div className="col-md-6">
-          <label className="form-label">Fichiers:</label>
+          <label className="form-label">Cros:</label>
           <DropboxChooser
             appKey="gmhp5s9h3aup35v"
             success={handleDropboxSuccess}
-            cancel={() => console.log('Cancelled')}
+            cancel={() => console.log('Annulé')}
             multiselect={true}
           >
             <button type="button" className="btn btn-primary w-100">
-              Choisir des fichiers
+              Choisir des cros
             </button>
           </DropboxChooser>
           <div className="mt-2">
-            {formData.files.map(file => (
-              <div key={file.link} className="d-flex justify-content-between align-items-center">
-                <a href={file.link} target="_blank" rel="noopener noreferrer">
-                  {file.name}
+            {formData.cro.map(cro => (
+              <div key={cro.link} className="d-flex justify-content-between align-items-center">
+                <a href={cro.link} target="_blank" rel="noopener noreferrer">
+                  {cro.name}
                 </a>
                 <button
                   type="button"
-                  onClick={() => removeFile(file.link)}
+                  onClick={() => removeCro(cro.link)}
                   className="btn btn-danger btn-sm"
                 >
                   Supprimer
@@ -235,50 +251,6 @@ const SurgicalForm = () => {
               </div>
             ))}
           </div>
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label">Anesthésiste(s):</label>
-          <input
-            type="text"
-            value={formData.anesthesists}
-            onChange={(e) => setFormData(prev => ({ ...prev, anesthesists: e.target.value }))}
-            className="form-control"
-            required
-          />
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label">Chirurgien(s):</label>
-          <input
-            type="text"
-            value={formData.surgeons}
-            onChange={(e) => setFormData(prev => ({ ...prev, surgeons: e.target.value }))}
-            className="form-control"
-            required
-          />
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label">Diagnostic:</label>
-          <input
-            type="text"
-            value={formData.diagnosis}
-            onChange={(e) => setFormData(prev => ({ ...prev, diagnosis: e.target.value }))}
-            className="form-control"
-            required
-          />
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label">Indication Opératoire:</label>
-          <input
-            type="text"
-            value={formData.operativeIndication}
-            onChange={(e) => setFormData(prev => ({ ...prev, operativeIndication: e.target.value }))}
-            className="form-control"
-            required
-          />
         </div>
 
         <div className="col-12">
@@ -289,62 +261,58 @@ const SurgicalForm = () => {
       </form>
 
       <div className="mt-5">
-        <h2 className="h4 mb-4">Enregistrements</h2>
-        <div className="row">
-          {savedRecords.map((record, index) => {
-            const patient = validatedPatients.find(p => p.id === record.patientId);
-            return (
-              <div key={record.id} className="col-sm-12 col-md-6 col-lg-4 mb-3">
-                <div className="card" style={{ backgroundColor: getBackgroundColor(index) }}>
-                  <div className="card-body">
-                    <p><strong>Patient:</strong> {patient ? `${patient.dossierNumber} - ${patient.nom}` : 'N/A'}</p>
-                    <p><strong>Type de commentaire:</strong> {record.commentType}</p>
-                    {record.commentType === 'Autre' && <p><strong>Commentaire:</strong> {record.customComment}</p>}
-                    <p><strong>Anesthésiste(s):</strong> {record.anesthesists}</p>
-                    <p><strong>Chirurgien(s):</strong> {record.surgeons}</p>
-                    <p><strong>Diagnostic:</strong> {record.diagnosis}</p>
-                    <p><strong>Indication Opératoire:</strong> {record.operativeIndication}</p>
-
-                    <button
-                      type="button"
-                      onClick={() => toggleFilesVisibility(record.id)}
-                      className="btn btn-info btn-sm w-100 mt-2"
-                    >
-                      Fichiers ({record.files.length})
-                    </button>
-
-                    {fileVisibility[record.id] && (
-                      <div className="mt-2">
-                        {record.files.map(file => (
-                          <div key={file.link} className="d-flex justify-content-between align-items-center">
-                            <a href={file.link} target="_blank" rel="noopener noreferrer">
-                              {file.name}
-                            </a>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="mt-3 d-flex justify-content-between">
-                      <button
-                        onClick={() => editRecord(record)}
-                        className="btn btn-warning btn-sm"
-                      >
-                        Modifier
-                      </button>
-                      <button
-                        onClick={() => deleteRecord(record.id)}
-                        className="btn btn-danger btn-sm"
-                      >
-                        Supprimer
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <h2 className="mb-3">Dossiers Chirurgicaux</h2>
+        <div className="mb-3">
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Rechercher par numéro, ordre, nom, etc."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
+        <table className="table table-bordered">
+          <thead>
+            <tr>
+              <th>Numéro Dossier</th>
+              <th>Ordre</th>
+              <th>Nom</th>
+              <th>Sexe</th>
+              <th>Diagnostic</th>
+              <th>Date Patient</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredCros.map(cro => {
+              const patient = validatedPatients.find(p => p.id === cro.patientId);
+              return (
+                <tr key={cro._id} style={{ backgroundColor: getBackgroundColor(cro.ordre) }}>
+                  <td>{patient?.dossierNumber}</td>
+                  <td>{cro.ordre}</td>
+                  <td>{patient?.nom}</td>
+                  <td>{patient?.sexe}</td>
+                  <td>{patient?.diagnostic}</td>
+                  <td>{new Date(cro.datePatient).toLocaleDateString()}</td>
+                  <td>
+                    <button
+                      className="btn btn-warning"
+                      onClick={() => editRecord(cro)}
+                    >
+                      Éditer
+                    </button>
+                    <button
+                      className="btn btn-danger ms-2"
+                      onClick={() => deleteRecord(cro._id)}
+                    >
+                      Supprimer
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
