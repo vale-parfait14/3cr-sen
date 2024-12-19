@@ -30,7 +30,6 @@ const SurgicalForm = () => {
   const [savedRecords, setSavedRecords] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const YOUR_DROPBOX_APP_KEY ="gmhp5s9h3aup35v";
 
   const commentTypes = ['Normal', 'Mission Canadienne', 'Mission Suisse', 'Autre'];
 
@@ -136,7 +135,7 @@ const SurgicalForm = () => {
         <div>
           <label className="block mb-2">Fichiers:</label>
           <DropboxChooser
-            appKey="YOUR_DROPBOX_APP_KEY"
+            appKey="gmhp5s9h3aup35v"
             success={handleDropboxSuccess}
             cancel={() => console.log('Cancelled')}
             multiselect={true}
