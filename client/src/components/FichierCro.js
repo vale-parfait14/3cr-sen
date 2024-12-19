@@ -211,53 +211,57 @@ const SurgicalForm = () => {
 
       <div className="mt-5">
         <h2 className="h4 mb-4">Enregistrements</h2>
-        {savedRecords.map(record => (
-          <div key={record.id} className="card mb-3">
-            <div className="card-body">
-              <p><strong>Type de commentaire:</strong> {record.commentType}</p>
-              {record.commentType === 'Autre' && <p><strong>Commentaire:</strong> {record.customComment}</p>}
-              <p><strong>Anesthésiste(s):</strong> {record.anesthesists}</p>
-              <p><strong>Chirurgien(s):</strong> {record.surgeons}</p>
-              <p><strong>Diagnostic:</strong> {record.diagnosis}</p>
-              <p><strong>Indication Opératoire:</strong> {record.operativeIndication}</p>
-              
-              <button
-                type="button"
-                onClick={() => setShowFiles(prev => !prev)} // Toggle files visibility
-                className="btn btn-info btn-sm mt-2"
-              >
-                Fichiers ({record.files.length})
-              </button>
+        <div className="row">
+          {savedRecords.map(record => (
+            <div key={record.id} className="col-sm-12 col-md-6 col-lg-4 mb-3">
+              <div className="card">
+                <div className="card-body">
+                  <p><strong>Type de commentaire:</strong> {record.commentType}</p>
+                  {record.commentType === 'Autre' && <p><strong>Commentaire:</strong> {record.customComment}</p>}
+                  <p><strong>Anesthésiste(s):</strong> {record.anesthesists}</p>
+                  <p><strong>Chirurgien(s):</strong> {record.surgeons}</p>
+                  <p><strong>Diagnostic:</strong> {record.diagnosis}</p>
+                  <p><strong>Indication Opératoire:</strong> {record.operativeIndication}</p>
+                  
+                  <button
+                    type="button"
+                    onClick={() => setShowFiles(prev => !prev)} // Toggle files visibility
+                    className="btn btn-info btn-sm w-100 mt-2"
+                  >
+                    Fichiers ({record.files.length})
+                  </button>
 
-              {showFiles && (
-                <div className="mt-2">
-                  {record.files.map(file => (
-                    <div key={file.link} className="d-flex justify-content-between align-items-center">
-                      <a href={file.link} target="_blank" rel="noopener noreferrer">
-                        {file.name}
-                      </a>
+                  {showFiles && (
+                    <div className="mt-2">
+                      {record.files.map(file => (
+                        <div key={file.link} className="d-flex justify-content-between align-items-center">
+                          <a href={file.link} target="_blank" rel="noopener noreferrer">
+                            {file.name}
+                          </a>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
+                  )}
 
-              <div className="mt-3">
-                <button
-                  onClick={() => editRecord(record)}
-                  className="btn btn-warning btn-sm mr-2"
-                >
-                  Modifier
-                </button>
-                <button
-                  onClick={() => deleteRecord(record.id)}
-                  className="btn btn-danger btn-sm"
-                >
-                  Supprimer
-                </button>
+                  <div className="mt-3">
+                    <button
+                      onClick={() => editRecord(record)}
+                      className="btn btn-warning btn-sm w-48 mr-2"
+                    >
+                      Modifier
+                    </button>
+                    <button
+                      onClick={() => deleteRecord(record.id)}
+                      className="btn btn-danger btn-sm w-48"
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
