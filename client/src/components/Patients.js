@@ -1445,7 +1445,7 @@ const [formData, setFormData] = useState({
                   </button>
                       <button
                     className="btn3"
-                    onClick={() => setshowFichierCro(!showFichierCro)}
+                    onClick={() => setShowFichierCro(!showFichierCro)}
                     title="Patients files"
                     style={{
                       display:
