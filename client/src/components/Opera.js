@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
+import { toast } from 'react-toastify';
+import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
 import DropboxChooser from 'react-dropbox-chooser';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, deleteDoc, query, where } from 'firebase/firestore';
-import { toast } from 'react-toastify';
-import * as XLSX from 'xlsx';
-import { Container, Row, Col, Form, Button, Table } from 'react-bootstrap';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
-  authDomain: "basecenterdb.firebaseapp.com",
+  authDomain: "basecenterdb.firebaseapp.com", 
   projectId: "basecenterdb",
   storageBucket: "basecenterdb.firebasestorage.app",
   messagingSenderId: "919766148380",
@@ -18,155 +18,150 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const SurgicalForm = () => {
-  const [formData, setFormData] = useState({
+const PatientSolvable = ({ patients }) => {
+  const [editing, setEditing] = useState(null);
+  const [fichierInfo, setFichierInfo] = useState({
     patientId: '',
-    commentType: 'Normal',
-    customComment: '',
-    files: [],
-    anesthesists: '',
-    surgeons: '',
-    diagnosis: '',
-    operativeIndication: '',
+    ordre: '',
+    datePatient: '',
+    statut: 'Validé',
     dropboxLink: ''
   });
 
-  const [patients, setPatients] = useState([]);
-  const [savedRecords, setSavedRecords] = useState([]);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editIndex, setEditIndex] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filteredRecords, setFilteredRecords] = useState([]);
+  const [fichiers, setFichiers] = useState([]);
   const userService = localStorage.getItem('userService');
-  const userRole = localStorage.getItem('userRole');
-  const userAccessLevel = localStorage.getItem('userAccessLevel');
+  const [userRole] = useState(localStorage.getItem("userRole"));
+  const [userAccessLevel] = useState(localStorage.getItem("userAccessLevel"));
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredFichiers, setFilteredFichiers] = useState([]);
+  const [dropboxLink, setDropboxLink] = useState('');
 
-  const commentTypes = ['Normal', 'Mission Canadienne', 'Mission Suisse', 'Autre'];
+  const validatedPatients = patients.filter(patient =>
+    patient.validation === 'Validé' && patient.services === userService
+  );
 
   useEffect(() => {
-    fetchPatients();
-    fetchSurgicalRecords();
+    const fetchFichiers = async () => {
+      try {
+        const fichiersRef = collection(db, 'fichiers');
+        const q = query(fichiersRef, where('service', '==', userService));
+        const querySnapshot = await getDocs(q);
+        const fichiersData = querySnapshot.docs.map(doc => ({
+          _id: doc.id,
+          ...doc.data()
+        }));
+        setFichiers(fichiersData);
+      } catch (error) {
+        toast.error('Erreur lors du chargement des patients');
+      }
+    };
+
+    fetchFichiers();
+    const intervalId = setInterval(fetchFichiers, 5000);
+    return () => clearInterval(intervalId);
   }, [userService]);
 
   useEffect(() => {
-    filterRecords();
-  }, [searchTerm, savedRecords]);
-
-  const fetchPatients = async () => {
-    try {
-      const patientsRef = collection(db, 'patients');
-      const q = query(patientsRef, where('validation', '==', 'Validé'), where('services', '==', userService));
-      const querySnapshot = await getDocs(q);
-      const patientsData = querySnapshot.docs.map(doc => ({
-        _id: doc.id,
-        ...doc.data()
-      }));
-      setPatients(patientsData);
-    } catch (error) {
-      toast.error('Erreur lors du chargement des patients');
-    }
-  };
-
-  const fetchSurgicalRecords = async () => {
-    try {
-      const recordsRef = collection(db, 'surgicalRecords');
-      const q = query(recordsRef, where('service', '==', userService));
-      const querySnapshot = await getDocs(q);
-      const recordsData = querySnapshot.docs.map(doc => ({
-        _id: doc.id,
-        ...doc.data()
-      }));
-      setSavedRecords(recordsData);
-    } catch (error) {
-      toast.error('Erreur lors du chargement des enregistrements');
-    }
-  };
-
-  const filterRecords = () => {
     if (!searchTerm) {
-      setFilteredRecords(savedRecords);
+      setFilteredFichiers(fichiers);
       return;
     }
 
-    const filtered = savedRecords.filter(record => {
-      const patient = patients.find(p => p._id === record.patientId);
+    const searchResults = fichiers.filter(fichier => {
+      const patient = patients.find(p => p._id === fichier.patientId);
       const searchString = `
-        ${patient?.dossierNumber}
-        ${patient?.nom}
-        ${record.commentType}
-        ${record.anesthesists}
-        ${record.surgeons}
-        ${record.diagnosis}
-        ${record.operativeIndication}
-      `.toLowerCase();
+        ${patient?.dossierNumber.toLowerCase()}
+        ${fichier.ordre.toLowerCase()}
+        ${patient?.nom.toLowerCase()}
+        ${patient?.sexe.toLowerCase()}
+        ${patient?.diagnostic.toLowerCase()}
+        ${patient?.numeroDeTelephone}
+        ${formatDate(fichier.datePatient).toLowerCase()}
+      `;
       return searchString.includes(searchTerm.toLowerCase());
     });
-    setFilteredRecords(filtered);
-  };
 
-  const handleCommentTypeChange = (e) => {
-    setFormData({
-      ...formData,
-      commentType: e.target.value,
-      customComment: e.target.value === 'Autre' ? '' : formData.customComment
+    setFilteredFichiers(searchResults);
+  }, [searchTerm, fichiers, patients]);
+
+  const handleEdit = (fichier) => {
+    setEditing(fichier._id);
+    setFichierInfo({
+      patientId: fichier.patientId,
+      ordre: fichier.ordre,
+      datePatient: fichier.datePatient,
+      statut: fichier.statut
     });
   };
 
   const handleDropboxSuccess = (files) => {
     const link = files[0].link;
-    setFormData({
-      ...formData,
-      dropboxLink: link,
-      files: [...formData.files, ...files]
-    });
+    setDropboxLink(link);
+    setFichierInfo({ ...fichierInfo, dropboxLink: link });
     toast.success('Document Dropbox sélectionné avec succès');
-  };
-
-  const handleRemoveFile = (linkToRemove) => {
-    setFormData({
-      ...formData,
-      files: formData.files.filter(file => file.link !== linkToRemove),
-      dropboxLink: formData.dropboxLink === linkToRemove ? '' : formData.dropboxLink
-    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (editing) {
+      handleUpdate(e);
+      return;
+    }
+
     try {
-      if (isEditing) {
-        await updateDoc(doc(db, 'surgicalRecords', editIndex), {
-          ...formData,
-          updatedAt: new Date().toISOString()
-        });
-        toast.success('Enregistrement modifié avec succès');
-      } else {
-        await addDoc(collection(db, 'surgicalRecords'), {
-          ...formData,
-          service: userService,
-          createdAt: new Date().toISOString()
-        });
-        toast.success('Enregistrement effectué avec succès');
-      }
-      
+      const docRef = await addDoc(collection(db, 'fichiers'), {
+        patientId: fichierInfo.patientId,
+        ordre: fichierInfo.ordre,
+        datePatient: fichierInfo.datePatient,
+        statut: fichierInfo.statut,
+        service: userService,
+        dropboxLink: dropboxLink
+      });
+
+      const newFichier = {
+        _id: docRef.id,
+        ...fichierInfo,
+        service: userService,
+        dropboxLink: dropboxLink
+      };
+
+      setFichiers([...fichiers, newFichier]);
       resetForm();
-      fetchSurgicalRecords();
+      toast.success('Patient et document enregistrés avec succès');
     } catch (error) {
       toast.error('Erreur lors de l\'enregistrement');
     }
   };
 
-  const handleEdit = (record) => {
-    setFormData(record);
-    setIsEditing(true);
-    setEditIndex(record._id);
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      const fichierRef = doc(db, 'fichiers', editing);
+      await updateDoc(fichierRef, {
+        ...fichierInfo,
+        service: userService,
+        dropboxLink: dropboxLink
+      });
+
+      setFichiers(fichiers.map(p =>
+        p._id === editing ? {...p, ...fichierInfo, dropboxLink} : p
+      ));
+      resetForm();
+      toast.success('Patient et document modifiés avec succès');
+    } catch (error) {
+      toast.error('Erreur lors de la modification');
+    }
   };
 
-  const handleDelete = async (recordId) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet enregistrement ?')) {
+  const handleDelete = async (fichierId) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce patient et son document associé ?')) {
       try {
-        await deleteDoc(doc(db, 'surgicalRecords', recordId));
-        toast.success('Enregistrement supprimé avec succès');
-        fetchSurgicalRecords();
+        await deleteDoc(doc(db, 'fichiers', fichierId));
+        setFichiers(fichiers.filter(fichier => fichier._id !== fichierId));
+        if (editing === fichierId) {
+          resetForm();
+        }
+        toast.success('Patient et document supprimés avec succès');
       } catch (error) {
         toast.error('Erreur lors de la suppression');
       }
@@ -174,41 +169,36 @@ const SurgicalForm = () => {
   };
 
   const resetForm = () => {
-    setFormData({
+    setEditing(null);
+    setFichierInfo({
       patientId: '',
-      commentType: 'Normal',
-      customComment: '',
-      files: [],
-      anesthesists: '',
-      surgeons: '',
-      diagnosis: '',
-      operativeIndication: '',
+      ordre: '',
+      datePatient: '',
+      statut: 'Validé',
       dropboxLink: ''
     });
-    setIsEditing(false);
-    setEditIndex(null);
+    setDropboxLink('');
   };
 
   const exportToExcel = () => {
-    const data = filteredRecords.map(record => {
-      const patient = patients.find(p => p._id === record.patientId);
+    const data = fichiers.map(fichier => {
+      const patient = patients.find(p => p._id === fichier.patientId);
       return {
-        'Numéro de dossier': patient?.dossierNumber,
-        'Patient': patient?.nom,
-        'Type de commentaire': record.commentType,
-        'Commentaire': record.customComment,
-        'Anesthésiste(s)': record.anesthesists,
-        'Chirurgien(s)': record.surgeons,
-        'Diagnostic': record.diagnosis,
-        'Indication Opératoire': record.operativeIndication,
-        'Date': formatDate(record.createdAt)
+        Ordre: fichier.ordre,
+        Patient: patient?.nom,
+        Sexe: patient?.sexe,
+        DossierNumber: patient?.dossierNumber,
+        Diagnostic: patient?.diagnostic,
+        Age: formatDate(patient?.age),
+        Telephone: patient?.numeroDeTelephone,
+        Date: formatDate(fichier.datePatient)
       };
     });
 
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Interventions");
-    XLSX.writeFile(wb, "Interventions_Chirurgicales.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, "Patients");
+    XLSX.writeFile(wb, "Patients.xlsx");
   };
 
   const formatDate = (dateString) => {
@@ -216,219 +206,178 @@ const SurgicalForm = () => {
     return new Date(dateString).toLocaleDateString('fr-FR', options);
   };
 
+  const shouldShowAdminControls = () => {
+    return !(localStorage.getItem("userName") === "Ad" ||
+      (userRole === "Médecin" && userAccessLevel === "Affichage") ||
+      (userRole === "Secrétaire" && userAccessLevel === "Affichage") ||
+      // ... autres conditions de rôle
+      (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur"));
+  };
+
   return (
-    <Container>
+    <Container fluid>
       <Row className="my-4">
         <Col md={12} lg={8} className="mx-auto">
-          <h2 className="text-center mb-4">Formulaire d'intervention chirurgicale</h2>
-          
-          <Form onSubmit={handleSubmit}>
-            <Form.Group className="mb-3">
-              <Form.Label>Sélectionner un patient</Form.Label>
-              <Form.Control
-                as="select"
-                value={formData.patientId}
-                onChange={(e) => setFormData({...formData, patientId: e.target.value})}
-                required
-              >
-                <option value="">Sélectionner un patient</option>
-                {patients.map(patient => (
-                  <option key={patient._id} value={patient._id}>
-                    {patient.dossierNumber} - {patient.nom} - {patient.diagnostic} - 
-                    Age: {formatDate(patient.age)} - {patient.sexe} - 
-                    Tel: {patient.numeroDeTelephone}
-                  </option>
-                ))}
-              </Form.Control>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Type de commentaire</Form.Label>
-              <Form.Control
-                as="select"
-                value={formData.commentType}
-                onChange={handleCommentTypeChange}
-                required
-              >
-                {commentTypes.map(type => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </Form.Control>
-            </Form.Group>
-
-            {formData.commentType === 'Autre' && (
-              <Form.Group className="mb-3">
-                <Form.Label>Commentaire personnalisé</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  value={formData.customComment}
-                  onChange={(e) => setFormData({...formData, customComment: e.target.value})}
-                  required
-                />
-              </Form.Group>
-            )}
-
-            <Form.Group className="mb-3">
-              <Form.Label>Anesthésiste(s)</Form.Label>
-              <Form.Control
-                type="text"
-                value={formData.anesthesists}
-                onChange={(e) => setFormData({...formData, anesthesists: e.target.value})}
-                required
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Chirurgien(s)</Form.Label>
-              <Form.Control
-                type="text"
-                value={formData.surgeons}
-                onChange={(e) => setFormData({...formData, surgeons: e.target.value})}
-                required
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Diagnostic</Form.Label>
-              <Form.Control
-                type="text"
-                value={formData.diagnosis}
-                onChange={(e) => setFormData({...formData, diagnosis: e.target.value})}
-                required
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Indication Opératoire</Form.Label>
-              <Form.Control
-                type="text"
-                value={formData.operativeIndication}
-                onChange={(e) => setFormData({...formData, operativeIndication: e.target.value})}
-                required
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Document (Dropbox)</Form.Label>
-              <div>
-                <DropboxChooser
-                  appKey="gmhp5s9h3aup35v"
-                  success={handleDropboxSuccess}
-                  cancel={() => toast.info('Sélection annulée')}
-                  multiselect={true}
-                >
-                  <Button variant="outline-primary" type="button">
-                    Choisir un fichier depuis Dropbox
-                  </Button>
-                </DropboxChooser>
-              </div>
-              {formData.files.map((file, index) => (
-                <div key={index} className="mt-2 d-flex align-items-center">
-                  <a href={file.link} target="_blank" rel="noopener noreferrer" className="me-2">
-                    {file.name}
-                  </a>
-                  <Button
-                    variant="outline-danger"
-                    size="sm"
-                    onClick={() => handleRemoveFile(file.link)}
+          <Form onSubmit={handleSubmit} className="mb-4">
+            <Card>
+              <Card.Header>
+                <h4 className="mb-0">Ajout des fichiers patients</h4>
+              </Card.Header>
+              <Card.Body>
+                <Form.Group className="mb-3">
+                  <Form.Label>Sélectionner un patient</Form.Label>
+                  <Form.Select
+                    value={fichierInfo.patientId}
+                    onChange={(e) => setFichierInfo({...fichierInfo, patientId: e.target.value})}
+                    required
                   >
-                    Supprimer
-                  </Button>
-                </div>
-              ))}
-            </Form.Group>
+                    <option value="">Sélectionner un patient</option>
+                    {validatedPatients.map(patient => (
+                      <option key={patient._id} value={patient._id}>
+                        {`${patient.dossierNumber} - ${patient.nom} - ${patient.diagnostic}`}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
 
-            <div className="d-flex justify-content-between">
-              <Button variant="primary" type="submit">
-                {isEditing ? 'Modifier' : 'Enregistrer'}
-              </Button>
-              {isEditing && (
-                <Button variant="secondary" onClick={resetForm}>
-                  Annuler
+                <Form.Group className="mb-3">
+                  <Form.Label>Résumé ou titre</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={fichierInfo.ordre}
+                    onChange={(e) => setFichierInfo({...fichierInfo, ordre: e.target.value})}
+                    required
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Date du patient</Form.Label>
+                  <Form.Control
+                    type="date"
+                    value={fichierInfo.datePatient}
+                    onChange={(e) => setFichierInfo({...fichierInfo, datePatient: e.target.value})}
+                    required
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Document (Dropbox)</Form.Label>
+                  <div>
+                    <DropboxChooser
+                      appKey="gmhp5s9h3aup35v"
+                      success={handleDropboxSuccess}
+                      cancel={() => toast.info('Sélection annulée')}
+                      multiselect={true}
+                    >
+                      <Button variant="outline-primary">
+                        Choisir un fichier depuis Dropbox
+                      </Button>
+                    </DropboxChooser>
+                    {dropboxLink && (
+                      <div className="mt-2">
+                        <a href={dropboxLink} target="_blank" rel="noopener noreferrer">
+                          Voir le document
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </Form.Group>
+              </Card.Body>
+              <Card.Footer>
+                <Button variant="primary" type="submit">
+                  {editing ? 'Modifier' : 'Enregistrer'}
                 </Button>
-              )}
-            </div>
+              </Card.Footer>
+            </Card>
           </Form>
         </Col>
       </Row>
 
-      <Row className="mt-5">
+      <Row>
         <Col>
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h3>Liste des interventions</h3>
-            <Button variant="success" onClick={exportToExcel}>
-              Exporter en Excel
-            </Button>
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <h3>Liste des Patients et Documents</h3>
+            <div className="d-flex gap-3">
+              {shouldShowAdminControls() && (
+                <Button variant="success" onClick={exportToExcel}>
+                  Exporter en Excel
+                </Button>
+              )}
+              <Form.Control
+                type="text"
+                placeholder="Rechercher..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{width: '300px'}}
+              />
+            </div>
           </div>
 
-          <Form.Group className="mb-3">
-            <Form.Control
-              type="text"
-              placeholder="Rechercher..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </Form.Group>
+          <Row xs={1} md={2} lg={3} xl={4} className="g-4">
+            {filteredFichiers.map((fichier) => {
+              const patient = patients.find(p => p._id === fichier.patientId);
+              return (
+                <Col key={fichier._id}>
+                  <Card className="h-100 shadow-sm">
+                    <Card.Header className="d-flex justify-content-between align-items-center">
+                      <span className="fw-bold">{patient?.dossierNumber}</span>
+                      <small>{formatDate(fichier.datePatient)}</small>
+                    </Card.Header>
+                    
+                    <Card.Body>
+                      <Card.Title>{fichier.ordre}</Card.Title>
+                      <Card.Text as="div">
+                        <small className="text-muted">
+                          <div><strong>Patient:</strong> {patient?.nom}</div>
+                          <div><strong>Diagnostic:</strong> {patient?.diagnostic}</div>
+                          <div><strong>Age:</strong> {formatDate(patient?.age)}</div>
+                          <div><strong>Sexe:</strong> {patient?.sexe}</div>
+                          <div><strong>Tél:</strong> {patient?.numeroDeTelephone}</div>
+                        </small>
+                      </Card.Text>
+                    </Card.Body>
 
-          <Table responsive striped bordered hover>
-            <thead>
-              <tr>
-                <th>N° Dossier</th>
-                <th>Patient</th>
-                <th>Type</th>
-                <th>Anesthésiste(s)</th>
-                <th>Chirurgien(s)</th>
-                <th>Diagnostic</th>
-                <th>Indication</th>
-                <th>Document</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRecords.map((record) => {
-                const patient = patients.find(p => p._id === record.patientId);
-                return (
-                  <tr key={record._id}>
-                    <td>{patient?.dossierNumber}</td>
-                    <td>{patient?.nom}</td>
-                    <td>{record.commentType}</td>
-                    <td>{record.anesthesists}</td>
-                    <td>{record.surgeons}</td>
-                    <td>{record.diagnosis}</td>
-                    <td>{record.operativeIndication}</td>
-                    <td>
-                      {record.dropboxLink && (
-                        <a href={record.dropboxLink} target="_blank" rel="noopener noreferrer">
-                          Voir
-                        </a>
-                      )}
-                    </td>
-                    <td>
-                      <Button
-                        variant="warning"
-                        size="sm"
-                        className="me-2"
-                        onClick={() => handleEdit(record)}
-                      >
-                        Modifier
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => handleDelete(record._id)}
-                      >
-                        Supprimer
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Table>
+                    <Card.Footer className="bg-transparent">
+                      <div className="d-flex justify-content-between align-items-center">
+                        {fichier.dropboxLink && (
+                          <a 
+                            href={fichier.dropboxLink} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="btn btn-link p-0"
+                          >
+                            Voir le document
+                          </a>
+                        )}
+                        {shouldShowAdminControls() && (
+                          <div className="d-flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline-warning"
+                              onClick={() => handleEdit(fichier)}
+                            >
+                              Modifier
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline-danger"
+                              onClick={() => handleDelete(fichier._id)}
+                            >
+                              Supprimer
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </Card.Footer>
+                  </Card>
+                </Col>
+              );
+            })}
+          </Row>
         </Col>
       </Row>
     </Container>
   );
 };
 
-export default SurgicalForm;
+export default PatientSolvable;
