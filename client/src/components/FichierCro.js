@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DropboxChooser from 'react-dropbox-chooser';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import 'bootstrap/dist/css/bootstrap.min.css'; // Assurez-vous d'importer Bootstrap
 
 const firebaseConfig = {
   apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
@@ -101,14 +102,14 @@ const SurgicalForm = () => {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block mb-2">Type de commentaire:</label>
+    <div className="container-fluid p-4">
+      <form onSubmit={handleSubmit} className="row g-3">
+        <div className="col-md-6">
+          <label className="form-label">Type de commentaire:</label>
           <select
             value={formData.commentType}
             onChange={(e) => setFormData(prev => ({ ...prev, commentType: e.target.value }))}
-            className="w-full p-2 border rounded"
+            className="form-select"
           >
             {commentTypes.map(type => (
               <option key={type} value={type}>{type}</option>
@@ -117,39 +118,39 @@ const SurgicalForm = () => {
         </div>
 
         {formData.commentType === 'Autre' && (
-          <div>
-            <label className="block mb-2">Commentaire personnalisé:</label>
+          <div className="col-md-6">
+            <label className="form-label">Commentaire personnalisé:</label>
             <textarea
               value={formData.customComment}
               onChange={(e) => setFormData(prev => ({ ...prev, customComment: e.target.value }))}
-              className="w-full p-2 border rounded"
+              className="form-control"
             />
           </div>
         )}
 
-        <div>
-          <label className="block mb-2">Fichiers:</label>
+        <div className="col-md-6">
+          <label className="form-label">Fichiers:</label>
           <DropboxChooser
             appKey="gmhp5s9h3aup35v"
             success={handleDropboxSuccess}
             cancel={() => console.log('Cancelled')}
             multiselect={true}
           >
-            <button type="button" className="bg-blue-500 text-white p-2 rounded">
+            <button type="button" className="btn btn-primary w-100">
               Choisir des fichiers
             </button>
           </DropboxChooser>
 
           <div className="mt-2">
             {formData.files.map(file => (
-              <div key={file.link} className="flex items-center gap-2">
+              <div key={file.link} className="d-flex justify-content-between align-items-center">
                 <a href={file.link} target="_blank" rel="noopener noreferrer">
                   {file.name}
                 </a>
                 <button
                   type="button"
                   onClick={() => removeFile(file.link)}
-                  className="text-red-500"
+                  className="btn btn-danger btn-sm"
                 >
                   Supprimer
                 </button>
@@ -158,98 +159,102 @@ const SurgicalForm = () => {
           </div>
         </div>
 
-        <div>
-          <label className="block mb-2">Anesthésiste(s):</label>
+        <div className="col-md-6">
+          <label className="form-label">Anesthésiste(s):</label>
           <input
             type="text"
             value={formData.anesthesists}
             onChange={(e) => setFormData(prev => ({ ...prev, anesthesists: e.target.value }))}
-            className="w-full p-2 border rounded"
+            className="form-control"
           />
         </div>
 
-        <div>
-          <label className="block mb-2">Chirurgien(s):</label>
+        <div className="col-md-6">
+          <label className="form-label">Chirurgien(s):</label>
           <input
             type="text"
             value={formData.surgeons}
             onChange={(e) => setFormData(prev => ({ ...prev, surgeons: e.target.value }))}
-            className="w-full p-2 border rounded"
+            className="form-control"
           />
         </div>
 
-        <div>
-          <label className="block mb-2">Diagnostic:</label>
+        <div className="col-md-6">
+          <label className="form-label">Diagnostic:</label>
           <input
             type="text"
             value={formData.diagnosis}
             onChange={(e) => setFormData(prev => ({ ...prev, diagnosis: e.target.value }))}
-            className="w-full p-2 border rounded"
+            className="form-control"
           />
         </div>
 
-        <div>
-          <label className="block mb-2">Indication Opératoire:</label>
+        <div className="col-md-6">
+          <label className="form-label">Indication Opératoire:</label>
           <input
             type="text"
             value={formData.operativeIndication}
             onChange={(e) => setFormData(prev => ({ ...prev, operativeIndication: e.target.value }))}
-            className="w-full p-2 border rounded"
+            className="form-control"
           />
         </div>
 
-        <button
-          type="submit"
-          className="bg-green-500 text-white p-2 rounded"
-        >
-          {isEditing ? 'Mettre à jour' : 'Enregistrer'}
-        </button>
+        <div className="col-12">
+          <button
+            type="submit"
+            className="btn btn-success w-100"
+          >
+            {isEditing ? 'Mettre à jour' : 'Enregistrer'}
+          </button>
+        </div>
       </form>
 
-      <div className="mt-8">
-        <h2 className="text-xl font-bold mb-4">Enregistrements</h2>
+      <div className="mt-5">
+        <h2 className="h4 mb-4">Enregistrements</h2>
         {savedRecords.map(record => (
-          <div key={record.id} className="border p-4 mb-4 rounded">
-            <p>Type de commentaire: {record.commentType}</p>
-            {record.commentType === 'Autre' && <p>Commentaire: {record.customComment}</p>}
-            <p>Anesthésiste(s): {record.anesthesists}</p>
-            <p>Chirurgien(s): {record.surgeons}</p>
-            <p>Diagnostic: {record.diagnosis}</p>
-            <p>Indication Opératoire: {record.operativeIndication}</p>
-            
-            <button
-              type="button"
-              onClick={() => setShowFiles(prev => !prev)} // Toggle files visibility
-              className="bg-blue-500 text-white p-2 rounded mt-2"
-            >
-              Fichiers ({record.files.length})
-            </button>
+          <div key={record.id} className="card mb-3">
+            <div className="card-body">
+              <p><strong>Type de commentaire:</strong> {record.commentType}</p>
+              {record.commentType === 'Autre' && <p><strong>Commentaire:</strong> {record.customComment}</p>}
+              <p><strong>Anesthésiste(s):</strong> {record.anesthesists}</p>
+              <p><strong>Chirurgien(s):</strong> {record.surgeons}</p>
+              <p><strong>Diagnostic:</strong> {record.diagnosis}</p>
+              <p><strong>Indication Opératoire:</strong> {record.operativeIndication}</p>
+              
+              <button
+                type="button"
+                onClick={() => setShowFiles(prev => !prev)} // Toggle files visibility
+                className="btn btn-info btn-sm mt-2"
+              >
+                Fichiers ({record.files.length})
+              </button>
 
-            {showFiles && (
-              <div className="mt-2">
-                {record.files.map(file => (
-                  <div key={file.link} className="flex items-center gap-2">
-                    <a href={file.link} target="_blank" rel="noopener noreferrer">
-                      {file.name}
-                    </a>
-                  </div>
-                ))}
+              {showFiles && (
+                <div className="mt-2">
+                  {record.files.map(file => (
+                    <div key={file.link} className="d-flex justify-content-between align-items-center">
+                      <a href={file.link} target="_blank" rel="noopener noreferrer">
+                        {file.name}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-3">
+                <button
+                  onClick={() => editRecord(record)}
+                  className="btn btn-warning btn-sm mr-2"
+                >
+                  Modifier
+                </button>
+                <button
+                  onClick={() => deleteRecord(record.id)}
+                  className="btn btn-danger btn-sm"
+                >
+                  Supprimer
+                </button>
               </div>
-            )}
-
-            <div className="mt-2">
-              <button
-                onClick={() => editRecord(record)}
-                className="bg-yellow-500 text-white p-2 rounded mr-2"
-              >
-                Modifier
-              </button>
-              <button
-                onClick={() => deleteRecord(record.id)}
-                className="bg-red-500 text-white p-2 rounded"
-              >
-                Supprimer
-              </button>
             </div>
           </div>
         ))}
