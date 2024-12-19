@@ -43,7 +43,7 @@ const PatientSolvable = ({ patients = [] }) => {
   );
 
   const filteredFichiers = (fichiers || []).filter(fichier => {
-    const patient = (patients && patients.find(p => p._id === fichier.patientId)) || null;
+    const patient = (patients && Array.isArray(patients) && patients.find(p => p._id === fichier.patientId)) || null;
     const searchString = searchTerm.toLowerCase();
     return (
       patient &&
@@ -240,47 +240,6 @@ const PatientSolvable = ({ patients = [] }) => {
                 type="text"
                 value={fichierInfo.genre}
                 onChange={(e) => setFichierInfo({ ...fichierInfo, genre: e.target.value })}
-                placeholder="Genre"
-              />
-            </Form.Group>
-
-            <Form.Group>
-              <Form.Label>Groupe sanguin</Form.Label>
-              <Form.Control
-                type="text"
-                value={fichierInfo.groupeSanguin}
-                onChange={(e) => setFichierInfo({ ...fichierInfo, groupeSanguin: e.target.value })}
-                placeholder="Groupe sanguin"
-              />
-            </Form.Group>
-
-            <Form.Group>
-              <Form.Label>Âge</Form.Label>
-              <Form.Control
-                type="number"
-                value={fichierInfo.age}
-                onChange={(e) => setFichierInfo({ ...fichierInfo, age: e.target.value })}
-                placeholder="Âge"
-              />
-            </Form.Group>
-
-            <Form.Group>
-              <Form.Label>Téléphone</Form.Label>
-              <Form.Control
-                type="text"
-                value={fichierInfo.numeroDeTelephone}
-                onChange={(e) => setFichierInfo({ ...fichierInfo, numeroDeTelephone: e.target.value })}
-                placeholder="Téléphone"
-              />
-            </Form.Group>
-
-            <Form.Group>
-              <Form.Label>Adresse</Form.Label>
-              <Form.Control
-                type="text"
-                value={fichierInfo.addressDomicile}
-                onChange={(e) => setFichierInfo({ ...fichierInfo, addressDomicile: e.target.value })}
-                placeholder="Adresse"
               />
             </Form.Group>
 
@@ -290,12 +249,12 @@ const PatientSolvable = ({ patients = [] }) => {
                 type="text"
                 value={fichierInfo.ordre}
                 onChange={(e) => setFichierInfo({ ...fichierInfo, ordre: e.target.value })}
-                placeholder="Ordre"
+                required
               />
             </Form.Group>
 
             <Form.Group>
-              <Form.Label>Date du patient</Form.Label>
+              <Form.Label>Date</Form.Label>
               <Form.Control
                 type="date"
                 value={fichierInfo.datePatient}
@@ -304,66 +263,77 @@ const PatientSolvable = ({ patients = [] }) => {
               />
             </Form.Group>
 
-            {/* Ajout des documents Dropbox */}
+            {/* Dropdown de liens Dropbox */}
             <DropboxChooser
               appKey="YOUR_APP_KEY"
               success={handleDropboxSuccess}
-              cancel={() => toast.info('Annulation de la sélection')}
+              cancel={() => console.log("Annulé")}
             >
-              <Button className="my-3">Sélectionner des documents Dropbox</Button>
+              <Button variant="primary">Sélectionner des documents</Button>
             </DropboxChooser>
 
             {/* Affichage des liens Dropbox sélectionnés */}
-            <ul>
-              {fichierInfo.dropboxLinks.map((link, index) => (
-                <li key={index}>
-                  <a href={link.link} target="_blank" rel="noopener noreferrer">{link.name}</a>
-                  <Button variant="danger" size="sm" onClick={() => removeDocument(index)} className="ml-2">
-                    Supprimer
-                  </Button>
-                </li>
-              ))}
-            </ul>
+            <div className="mt-3">
+              <h5>Documents sélectionnés:</h5>
+              <ul>
+                {fichierInfo.dropboxLinks.map((doc, index) => (
+                  <li key={index}>
+                    <a href={doc.link} target="_blank" rel="noopener noreferrer">{doc.name}</a>
+                    <Button variant="danger" size="sm" onClick={() => removeDocument(index)} className="ml-2">Supprimer</Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-            <Button type="submit" variant="primary" className="mt-4">
-              {editing ? 'Modifier' : 'Ajouter'} le fichier
-            </Button>
+            <Button type="submit" className="mt-3" variant="primary">{editing ? 'Mettre à jour' : 'Ajouter'}</Button>
           </Form>
+        </Col>
+      </Row>
 
-          {/* Table pour l'affichage des fichiers */}
-          <h3 className="my-4">Liste des fichiers</h3>
-          <Table striped bordered hover>
+      {/* Tableau des fichiers */}
+      <Row className="my-4">
+        <Col md={12}>
+          <Button variant="success" onClick={exportToExcel}>Exporter vers Excel</Button>
+          <Table striped bordered hover className="mt-3">
             <thead>
               <tr>
-                <th>Nom du patient</th>
-                <th>Ordre</th>
+                <th>Numéro de dossier</th>
+                <th>Résumé</th>
+                <th>Patient</th>
+                <th>Sexe</th>
+                <th>Groupe sanguin</th>
+                <th>Age</th>
+                <th>Téléphone</th>
+                <th>Adresse</th>
                 <th>Date</th>
+                <th>Documents</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredFichiers.map(fichier => {
-                const patient = (patients || []).find(p => p._id === fichier.patientId);
+                const patient = patients.find(p => p._id === fichier.patientId);
                 return (
                   <tr key={fichier._id}>
-                    <td>{patient?.nom}</td>
+                    <td>{patient?.dossierNumber}</td>
                     <td>{fichier.ordre}</td>
+                    <td>{patient?.nom}</td>
+                    <td>{patient?.sexe}</td>
+                    <td>{patient?.groupeSanguin}</td>
+                    <td>{patient?.age}</td>
+                    <td>{patient?.numeroDeTelephone}</td>
+                    <td>{patient?.addressDomicile}</td>
                     <td>{formatDate(fichier.datePatient)}</td>
+                    <td>{fichier.dropboxLinks?.length || 0}</td>
                     <td>
-                      <Button variant="warning" onClick={() => handleEdit(fichier)}>
-                        Modifier
-                      </Button>
-                      <Button variant="danger" onClick={() => handleDelete(fichier._id)} className="ml-2">
-                        Supprimer
-                      </Button>
+                      <Button variant="warning" onClick={() => handleEdit(fichier)}>Éditer</Button>
+                      <Button variant="danger" onClick={() => handleDelete(fichier._id)}>Supprimer</Button>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </Table>
-
-          <Button variant="secondary" onClick={exportToExcel}>Exporter en Excel</Button>
         </Col>
       </Row>
     </Container>
