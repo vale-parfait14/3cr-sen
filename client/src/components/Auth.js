@@ -18,7 +18,7 @@ const Auth = ({ login }) => {
     loading: false
   });
 
-  const API_BASE_URL = useMemo(() => 'https://threecr-sen.onrender.com/api/auth', []);
+  const API_BASE_URL = useMemo(() => 'https://threecr-sen-1.onrender.com/api/auth', []);
 
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
