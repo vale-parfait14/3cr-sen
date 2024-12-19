@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
+import { toast } from 'react-toastify';
+import { Container, Row, Col, Form, Button, Table } from 'react-bootstrap';
 import DropboxChooser from 'react-dropbox-chooser';
-import 'bootstrap/dist/css/bootstrap.min.css';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, deleteDoc, query, where } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
@@ -16,273 +17,382 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const storage = getStorage(app);
 
-const PatientFileManager = () => {
-  const [comment, setComment] = useState('');
-  const [customComment, setCustomComment] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState([]);
-  const [showFiles, setShowFiles] = useState(false);
-  const [formData, setFormData] = useState({
-    anesthesiste: '',
-    responsableCec: '',
-    instrumentiste: '',
-    indicationOperatoire: ''
+const PatientSolvable = ({ patients }) => {
+  const [editing, setEditing] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [fichierInfo, setFichierInfo] = useState({
+    patientId: '',
+    ordre: '',
+    datePatient: '',
+    statut: 'Validé',
+    dropboxLinks: [],
+    genre: '',
+    groupeSanguin: '',
+    age: '',
+    numeroDeTelephone: '',
+    addressDomicile: ''
   });
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [fichiers, setFichiers] = useState([]);
+  const userService = localStorage.getItem('userService');
+  const [userRole] = useState(localStorage.getItem("userRole"));
+  const [userAccessLevel] = useState(localStorage.getItem("userAccessLevel"));
 
-  const handleCommentChange = (e) => {
-    if (e.target.value === 'autre') {
-      setComment('autre');
-    } else {
-      setComment(e.target.value);
-      setCustomComment('');
-    }
+  const validatedPatients = patients.filter(patient =>
+    patient.validation === 'Validé' && patient.services === userService
+  );
+
+  const filteredFichiers = fichiers.filter(fichier => {
+    const patient = patients.find(p => p._id === fichier.patientId);
+    const searchString = searchTerm.toLowerCase();
+    return (
+      patient?.dossierNumber?.toLowerCase().includes(searchString) ||
+      patient?.nom?.toLowerCase().includes(searchString) ||
+      patient?.diagnostic?.toLowerCase().includes(searchString) ||
+      patient?.sexe?.toLowerCase().includes(searchString) ||
+      patient?.numeroDeTelephone?.toLowerCase().includes(searchString) ||
+      fichier.ordre?.toLowerCase().includes(searchString) ||
+      fichier.datePatient?.toLowerCase().includes(searchString)
+    );
+  });
+
+  useEffect(() => {
+    const fetchFichiers = async () => {
+      try {
+        const fichiersRef = collection(db, 'fichiers');
+        const q = query(fichiersRef, where('service', '==', userService));
+        const querySnapshot = await getDocs(q);
+        const fichiersData = querySnapshot.docs.map(doc => ({
+          _id: doc.id,
+          ...doc.data()
+        }));
+        setFichiers(fichiersData);
+      } catch (error) {
+        toast.error('Erreur lors du chargement des patients');
+      }
+    };
+
+    fetchFichiers();
+    const intervalId = setInterval(fetchFichiers, 5000);
+    return () => clearInterval(intervalId);
+  }, [userService]);
+
+  const handleEdit = (fichier) => {
+    setEditing(fichier._id);
+    setFichierInfo({
+      patientId: fichier.patientId,
+      ordre: fichier.ordre,
+      datePatient: fichier.datePatient,
+      statut: fichier.statut,
+      dropboxLinks: fichier.dropboxLinks || [],
+      genre: fichier.genre || '',
+      groupeSanguin: fichier.groupeSanguin || '',
+      age: fichier.age || '',
+      numeroDeTelephone: fichier.numeroDeTelephone || '',
+      addressDomicile: fichier.addressDomicile || ''
+    });
   };
 
-  const handleFileSuccess = (files) => {
-    setSelectedFiles(prev => [...prev, ...files]);
+  const handleDropboxSuccess = (files) => {
+    const links = files.map(file => ({
+      link: file.link,
+      name: file.name
+    }));
+    setFichierInfo(prev => ({
+      ...prev,
+      dropboxLinks: [...prev.dropboxLinks, ...links]
+    }));
+    toast.success(`${files.length} document(s) sélectionné(s) avec succès`);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    if (editing) {
+      handleUpdate(e);
+      return;
+    }
     try {
-      const fileUrls = await Promise.all(
-        selectedFiles.map(async (file) => {
-          const storageRef = ref(storage, `files/${Date.now()}_${file.name}`);
-          const response = await fetch(file.link);
-          const blob = await response.blob();
-          await uploadBytes(storageRef, blob);
-          return await getDownloadURL(storageRef);
-        })
-      );
-
-      const patientData = {
-        comment: comment === 'autre' ? customComment : comment,
-        files: fileUrls,
-        ...formData,
-        timestamp: new Date()
-      };
-
-      await addDoc(collection(db, 'patientRecords'), patientData);
-      setMessage({ type: 'success', text: 'Dossier enregistré avec succès' });
+      const docRef = await addDoc(collection(db, 'fichiers'), {
+        ...fichierInfo,
+        service: userService,
+        createdAt: new Date().toISOString()
+      });
+      setFichiers([...fichiers, { _id: docRef.id, ...fichierInfo, service: userService }]);
       resetForm();
+      toast.success('Patient et documents enregistrés avec succès');
     } catch (error) {
-      setMessage({ type: 'danger', text: 'Erreur lors de l\'enregistrement' });
+      toast.error('Erreur lors de l\'enregistrement');
     }
-    setLoading(false);
   };
 
-  const handleUpdate = async (recordId) => {
-    setLoading(true);
+  const handleUpdate = async (e) => {
+    e.preventDefault();
     try {
-      const docRef = doc(db, 'patientRecords', recordId);
-      const updateData = {
-        comment: comment === 'autre' ? customComment : comment,
-        ...formData,
-        updatedAt: new Date()
-      };
-      await updateDoc(docRef, updateData);
-      setMessage({ type: 'success', text: 'Dossier mis à jour avec succès' });
+      const fichierRef = doc(db, 'fichiers', editing);
+      await updateDoc(fichierRef, {
+        ...fichierInfo,
+        service: userService,
+        updatedAt: new Date().toISOString()
+      });
+      setFichiers(fichiers.map(p => p._id === editing ? { ...p, ...fichierInfo } : p));
+      setEditing(null);
+      resetForm();
+      toast.success('Patient et documents modifiés avec succès');
     } catch (error) {
-      setMessage({ type: 'danger', text: 'Erreur lors de la mise à jour' });
+      toast.error('Erreur lors de la modification');
     }
-    setLoading(false);
   };
 
-  const handleDelete = async (recordId) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce dossier ?')) {
-      setLoading(true);
+  const handleDelete = async (fichierId) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce patient et ses documents associés ?')) {
       try {
-        await deleteDoc(doc(db, 'patientRecords', recordId));
-        setMessage({ type: 'success', text: 'Dossier supprimé avec succès' });
-        resetForm();
+        await deleteDoc(doc(db, 'fichiers', fichierId));
+        setFichiers(fichiers.filter(fichier => fichier._id !== fichierId));
+        if (editing === fichierId) {
+          resetForm();
+          setEditing(null);
+        }
+        toast.success('Patient et documents supprimés avec succès');
       } catch (error) {
-        setMessage({ type: 'danger', text: 'Erreur lors de la suppression' });
+        toast.error('Erreur lors de la suppression');
       }
-      setLoading(false);
     }
   };
 
   const resetForm = () => {
-    setComment('');
-    setCustomComment('');
-    setSelectedFiles([]);
-    setFormData({
-      anesthesiste: '',
-      responsableCec: '',
-      instrumentiste: '',
-      indicationOperatoire: ''
+    setFichierInfo({
+      patientId: '',
+      ordre: '',
+      datePatient: '',
+      statut: 'Validé',
+      dropboxLinks: [],
+      genre: '',
+      groupeSanguin: '',
+      age: '',
+      numeroDeTelephone: '',
+      addressDomicile: ''
     });
+    setEditing(null);
+  };
+
+  const removeDocument = (index) => {
+    setFichierInfo(prev => ({
+      ...prev,
+      dropboxLinks: prev.dropboxLinks.filter((_, i) => i !== index)
+    }));
+  };
+
+  const exportToExcel = () => {
+    const data = fichiers.map(fichier => {
+      const patient = patients.find(p => p._id === fichier.patientId);
+      return {
+        'Numéro de dossier': patient?.dossierNumber,
+        'Résumé': fichier.ordre,
+        'Patient': patient?.nom,
+        'Sexe': patient?.sexe,
+        'Groupe sanguin': patient?.groupeSanguin,
+        'Age': patient?.age,
+        'Téléphone': patient?.numeroDeTelephone,
+        'Adresse': patient?.addressDomicile,
+        'Date': formatDate(fichier.datePatient),
+        'Nombre de documents': fichier.dropboxLinks?.length || 0
+      };
+    });
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Patients");
+    XLSX.writeFile(wb, "Patients.xlsx");
+  };
+
+  const formatDate = (dateString) => {
+    const options = { day: 'numeric', month: 'long', year: 'numeric' };
+    return new Date(dateString).toLocaleDateString('fr-FR', options);
   };
 
   return (
-    <div className="container py-4">
-      {message.text && (
-        <div className={`alert alert-${message.type} alert-dismissible fade show`} role="alert">
-          {message.text}
-          <button type="button" className="btn-close" onClick={() => setMessage({ type: '', text: '' })}></button>
-        </div>
-      )}
+    <Container>
+      <Row className="my-4">
+        <Col md={12} lg={8} className="mx-auto">
+          <h2 className="text-center">Gestion des documents patients</h2>
+          <Form onSubmit={handleSubmit}>
+            <Form.Group>
+              <Form.Label>Patient</Form.Label>
+              <Form.Control
+                as="select"
+                value={fichierInfo.patientId}
+                onChange={(e) => setFichierInfo({ ...fichierInfo, patientId: e.target.value })}
+                required
+              >
+                <option value="">Sélectionner un patient</option>
+                {validatedPatients.map(patient => (
+                  <option key={patient._id} value={patient._id}>
+                    {patient.dossierNumber} - {patient.nom} - {patient.diagnostic}
+                  </option>
+                ))}
+              </Form.Control>
+            </Form.Group>
 
-      <div className="card shadow-sm">
-        <div className="card-body">
-          <h2 className="card-title text-center mb-4">Gestion des Dossiers Patients</h2>
+            {/* Ajouter les champs supplémentaires */}
+            <Form.Group>
+              <Form.Label>Genre</Form.Label>
+              <Form.Control
+                type="text"
+                value={fichierInfo.genre}
+                onChange={(e) => setFichierInfo({ ...fichierInfo, genre: e.target.value })}
+                required
+              />
+            </Form.Group>
 
-          <form onSubmit={handleSubmit}>
-            <div className="row mb-3">
-              <div className="col-md-6">
-                <select 
-                  className="form-select"
-                  value={comment}
-                  onChange={handleCommentChange}
-                >
-                  <option value="">Sélectionner un commentaire</option>
-                  <option value="Normal">Normal</option>
-                  <option value="Mission Canadienne">Mission Canadienne</option>
-                  <option value="autre">Autre</option>
-                </select>
-              </div>
-              {comment === 'autre' && (
-                <div className="col-md-6">
-                  <textarea
-                    className="form-control"
-                    value={customComment}
-                    onChange={(e) => setCustomComment(e.target.value)}
-                    placeholder="Entrez votre commentaire"
-                  />
+            <Form.Group>
+              <Form.Label>Groupe sanguin</Form.Label>
+              <Form.Control
+                type="text"
+                value={fichierInfo.groupeSanguin}
+                onChange={(e) => setFichierInfo({ ...fichierInfo, groupeSanguin: e.target.value })}
+                required
+              />
+            </Form.Group>
+
+            <Form.Group>
+              <Form.Label>Age</Form.Label>
+              <Form.Control
+                type="number"
+                value={fichierInfo.age}
+                onChange={(e) => setFichierInfo({ ...fichierInfo, age: e.target.value })}
+                required
+              />
+            </Form.Group>
+
+            <Form.Group>
+              <Form.Label>Numéro de téléphone</Form.Label>
+              <Form.Control
+                type="text"
+                value={fichierInfo.numeroDeTelephone}
+                onChange={(e) => setFichierInfo({ ...fichierInfo, numeroDeTelephone: e.target.value })}
+                required
+              />
+            </Form.Group>
+
+            <Form.Group>
+              <Form.Label>Adresse domicile</Form.Label>
+              <Form.Control
+                type="text"
+                value={fichierInfo.addressDomicile}
+                onChange={(e) => setFichierInfo({ ...fichierInfo, addressDomicile: e.target.value })}
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Documents</Form.Label>
+              <DropboxChooser
+                appKey="gmhp5s9h3aup35v"
+                success={handleDropboxSuccess}
+                cancel={() => toast.info('Sélection annulée')}
+                multiselect={true}
+              >
+                <Button variant="outline-primary" type="button">
+                  Ajouter des documents
+                </Button>
+              </DropboxChooser>
+
+              {fichierInfo.dropboxLinks.length > 0 && (
+                <div className="mt-2">
+                  {fichierInfo.dropboxLinks.map((doc, index) => (
+                    <div key={index} className="d-flex align-items-center mb-1">
+                      <a href={doc.link} target="_blank" rel="noopener noreferrer">
+                        {doc.name || `Document ${index + 1}`}
+                      </a>
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
+                        className="ms-2"
+                        onClick={() => removeDocument(index)}
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               )}
-            </div>
+            </Form.Group>
 
-            <div className="row mb-3">
-              <div className="col-12">
-                <DropboxChooser 
-                  appKey="gmhp5s9h3aup35v"
-                  success={handleFileSuccess}
-                  cancel={() => console.log('Cancelled')}
-                  multiselect={true}
-                >
-                  <button className="btn btn-primary" type="button">
-                    <i className="bi bi-cloud-upload"></i> Sélectionner des fichiers Dropbox
-                  </button>
-                </DropboxChooser>
-              </div>
-            </div>
-
-            {selectedFiles.length > 0 && (
-              <div className="row mb-3">
-                <div className="col-12">
-                  <button 
-                    className="btn btn-secondary"
-                    type="button"
-                    onClick={() => setShowFiles(!showFiles)}
-                  >
-                    {showFiles ? 'Masquer' : 'Afficher'} les fichiers ({selectedFiles.length})
-                  </button>
-                  {showFiles && (
-                    <ul className="list-group mt-2">
-                      {selectedFiles.map((file, index) => (
-                        <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
-                          {file.name}
-                          <button 
-                            type="button" 
-                            className="btn btn-danger btn-sm"
-                            onClick={() => setSelectedFiles(files => files.filter((_, i) => i !== index))}
-                          >
-                            <i className="bi bi-trash"></i>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
+            <Button variant="primary" type="submit">
+              {editing ? 'Modifier' : 'Enregistrer'}
+            </Button>
+            {editing && (
+              <Button variant="secondary" className="ms-2" onClick={resetForm}>
+                Annuler
+              </Button>
             )}
+          </Form>
+        </Col>
+      </Row>
 
-            <div className="row mb-3">
-              <div className="col-md-6 mb-3">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Anesthésiste"
-                  value={formData.anesthesiste}
-                  onChange={(e) => setFormData({...formData, anesthesiste: e.target.value})}
-                />
-              </div>
-              <div className="col-md-6 mb-3">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Responsable CEC"
-                  value={formData.responsableCec}
-                  onChange={(e) => setFormData({...formData, responsableCec: e.target.value})}
-                />
-              </div>
-              <div className="col-md-6 mb-3">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Instrumentiste"
-                  value={formData.instrumentiste}
-                  onChange={(e) => setFormData({...formData, instrumentiste: e.target.value})}
-                />
-              </div>
-              <div className="col-md-6">
-                <textarea
-                  className="form-control"
-                  placeholder="Indication opératoire"
-                  value={formData.indicationOperatoire}
-                  onChange={(e) => setFormData({...formData, indicationOperatoire: e.target.value})}
-                />
-              </div>
+      <Row>
+        <Col>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h3>Liste des documents</h3>
+            <div className="d-flex flex-column gap-2">
+              <Form.Control
+                type="search"
+                placeholder="Rechercher..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-auto"
+              />
+              <Button variant="success" onClick={exportToExcel}>
+                Exporter en Excel
+              </Button>
             </div>
-
-            <div className="d-flex gap-2 justify-content-end">
-              <button 
-                type="submit" 
-                className="btn btn-success"
-                disabled={loading}
-              >
-                {loading ? (
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                ) : (
-                  <i className="bi bi-save"></i>
-                )}
-                Enregistrer
-              </button>
-              <button 
-                type="button" 
-                className="btn btn-warning"
-                onClick={() => handleUpdate()}
-                disabled={loading}
-              >
-                <i className="bi bi-pencil"></i> Modifier
-              </button>
-              <button 
-                type="button" 
-                className="btn btn-danger"
-                onClick={() => handleDelete()}
-                disabled={loading}
-              >
-                <i className="bi bi-trash"></i> Supprimer
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      {loading && (
-        <div className="position-fixed top-50 start-50 translate-middle">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Chargement...</span>
           </div>
-        </div>
-      )}
-    </div>
+
+          <Table responsive striped bordered hover>
+            <thead>
+              <tr>
+                <th>N° Dossier</th>
+                <th>Résumé</th>
+                <th>Patient</th>
+                <th>Documents</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredFichiers.map((fichier) => {
+                const patient = patients.find(p => p._id === fichier.patientId);
+                return (
+                  <tr key={fichier._id}>
+                    <td>{patient?.dossierNumber}</td>
+                    <td>{fichier.ordre}</td>
+                    <td>{patient?.nom}</td>
+                    <td>
+                      {fichier.dropboxLinks?.map((doc, index) => (
+                        <div key={index}>
+                          <a href={doc.link} target="_blank" rel="noopener noreferrer">
+                            {doc.name || `Document ${index + 1}`}
+                          </a>
+                        </div>
+                      ))}
+                    </td>
+                    <td>{formatDate(fichier.datePatient)}</td>
+                    <td>
+                      <Button variant="warning" size="sm" onClick={() => handleEdit(fichier)}>
+                        Modifier
+                      </Button>{' '}
+                      <Button variant="danger" size="sm" onClick={() => handleDelete(fichier._id)}>
+                        Supprimer
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </Table>
+        </Col>
+      </Row>
+    </Container>
   );
 };
 
-export default PatientFileManager;
+export default PatientSolvable;
