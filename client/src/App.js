@@ -34,7 +34,7 @@ import Programme from './components/Programme';
 import Observation from './components/Observation';
 import filePatient from './components/fichiersPatients';
 import Message from './components/Message';
-import FichierCro from '.components/FichierCro';
+import Opera from '.components/Opera';
 import Iconographie from "./components/Iconographie";
 import Garde from "./components/Garde";
 
@@ -98,7 +98,6 @@ const App = () => {
             <Route path="/garde" element={<ProtectedRoute element={<Garde token={token} />} token={token} />} />
 
             <Route path="/message" element={<ProtectedRoute element={<Message token={token} />} token={token} />} />
-            <Route path="/Fichier-Cro" element={<ProtectedRoute element={<FichierCro token={token} />} token={token} />} />
             <Route path="/patients" element={<ProtectedRoute element={<Patients token={token} />} token={token} />} />
             <Route path="/docaccess" element={<ProtectedRoute element={<DocAccess token={token} />} token={token} />} />
             <Route path="/doctors" element={<ProtectedRoute element={<Doctors token={token} />} token={token} />} />
@@ -109,7 +108,8 @@ const App = () => {
             <Route path="/archive" element={<ProtectedRoute element={<Archive token={token} />} token={token} />} />
             <Route path="/archiveaccess" element={<ProtectedRoute element={<ArchiveAccess token={token} />} token={token} />} />
             <Route path="/patientsolvable" element={<ProtectedRoute element={<PatientSolvable token={token} />} token={token} />} />
-            <Route path="/fichiers" element={<ProtectedRoute element={<Fichier token={token} />} token={token} />} />
+            <Route path="/fichiers" element={<ProtectedRoute element={<Fichier token={token} />} token={token} />} />          
+            <Route path="/opera" element={<ProtectedRoute element={<Opera token={token} />} token={token} />} />
             <Route path="/solvabilite" element={<ProtectedRoute element={<Solvabilite token={token} />} token={token} />} />
             <Route path="/role" element={<ProtectedRoute element={<Role token={token} />} token={token} />} />
             <Route path="/accesssecretaire" element={<ProtectedRoute element={<AccessSecretaire token={token} />} token={token} />} />
