@@ -18,12 +18,7 @@ const db = getFirestore(app);
 
 const SurgicalForm = () => {
   const backgroundColors = [
-    '#f0f7ff', // Light blue
-    '#fff0f0', // Light red
-    '#f0fff0', // Light green
-    '#fff0ff', // Light purple
-    '#fffff0', // Light yellow
-    '#f0ffff'  // Light cyan
+    '#f0f7ff', '#fff0f0', '#f0fff0', '#fff0ff', '#fffff0', '#f0ffff'
   ];
 
   const getBackgroundColor = (index) => {
@@ -47,26 +42,34 @@ const SurgicalForm = () => {
   const [validatedPatients, setValidatedPatients] = useState([]);
   const [fileVisibility, setFileVisibility] = useState({});
   const userService = localStorage.getItem('userService');
+  console.log('User Service:', userService);
 
   const commentTypes = ['Normal', 'Mission Canadienne', 'Mission Suisse', 'Autre'];
 
   useEffect(() => {
     const fetchData = async () => {
-      const surgicalFormsSnapshot = await getDocs(collection(db, "surgicalForms"));
-      const records = surgicalFormsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setSavedRecords(records);
+      try {
+        // Fetch surgical forms
+        const surgicalFormsSnapshot = await getDocs(collection(db, "surgicalForms"));
+        const records = surgicalFormsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setSavedRecords(records);
 
-      const patientsRef = collection(db, 'patients');
-      const q = query(patientsRef, 
-        where('validation', '==', 'Validé'),
-        where('services', '==', userService)
-      );
-      const validatedPatientsSnapshot = await getDocs(q);
-      const validatedPatientsData = validatedPatientsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setValidatedPatients(validatedPatientsData);
+        // Fetch validated patients
+        const patientsRef = collection(db, 'patients');
+        const q = query(patientsRef, 
+          where('validation', '==', 'Validé'),
+          where('services', '==', userService)
+        );
+        const validatedPatientsSnapshot = await getDocs(q);
+        const validatedPatientsData = validatedPatientsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        console.log('Validated Patients:', validatedPatientsData);
+        setValidatedPatients(validatedPatientsData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
     };
 
     fetchData();
@@ -88,30 +91,38 @@ const SurgicalForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isEditing) {
-      const recordRef = doc(db, "surgicalForms", editingId);
-      await updateDoc(recordRef, formData);
-      setSavedRecords(prev =>
-        prev.map(record =>
-          record.id === editingId ? { ...formData, id: editingId } : record
-        )
-      );
-      setIsEditing(false);
-      setEditingId(null);
-    } else {
-      const newRecordRef = await addDoc(collection(db, "surgicalForms"), formData);
-      setSavedRecords(prev => [...prev, { ...formData, id: newRecordRef.id }]);
+    try {
+      if (isEditing) {
+        const recordRef = doc(db, "surgicalForms", editingId);
+        await updateDoc(recordRef, formData);
+        setSavedRecords(prev =>
+          prev.map(record =>
+            record.id === editingId ? { ...formData, id: editingId } : record
+          )
+        );
+        setIsEditing(false);
+        setEditingId(null);
+      } else {
+        const newRecordRef = await addDoc(collection(db, "surgicalForms"), {
+          ...formData,
+          service: userService,
+          createdAt: new Date().toISOString()
+        });
+        setSavedRecords(prev => [...prev, { ...formData, id: newRecordRef.id }]);
+      }
+      setFormData({
+        commentType: 'Normal',
+        customComment: '',
+        files: [],
+        anesthesists: '',
+        surgeons: '',
+        diagnosis: '',
+        operativeIndication: '',
+        patientId: ''
+      });
+    } catch (error) {
+      console.error('Error submitting form:', error);
     }
-    setFormData({
-      commentType: 'Normal',
-      customComment: '',
-      files: [],
-      anesthesists: '',
-      surgeons: '',
-      diagnosis: '',
-      operativeIndication: '',
-      patientId: ''
-    });
   };
 
   const editRecord = (record) => {
@@ -121,8 +132,14 @@ const SurgicalForm = () => {
   };
 
   const deleteRecord = async (id) => {
-    await deleteDoc(doc(db, "surgicalForms", id));
-    setSavedRecords(prev => prev.filter(record => record.id !== id));
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet enregistrement ?')) {
+      try {
+        await deleteDoc(doc(db, "surgicalForms", id));
+        setSavedRecords(prev => prev.filter(record => record.id !== id));
+      } catch (error) {
+        console.error('Error deleting record:', error);
+      }
+    }
   };
 
   const toggleFilesVisibility = (id) => {
@@ -141,6 +158,7 @@ const SurgicalForm = () => {
             className="form-select"
             value={formData.patientId}
             onChange={(e) => {
+              console.log('Selected Patient ID:', e.target.value);
               const selectedPatient = validatedPatients.find(p => p.id === e.target.value);
               if (selectedPatient) {
                 setFormData(prev => ({
@@ -161,6 +179,8 @@ const SurgicalForm = () => {
           </select>
         </div>
 
+        {/* Rest of your form fields remain the same */}
+        
         <div className="col-md-6">
           <label className="form-label">Type de commentaire:</label>
           <select
