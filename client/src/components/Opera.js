@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DropboxChooser from 'react-dropbox-chooser';
-import 'bootstrap/dist/css/bootstrap.min.css';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc } from 'firebase/firestore';
 
+// Configuration Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
   authDomain: "basecenterdb.firebaseapp.com",
@@ -14,275 +13,264 @@ const firebaseConfig = {
   appId: "1:919766148380:web:30db9986fa2cd8bb7106d9"
 };
 
+// Initialisation Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const storage = getStorage(app);
 
-const PatientFileManager = () => {
-  const [comment, setComment] = useState('');
-  const [customComment, setCustomComment] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState([]);
-  const [showFiles, setShowFiles] = useState(false);
-  const [formData, setFormData] = useState({
-    anesthesiste: '',
-    responsableCec: '',
-    instrumentiste: '',
-    indicationOperatoire: ''
-  });
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
+const CommentForm = () => {
+  const [commentaire, setCommentaire] = useState('Normal');
+  const [autreCommentaire, setAutreCommentaire] = useState('');
+  const [fichiers, setFichiers] = useState([]);
+  const [anesthesistes, setAnesthesistes] = useState('');
+  const [chirurgiens, setChirurgiens] = useState('');
+  const [diagnostic, setDiagnostic] = useState('');
+  const [indication, setIndication] = useState('');
+  const [enregistrements, setEnregistrements] = useState([]);
 
-  const handleCommentChange = (e) => {
-    if (e.target.value === 'autre') {
-      setComment('autre');
-    } else {
-      setComment(e.target.value);
-      setCustomComment('');
+  // Récupérer les données de l'utilisateur depuis localStorage
+  const [userServiceId, setUserServiceId] = useState(localStorage.getItem('userServiceId'));
+  const [userRole, setUserRole] = useState(localStorage.getItem('userRole'));
+  const [userAccessLevel, setUserAccessLevel] = useState(localStorage.getItem('userAccessLevel'));
+
+  // Récupérer les enregistrements de la base Firestore pour l'utilisateur connecté et de son service
+  useEffect(() => {
+    const fetchEnregistrements = async () => {
+      const q = userRole === 'admin'
+        ? query(collection(db, 'enregistrements'))
+        : query(collection(db, 'enregistrements'), where('serviceId', '==', userServiceId));
+
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+      setEnregistrements(data);
+    };
+
+    if (userServiceId) {
+      fetchEnregistrements();
     }
+  }, [userServiceId, userRole]);
+
+  const handleChangeCommentaire = (event) => {
+    setCommentaire(event.target.value);
   };
 
-  const handleFileSuccess = (files) => {
-    setSelectedFiles(prev => [...prev, ...files]);
+  const handleAutreCommentaireChange = (event) => {
+    setAutreCommentaire(event.target.value);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleFilesSelect = (files) => {
+    setFichiers(files);
+  };
+
+  const handleDeleteFile = (fileUrl) => {
+    setFichiers(fichiers.filter(file => file.link !== fileUrl));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    const newEnregistrement = {
+      commentaire: commentaire === 'Autre' ? autreCommentaire : commentaire,
+      fichiers,
+      anesthesistes,
+      chirurgiens,
+      diagnostic,
+      indication,
+      userId: localStorage.getItem('userService'),
+      serviceId: userServiceId,
+    };
+
     try {
-      const fileUrls = await Promise.all(
-        selectedFiles.map(async (file) => {
-          const storageRef = ref(storage, `files/${Date.now()}_${file.name}`);
-          const response = await fetch(file.link);
-          const blob = await response.blob();
-          await uploadBytes(storageRef, blob);
-          return await getDownloadURL(storageRef);
-        })
-      );
-
-      const patientData = {
-        comment: comment === 'autre' ? customComment : comment,
-        files: fileUrls,
-        ...formData,
-        timestamp: new Date()
-      };
-
-      await addDoc(collection(db, 'patientRecords'), patientData);
-      setMessage({ type: 'success', text: 'Dossier enregistré avec succès' });
+      await addDoc(collection(db, 'enregistrements'), newEnregistrement);
       resetForm();
+      fetchEnregistrements(); 
     } catch (error) {
-      setMessage({ type: 'danger', text: 'Erreur lors de l\'enregistrement' });
-    }
-    setLoading(false);
-  };
-
-  const handleUpdate = async (recordId) => {
-    setLoading(true);
-    try {
-      const docRef = doc(db, 'patientRecords', recordId);
-      const updateData = {
-        comment: comment === 'autre' ? customComment : comment,
-        ...formData,
-        updatedAt: new Date()
-      };
-      await updateDoc(docRef, updateData);
-      setMessage({ type: 'success', text: 'Dossier mis à jour avec succès' });
-    } catch (error) {
-      setMessage({ type: 'danger', text: 'Erreur lors de la mise à jour' });
-    }
-    setLoading(false);
-  };
-
-  const handleDelete = async (recordId) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce dossier ?')) {
-      setLoading(true);
-      try {
-        await deleteDoc(doc(db, 'patientRecords', recordId));
-        setMessage({ type: 'success', text: 'Dossier supprimé avec succès' });
-        resetForm();
-      } catch (error) {
-        setMessage({ type: 'danger', text: 'Erreur lors de la suppression' });
-      }
-      setLoading(false);
+      console.error("Error adding document: ", error);
     }
   };
 
   const resetForm = () => {
-    setComment('');
-    setCustomComment('');
-    setSelectedFiles([]);
-    setFormData({
-      anesthesiste: '',
-      responsableCec: '',
-      instrumentiste: '',
-      indicationOperatoire: ''
-    });
+    setCommentaire('Normal');
+    setAutreCommentaire('');
+    setFichiers([]);
+    setAnesthesistes('');
+    setChirurgiens('');
+    setDiagnostic('');
+    setIndication('');
+  };
+
+  const handleModify = (index) => {
+    const record = enregistrements[index];
+    setCommentaire(record.commentaire);
+    setAutreCommentaire(record.commentaire === 'Autre' ? record.commentaire : '');
+    setFichiers(record.fichiers);
+    setAnesthesistes(record.anesthesistes);
+    setChirurgiens(record.chirurgiens);
+    setDiagnostic(record.diagnostic);
+    setIndication(record.indication);
+    setEnregistrements(enregistrements.filter((_, i) => i !== index));
+  };
+
+  const handleDelete = async (index) => {
+    const record = enregistrements[index];
+    if (record.serviceId === userServiceId || userRole === 'admin') {
+      try {
+        await deleteDoc(doc(db, 'enregistrements', record.id));
+        setEnregistrements(enregistrements.filter((_, i) => i !== index));
+      } catch (error) {
+        console.error("Error deleting document: ", error);
+      }
+    } else {
+      alert("Vous ne pouvez supprimer que les enregistrements de votre propre service.");
+    }
   };
 
   return (
-    <div className="container py-4">
-      {message.text && (
-        <div className={`alert alert-${message.type} alert-dismissible fade show`} role="alert">
-          {message.text}
-          <button type="button" className="btn-close" onClick={() => setMessage({ type: '', text: '' })}></button>
+    <div className="container mt-4">
+      <h2>Formulaire de Commentaire</h2>
+      <form onSubmit={handleSubmit} className="bg-light p-4 rounded shadow-sm">
+        <div className="form-group mb-3">
+          <label htmlFor="commentaire">Commentaire :</label>
+          <select
+            id="commentaire"
+            className="form-control"
+            value={commentaire}
+            onChange={handleChangeCommentaire}
+          >
+            <option value="Normal">Normal</option>
+            <option value="Mission Canadienne">Mission Canadienne</option>
+            <option value="Mission Suisse">Mission Suisse</option>
+            <option value="Autre">Autre</option>
+          </select>
+          {commentaire === 'Autre' && (
+            <textarea
+              className="form-control mt-2"
+              id="autreCommentaire"
+              value={autreCommentaire}
+              onChange={handleAutreCommentaireChange}
+              placeholder="Saisissez votre commentaire personnalisé"
+            />
+          )}
         </div>
-      )}
 
-      <div className="card shadow-sm">
-        <div className="card-body">
-          <h2 className="card-title text-center mb-4">Gestion des Dossiers Patients</h2>
+        <div className="form-group mb-3">
+          <label htmlFor="anesthesistes">Anesthesiste(s) :</label>
+          <input
+            type="text"
+            id="anesthesistes"
+            className="form-control"
+            value={anesthesistes}
+            onChange={(e) => setAnesthesistes(e.target.value)}
+          />
+        </div>
 
-          <form onSubmit={handleSubmit}>
-            <div className="row mb-3">
-              <div className="col-md-6">
-                <select 
-                  className="form-select"
-                  value={comment}
-                  onChange={handleCommentChange}
-                >
-                  <option value="">Sélectionner un commentaire</option>
-                  <option value="Normal">Normal</option>
-                  <option value="Mission Canadienne">Mission Canadienne</option>
-                  <option value="autre">Autre</option>
-                </select>
-              </div>
-              {comment === 'autre' && (
-                <div className="col-md-6">
-                  <textarea
-                    className="form-control"
-                    value={customComment}
-                    onChange={(e) => setCustomComment(e.target.value)}
-                    placeholder="Entrez votre commentaire"
-                  />
-                </div>
-              )}
-            </div>
+        <div className="form-group mb-3">
+          <label htmlFor="chirurgiens">Chirurgien(s) :</label>
+          <input
+            type="text"
+            id="chirurgiens"
+            className="form-control"
+            value={chirurgiens}
+            onChange={(e) => setChirurgiens(e.target.value)}
+          />
+        </div>
 
-            <div className="row mb-3">
-              <div className="col-12">
-                <DropboxChooser 
-                  appKey="gmhp5s9h3aup35v"
-                  success={handleFileSuccess}
-                  cancel={() => console.log('Cancelled')}
-                  multiselect={true}
-                >
-                  <button className="btn btn-primary" type="button">
-                    <i className="bi bi-cloud-upload"></i> Sélectionner des fichiers Dropbox
-                  </button>
-                </DropboxChooser>
-              </div>
-            </div>
+        <div className="form-group mb-3">
+          <label htmlFor="diagnostic">Diagnostic :</label>
+          <input
+            type="text"
+            id="diagnostic"
+            className="form-control"
+            value={diagnostic}
+            onChange={(e) => setDiagnostic(e.target.value)}
+          />
+        </div>
 
-            {selectedFiles.length > 0 && (
-              <div className="row mb-3">
-                <div className="col-12">
-                  <button 
-                    className="btn btn-secondary"
+        <div className="form-group mb-3">
+          <label htmlFor="indication">Indication Opératoire :</label>
+          <input
+            type="text"
+            id="indication"
+            className="form-control"
+            value={indication}
+            onChange={(e) => setIndication(e.target.value)}
+          />
+        </div>
+
+        <div className="mb-3">
+          <DropboxChooser
+            appKey="your-dropbox-app-key"
+            success={handleFilesSelect}
+            cancel={() => {}}
+          >
+            <button type="button" className="btn btn-primary">
+              Choisir des fichiers
+            </button>
+          </DropboxChooser>
+        </div>
+
+        {fichiers.length > 0 && (
+          <div>
+            <h5>Fichiers sélectionnés :</h5>
+            <ul className="list-group mb-3">
+              {fichiers.map((file, index) => (
+                <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
+                  <a href={file.link} target="_blank" rel="noopener noreferrer">
+                    {file.name}
+                  </a>
+                  <button
                     type="button"
-                    onClick={() => setShowFiles(!showFiles)}
+                    className="btn btn-danger btn-sm"
+                    onClick={() => handleDeleteFile(file.link)}
                   >
-                    {showFiles ? 'Masquer' : 'Afficher'} les fichiers ({selectedFiles.length})
+                    Supprimer
                   </button>
-                  {showFiles && (
-                    <ul className="list-group mt-2">
-                      {selectedFiles.map((file, index) => (
-                        <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
-                          {file.name}
-                          <button 
-                            type="button" 
-                            className="btn btn-danger btn-sm"
-                            onClick={() => setSelectedFiles(files => files.filter((_, i) => i !== index))}
-                          >
-                            <i className="bi bi-trash"></i>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div className="row mb-3">
-              <div className="col-md-6 mb-3">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Anesthésiste"
-                  value={formData.anesthesiste}
-                  onChange={(e) => setFormData({...formData, anesthesiste: e.target.value})}
-                />
-              </div>
-              <div className="col-md-6 mb-3">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Responsable CEC"
-                  value={formData.responsableCec}
-                  onChange={(e) => setFormData({...formData, responsableCec: e.target.value})}
-                />
-              </div>
-              <div className="col-md-6 mb-3">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Instrumentiste"
-                  value={formData.instrumentiste}
-                  onChange={(e) => setFormData({...formData, instrumentiste: e.target.value})}
-                />
-              </div>
-              <div className="col-md-6">
-                <textarea
-                  className="form-control"
-                  placeholder="Indication opératoire"
-                  value={formData.indicationOperatoire}
-                  onChange={(e) => setFormData({...formData, indicationOperatoire: e.target.value})}
-                />
-              </div>
-            </div>
-
-            <div className="d-flex gap-2 justify-content-end">
-              <button 
-                type="submit" 
-                className="btn btn-success"
-                disabled={loading}
-              >
-                {loading ? (
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                ) : (
-                  <i className="bi bi-save"></i>
-                )}
-                Enregistrer
-              </button>
-              <button 
-                type="button" 
-                className="btn btn-warning"
-                onClick={() => handleUpdate()}
-                disabled={loading}
-              >
-                <i className="bi bi-pencil"></i> Modifier
-              </button>
-              <button 
-                type="button" 
-                className="btn btn-danger"
-                onClick={() => handleDelete()}
-                disabled={loading}
-              >
-                <i className="bi bi-trash"></i> Supprimer
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      {loading && (
-        <div className="position-fixed top-50 start-50 translate-middle">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Chargement...</span>
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
-      )}
+        )}
+
+        <button type="submit" className="btn btn-success">Enregistrer</button>
+      </form>
+
+      <h3 className="mt-4">Enregistrements :</h3>
+      <div className="row">
+        {enregistrements.map((record, index) => (
+          <div key={index} className="col-md-6 col-lg-4 mb-4">
+            <div className="card">
+              <div className="card-body">
+                <h5 className="card-title">Commentaire : {record.commentaire}</h5>
+                <p><strong>Anesthésistes :</strong> {record.anesthesistes}</p>
+                <p><strong>Chirurgiens :</strong> {record.chirurgiens}</p>
+                <p><strong>Diagnostic :</strong> {record.diagnostic}</p>
+                <p><strong>Indication Opératoire :</strong> {record.indication}</p>
+
+                <div>
+                  <strong>Fichiers :</strong>
+                  {record.fichiers.map((file, index) => (
+                    <div key={index}>
+                      <a href={file.link} target="_blank" rel="noopener noreferrer">
+                        {file.name}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+
+                {userRole === 'admin' || record.serviceId === userServiceId ? (
+                  <div className="mt-2">
+                    <button className="btn btn-warning btn-sm" onClick={() => handleModify(index)}>Modifier</button>
+                    <button className="btn btn-danger btn-sm ml-2" onClick={() => handleDelete(index)}>Supprimer</button>
+                  </div>
+                ) : (
+                  <p>Vous ne pouvez pas modifier ou supprimer cet enregistrement.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
 
-export default PatientFileManager;
+export default CommentForm;
