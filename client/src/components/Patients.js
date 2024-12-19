@@ -14,6 +14,7 @@ import { FaBookReader } from "react-icons/fa";
 import { MdImageSearch } from "react-icons/md";
 import PatientSolvable from "./PatientSolvable";
 import Fichier from "./Fichier";
+import FichierCro from "./FichierCro";
 import Archive from "./Archive";
 import Message from "./Message";
 import { MdMessage } from "react-icons/md";
@@ -127,6 +128,7 @@ const [formData, setFormData] = useState({
   const [showHistory, setShowHistory] = useState(false);
   const [showPaiement, setShowPaiement] = useState(false);
   const [showfichier, setShowfichier] = useState(false);
+   const [showFichierCro, setShowFichierCro] = useState(false);
   const [showFirst,setShowFirst] = useState(false);
   const [showSec,setShowSec] = useState(false);  
   const [showTh,setShowTh] = useState(false);
@@ -1442,45 +1444,97 @@ const [formData, setFormData] = useState({
                     />
                   </button>
                       <button
-                    className="btn3 "
-                    title="fichiers CRO"
-                    onClick={() => navigate("/fichiers-cro")}
-
+                    className="btn3"
+                    onClick={() => setshowFichierCro(!showFichierCro)}
+                    title="Patients files"
                     style={{
                       display:
                         localStorage.getItem("userName") === "Ad" ||
-                        (userRole === "Secrétaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                        (userRole === "Infirmier(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                        (userRole === "Archiviste" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                        (userRole === "Gestionnaire" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                        (userRole === "Etudiant(e)" && userAccessLevel === "Affichage"&& ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-            
-                        (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                        (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                        (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                        (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                        (userRole === "Gestionnaire" && userAccessLevel === "Affichage-Modification" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-            
-                        (userRole === "Secrétaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                        (userRole === "Infirmier(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                        (userRole === "Archiviste" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                        (userRole === "Etudiant(e)" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                        (userRole === "Gestionnaire" && userAccessLevel === "Affichage-Modification-Suppression" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-            
-            
-                        (userRole === "Secrétaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                        (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                        (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
-                        (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) ||
-                        (userRole === "Gestionnaire" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) 
+                          (userRole === "Médecin" &&
+                            userAccessLevel === "Affichage" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                          (userRole === "Infirmier(e)" &&
+                            userAccessLevel === "Affichage" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                          (userRole === "Archiviste" &&
+                            userAccessLevel === "Affichage" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                          (userRole === "Gestionnaire" &&
+                            userAccessLevel === "Affichage" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                          (userRole === "Etudiant(e)" &&
+                            userAccessLevel === "Affichage" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                          (userRole === "Archiviste" &&
+                            userAccessLevel === "Affichage-Modification" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                          (userRole === "Etudiant(e)" &&
+                            userAccessLevel === "Affichage-Modification" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService))  ||
+                          (userRole === "Archiviste" &&
+                            userAccessLevel ===
+                            "Affichage-Modification-Suppression" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService))  ||
+                          (userRole === "Etudiant(e)" &&
+                            userAccessLevel ===
+                            "Affichage-Modification-Suppression" &&
+                            [
+                              "Cuomo",
+                              "Ctcv",
+                              "Cardiologie",
+                              "Réanimation",
+                            ].includes(userService)) ||
+                      (userRole === "Infirmier(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
+                      (userRole === "Archiviste" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"]  ) ||
+                      (userRole === "Etudiant(e)" && userAccessLevel === "Administrateur" && ["Cuomo","Ctcv","Cardiologie","Réanimation"] ) 
+                       
                           ? "none"
                           : "block",
-                          
                     }}
                   >
-                    <MdImageSearch 
+                       <MdImageSearch 
                       style={{ width: "30px", height: "30px" }}
-                    />
+                    />                
                   </button>
                   <button
                     onClick={() => navigate("/role")}
@@ -1532,6 +1586,7 @@ const [formData, setFormData] = useState({
 
       {showPaiement && <PatientSolvable patients={patients || []} />}
       {showfichier && <Fichier patients={patients || []} />}
+      {showFichierCro && <FichierCro patients={patients || []} />}
       {showMessage && <Message />}
       {showArchive && <Archive />}
       {showAdditionalFields && (
