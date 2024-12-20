@@ -24,7 +24,7 @@ const Opera = ({ patients }) => {
     ordre: '',
     datePatient: '',
     statut: 'Validé',
-    dropboxLink: ''
+    dropboxLinks: [] // Changer de "dropboxLink" à "dropboxLinks" pour gérer plusieurs fichiers
   });
 
   const [cros, setCros] = useState([]);
@@ -84,9 +84,12 @@ const Opera = ({ patients }) => {
   }, [searchTerm, cros, patients]);
 
   const handleDropboxSuccess = (files) => {
-    const link = files[0].link;
-    setCroInfo(prev => ({...prev, dropboxLink: link}));
-    toast.success('Document Dropbox sélectionné avec succès');
+    const links = files.map(file => file.link); // Récupérer tous les liens
+    setCroInfo(prev => ({
+      ...prev,
+      dropboxLinks: [...prev.dropboxLinks, ...links] // Ajouter les nouveaux liens à la liste existante
+    }));
+    toast.success('Documents Dropbox sélectionnés avec succès');
   };
 
   const handleEdit = (cro) => {
@@ -96,7 +99,7 @@ const Opera = ({ patients }) => {
       ordre: cro.ordre,
       datePatient: cro.datePatient,
       statut: cro.statut,
-      dropboxLink: cro.dropboxLink
+      dropboxLinks: cro.dropboxLinks || [] // Assurez-vous que `dropboxLinks` est bien un tableau
     });
   };
 
@@ -145,7 +148,7 @@ const Opera = ({ patients }) => {
         ordre: '',
         datePatient: '',
         statut: 'Validé',
-        dropboxLink: ''
+        dropboxLinks: []
       });
       
       toast.success(editing ? 'Document modifié avec succès' : 'Document ajouté avec succès');
@@ -169,6 +172,11 @@ const Opera = ({ patients }) => {
         'Résumé': cro.ordre,
         'Patient': patient?.nom,
         'Diagnostic': patient?.diagnostic,
+        'Âge': patient?.age,
+        'Genre': patient?.genre,
+        'Groupe sanguin': patient?.groupeSanguin,
+        'Numéro de téléphone': patient?.numeroDeTelephone,
+        'Adresse domicile': patient?.addressDomicile,
         'Date': formatDate(cro.datePatient)
       };
     });
@@ -186,6 +194,14 @@ const Opera = ({ patients }) => {
       year: 'numeric' 
     };
     return new Date(dateString).toLocaleDateString('fr-FR', options);
+  };
+
+  // Fonction pour supprimer un fichier de la liste
+  const handleRemoveFile = (link) => {
+    setCroInfo(prev => ({
+      ...prev,
+      dropboxLinks: prev.dropboxLinks.filter(fileLink => fileLink !== link)
+    }));
   };
 
   return (
@@ -235,22 +251,34 @@ const Opera = ({ patients }) => {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Document (Dropbox)</Form.Label>
+                  <Form.Label>Fichiers Dropbox</Form.Label>
                   <DropboxChooser
-                    appKey="gmhp5s9h3aup35v"
+                    appKey="wv5zaxkx76k5tcd"
                     success={handleDropboxSuccess}
-                    cancel={() => toast.info('Sélection annulée')}
-                    multiselect={false}
+                    cancel={() => toast.info('Sélection de fichiers annulée')}
+                    multiselect={true}
                   >
-                    <Button variant="outline-primary" type="button" className="w-100">
-                      Choisir un fichier
+                    <Button variant="outline-primary" className="w-100">
+                      Choisir plusieurs fichiers
                     </Button>
                   </DropboxChooser>
-                  {croInfo.dropboxLink && (
+
+                  {croInfo.dropboxLinks.length > 0 && (
                     <div className="mt-2">
-                      <a href={croInfo.dropboxLink} target="_blank" rel="noopener noreferrer">
-                        Voir le document
-                      </a>
+                      {croInfo.dropboxLinks.map((link, index) => (
+                        <div key={index} className="mb-2 d-flex justify-content-between align-items-center">
+                          <a href={link} target="_blank" rel="noopener noreferrer">
+                            Fichier {index + 1}
+                          </a>
+                          <Button 
+                            variant="danger" 
+                            size="sm" 
+                            onClick={() => handleRemoveFile(link)}
+                          >
+                            Supprimer
+                          </Button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </Form.Group>
@@ -294,19 +322,24 @@ const Opera = ({ patients }) => {
                           <p><strong>Patient:</strong> {patient?.nom}</p>
                           <p><strong>Résumé:</strong> {cro.ordre}</p>
                           <p><strong>Diagnostic:</strong> {patient?.diagnostic}</p>
+                          <p><strong>Âge:</strong> {patient?.age}</p>
+                          <p><strong>Genre:</strong> {patient?.genre}</p>
+                          <p><strong>Groupe sanguin:</strong> {patient?.groupeSanguin}</p>
+                          <p><strong>Numéro de téléphone:</strong> {patient?.numeroDeTelephone}</p>
+                          <p><strong>Adresse domicile:</strong> {patient?.addressDomicile}</p>
                           <p><strong>Date:</strong> {formatDate(cro.datePatient)}</p>
-                          
-                          {cro.dropboxLink && (
+
+                          {cro.dropboxLinks?.map((link, index) => (
                             <Button 
+                              key={index}
                               variant="link" 
-                              href={cro.dropboxLink}
+                              href={link}
                               target="_blank"
                               className="mb-3"
                             >
-                              Voir le document
+                              Voir le document {index + 1}
                             </Button>
-                          )}
-
+                          ))}
                           <div className="d-flex justify-content-between">
                             <Button 
                               variant="warning" 
