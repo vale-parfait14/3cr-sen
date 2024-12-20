@@ -9,7 +9,7 @@ import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, deleteDoc, q
 const firebaseConfig = {
   apiKey: "AIzaSyDSQ0cQa7TISpd_vZWVa9dWMzbUUl-yf38",
   authDomain: "basecenterdb.firebaseapp.com",
-  projectId: "basecenterdb", 
+  projectId: "basecenterdb",
   storageBucket: "basecenterdb.firebasestorage.app",
   messagingSenderId: "919766148380",
   appId: "1:919766148380:web:30db9986fa2cd8bb7106d9"
@@ -24,7 +24,11 @@ const Opera = ({ patients }) => {
     ordre: '',
     datePatient: '',
     statut: 'Validé',
-    dropboxLinks: [] // Changer de "dropboxLink" à "dropboxLinks" pour gérer plusieurs fichiers
+    dropboxLinks: [],
+    chirurgiens: '',
+    anesthesistes: '',
+    diagnos: '',
+    indicationOperatoire: ''
   });
 
   const [cros, setCros] = useState([]);
@@ -37,7 +41,7 @@ const Opera = ({ patients }) => {
   const userRole = localStorage.getItem("userRole");
   const userAccessLevel = localStorage.getItem("userAccessLevel");
 
-  const validatedPatients = patients.filter(patient =>
+  const validatedPatients = patients.filter(patient => 
     patient.validation === 'Validé' && patient.services === userService
   );
 
@@ -70,24 +74,17 @@ const Opera = ({ patients }) => {
 
     const searchResults = cros.filter(cro => {
       const patient = patients.find(p => p._id === cro.patientId);
-      const searchString = `
-        ${patient?.dossierNumber.toLowerCase()}
-        ${cro.ordre.toLowerCase()}
-        ${patient?.nom.toLowerCase()}
-        ${patient?.diagnostic.toLowerCase()}
-        ${formatDate(cro.datePatient).toLowerCase()}
-      `;
+      const searchString = `${patient?.dossierNumber.toLowerCase()} ${cro.ordre.toLowerCase()} ${patient?.nom.toLowerCase()} ${patient?.diagnostic.toLowerCase()} ${formatDate(cro.datePatient).toLowerCase()}`;
       return searchString.includes(searchTerm.toLowerCase());
     });
-
     setFilteredCros(searchResults);
   }, [searchTerm, cros, patients]);
 
   const handleDropboxSuccess = (files) => {
-    const links = files.map(file => file.link); // Récupérer tous les liens
+    const links = files.map(file => file.link);
     setCroInfo(prev => ({
       ...prev,
-      dropboxLinks: [...prev.dropboxLinks, ...links] // Ajouter les nouveaux liens à la liste existante
+      dropboxLinks: [...prev.dropboxLinks, ...links]
     }));
     toast.success('Documents Dropbox sélectionnés avec succès');
   };
@@ -99,8 +96,13 @@ const Opera = ({ patients }) => {
       ordre: cro.ordre,
       datePatient: cro.datePatient,
       statut: cro.statut,
-      dropboxLinks: cro.dropboxLinks || [] // Assurez-vous que `dropboxLinks` est bien un tableau
+      dropboxLinks: cro.dropboxLinks || [],
+      chirurgiens: cro.chirurgiens || '',
+      anesthesistes: cro.anesthesistes || '',
+      diagnos: cro.diagnos || '',
+      indicationOperatoire: cro.indicationOperatoire || ''
     });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (croId) => {
@@ -117,50 +119,42 @@ const Opera = ({ patients }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     try {
       if (editing) {
         await updateDoc(doc(db, 'cros', editing), {
           ...croInfo,
           service: userService
         });
-        
-        setCros(cros.map(p => 
-          p._id === editing ? {...p, ...croInfo} : p
-        ));
-        
+        setCros(cros.map(p => p._id === editing ? {...p, ...croInfo} : p));
         setEditing(null);
       } else {
         const docRef = await addDoc(collection(db, 'cros'), {
           ...croInfo,
           service: userService
         });
-
-        setCros([...cros, {
-          _id: docRef.id,
-          ...croInfo,
-          service: userService
-        }]);
+        setCros([...cros, { _id: docRef.id, ...croInfo, service: userService }]);
       }
-
       setCroInfo({
         patientId: '',
         ordre: '',
         datePatient: '',
         statut: 'Validé',
-        dropboxLinks: []
+        dropboxLinks: [],
+        chirurgiens: '',
+        anesthesistes: '',
+        diagnos: '',
+        indicationOperatoire: ''
       });
-      
       toast.success(editing ? 'Document modifié avec succès' : 'Document ajouté avec succès');
     } catch (error) {
       toast.error('Une erreur est survenue');
     }
   };
 
-  const toggleFilesVisibility = (id) => {
+  const toggleFileList = (croId) => {
     setFileVisibility(prev => ({
       ...prev,
-      [id]: !prev[id]
+      [croId]: !prev[croId]
     }));
   };
 
@@ -171,7 +165,10 @@ const Opera = ({ patients }) => {
         'Numéro de dossier': patient?.dossierNumber,
         'Résumé': cro.ordre,
         'Patient': patient?.nom,
-        'Diagnostic': patient?.diagnostic,
+        'Chirurgiens': cro.chirurgiens,
+        'Anesthésistes': cro.anesthesistes,
+        'Diagnostic': cro.diagnos,
+        'Indication Opératoire': cro.indicationOperatoire,
         'Âge': patient?.age,
         'Genre': patient?.genre,
         'Groupe sanguin': patient?.groupeSanguin,
@@ -180,7 +177,6 @@ const Opera = ({ patients }) => {
         'Date': formatDate(cro.datePatient)
       };
     });
-
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Patients");
@@ -188,15 +184,10 @@ const Opera = ({ patients }) => {
   };
 
   const formatDate = (dateString) => {
-    const options = { 
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric' 
-    };
+    const options = { day: 'numeric', month: 'long', year: 'numeric' };
     return new Date(dateString).toLocaleDateString('fr-FR', options);
   };
 
-  // Fonction pour supprimer un fichier de la liste
   const handleRemoveFile = (link) => {
     setCroInfo(prev => ({
       ...prev,
@@ -216,7 +207,7 @@ const Opera = ({ patients }) => {
               <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
                   <Form.Label>Patient</Form.Label>
-                  <Form.Select
+                  <Form.Select 
                     value={croInfo.patientId}
                     onChange={(e) => setCroInfo(prev => ({...prev, patientId: e.target.value}))}
                     required
@@ -228,6 +219,42 @@ const Opera = ({ patients }) => {
                       </option>
                     ))}
                   </Form.Select>
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Chirurgiens</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={croInfo.chirurgiens}
+                    onChange={(e) => setCroInfo(prev => ({...prev, chirurgiens: e.target.value}))}
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Anesthésistes</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={croInfo.anesthesistes}
+                    onChange={(e) => setCroInfo(prev => ({...prev, anesthesistes: e.target.value}))}
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Diagnostic</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={croInfo.diagnos}
+                    onChange={(e) => setCroInfo(prev => ({...prev, diagnos: e.target.value}))}
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Indication Opératoire</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={croInfo.indicationOperatoire}
+                    onChange={(e) => setCroInfo(prev => ({...prev, indicationOperatoire: e.target.value}))}
+                  />
                 </Form.Group>
 
                 <Form.Group className="mb-3">
@@ -262,19 +289,14 @@ const Opera = ({ patients }) => {
                       Choisir plusieurs fichiers
                     </Button>
                   </DropboxChooser>
-
                   {croInfo.dropboxLinks.length > 0 && (
                     <div className="mt-2">
                       {croInfo.dropboxLinks.map((link, index) => (
                         <div key={index} className="mb-2 d-flex justify-content-between align-items-center">
                           <a href={link} target="_blank" rel="noopener noreferrer">
-                            Fichier {index + 1}
+                            {link.split('/').pop()}
                           </a>
-                          <Button 
-                            variant="danger" 
-                            size="sm" 
-                            onClick={() => handleRemoveFile(link)}
-                          >
+                          <Button variant="danger" size="sm" onClick={() => handleRemoveFile(link)}>
                             Supprimer
                           </Button>
                         </div>
@@ -320,8 +342,11 @@ const Opera = ({ patients }) => {
                         <Card.Body>
                           <h5>Dossier N° {patient?.dossierNumber}</h5>
                           <p><strong>Patient:</strong> {patient?.nom}</p>
+                          <p><strong>Chirurgiens:</strong> {cro.chirurgiens}</p>
+                          <p><strong>Anesthésistes:</strong> {cro.anesthesistes}</p>
+                          <p><strong>Diagnostic:</strong> {cro.diagnos}</p>
+                          <p><strong>Indication Opératoire:</strong> {cro.indicationOperatoire}</p>
                           <p><strong>Résumé:</strong> {cro.ordre}</p>
-                          <p><strong>Diagnostic:</strong> {patient?.diagnostic}</p>
                           <p><strong>Âge:</strong> {patient?.age}</p>
                           <p><strong>Genre:</strong> {patient?.genre}</p>
                           <p><strong>Groupe sanguin:</strong> {patient?.groupeSanguin}</p>
@@ -329,30 +354,28 @@ const Opera = ({ patients }) => {
                           <p><strong>Adresse domicile:</strong> {patient?.addressDomicile}</p>
                           <p><strong>Date:</strong> {formatDate(cro.datePatient)}</p>
 
-                          {cro.dropboxLinks?.map((link, index) => (
-                            <Button 
-                              key={index}
-                              variant="link" 
-                              href={link}
-                              target="_blank"
-                              className="mb-3"
-                            >
-                              Voir le document {index + 1}
-                            </Button>
+                          <Button
+                            variant="info"
+                            size="sm"
+                            onClick={() => toggleFileList(cro._id)}
+                            className="mb-2"
+                          >
+                            Documents ({cro.dropboxLinks?.length || 0})
+                          </Button>
+
+                                                    {fileVisibility[cro._id] && cro.dropboxLinks?.map((link, index) => (
+                            <div key={index} className="mb-2">
+                              <a href={link} target="_blank" rel="noopener noreferrer">
+                                {link.split('/').pop()}
+                              </a>
+                            </div>
                           ))}
-                          <div className="d-flex justify-content-between">
-                            <Button 
-                              variant="warning" 
-                              size="sm"
-                              onClick={() => handleEdit(cro)}
-                            >
+
+                          <div className="d-flex justify-content-between mt-3">
+                            <Button variant="warning" size="sm" onClick={() => handleEdit(cro)}>
                               Modifier
                             </Button>
-                            <Button 
-                              variant="danger" 
-                              size="sm"
-                              onClick={() => handleDelete(cro._id)}
-                            >
+                            <Button variant="danger" size="sm" onClick={() => handleDelete(cro._id)}>
                               Supprimer
                             </Button>
                           </div>
@@ -371,3 +394,4 @@ const Opera = ({ patients }) => {
 };
 
 export default Opera;
+
