@@ -21,7 +21,7 @@ const db = getFirestore(app);
 const Opera = ({ patients }) => {
   const [croInfo, setCroInfo] = useState({
     patientId: '',
-    ordre: '',
+    comment: '',
     datePatient: '',
     statut: 'Validé',
     dropboxLinks: [],
@@ -74,7 +74,7 @@ const Opera = ({ patients }) => {
 
     const searchResults = cros.filter(cro => {
       const patient = patients.find(p => p._id === cro.patientId);
-      const searchString = ${patient?.dossierNumber.toLowerCase()} ${cro.ordre.toLowerCase()} ${patient?.nom.toLowerCase()} ${patient?.diagnostic.toLowerCase()} ${formatDate(cro.datePatient).toLowerCase()};
+      const searchString = `${patient?.dossierNumber.toLowerCase()} ${cro.comment.toLowerCase()} ${patient?.nom.toLowerCase()} ${patient?.diagnostic.toLowerCase()} ${formatDate(cro.datePatient).toLowerCase()}`;
       return searchString.includes(searchTerm.toLowerCase());
     });
     setFilteredCros(searchResults);
@@ -93,7 +93,7 @@ const Opera = ({ patients }) => {
     setEditing(cro._id);
     setCroInfo({
       patientId: cro.patientId,
-      ordre: cro.ordre,
+      comment: cro.comment,
       datePatient: cro.datePatient,
       statut: cro.statut,
       dropboxLinks: cro.dropboxLinks || [],
@@ -136,7 +136,7 @@ const Opera = ({ patients }) => {
       }
       setCroInfo({
         patientId: '',
-        ordre: '',
+        comment: '',
         datePatient: '',
         statut: 'Validé',
         dropboxLinks: [],
@@ -163,7 +163,7 @@ const Opera = ({ patients }) => {
       const patient = patients.find(p => p._id === cro.patientId);
       return {
         'Numéro de dossier': patient?.dossierNumber,
-        'Commentaire': cro.Commentaire,
+        'Commentaire': cro.comment,
         'Patient': patient?.nom,
         'Chirurgiens': cro.chirurgiens,
         'Anesthésistes': cro.anesthesistes,
@@ -261,8 +261,8 @@ const Opera = ({ patients }) => {
                   <Form.Label>Commentaire</Form.Label>
                   <Form.Control
                     type="text"
-                    value={croInfo.ordre}
-                    onChange={(e) => setCroInfo(prev => ({...prev, ordre: e.target.value}))}
+                    value={croInfo.comment}
+                    onChange={(e) => setCroInfo(prev => ({...prev, comment: e.target.value}))}
                     required
                   />
                 </Form.Group>
@@ -346,7 +346,7 @@ const Opera = ({ patients }) => {
                           <p><strong>Anesthésistes:</strong> {cro.anesthesistes}</p>
                           <p><strong>Diagnostic:</strong> {cro.diagnos}</p>
                           <p><strong>Indication Opératoire:</strong> {cro.indicationOperatoire}</p>
-                          <p><strong>Commentaire:</strong> {cro.ordre}</p>
+                          <p><strong>Commentaire:</strong> {cro.comment}</p>
                           <p><strong>Âge:</strong> {patient?.age}</p>
                           <p><strong>Genre:</strong> {patient?.genre}</p>
                           <p><strong>Groupe sanguin:</strong> {patient?.groupeSanguin}</p>
@@ -363,7 +363,7 @@ const Opera = ({ patients }) => {
                             Documents ({cro.dropboxLinks?.length || 0})
                           </Button>
 
-                                                    {fileVisibility[cro._id] && cro.dropboxLinks?.map((link, index) => (
+                          {fileVisibility[cro._id] && cro.dropboxLinks?.map((link, index) => (
                             <div key={index} className="mb-2">
                               <a href={link} target="_blank" rel="noopener noreferrer">
                                 {link.split('/').pop()}
