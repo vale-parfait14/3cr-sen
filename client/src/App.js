@@ -12,6 +12,7 @@ import Archive from './components/Archive';
 import DocAccess from './components/DocAccess';
 import PatientSolvable from './components/PatientSolvable';
 import Fichier from './components/Fichier';
+import FichierCro from './components/FichierCro';
 import Solvabilite from './components/Solvabilite';
 import Home from './components/Home';
 import PasswordAuth from './components/PasswordAuth';
@@ -108,7 +109,8 @@ const App = () => {
             <Route path="/archive" element={<ProtectedRoute element={<Archive token={token} />} token={token} />} />
             <Route path="/archiveaccess" element={<ProtectedRoute element={<ArchiveAccess token={token} />} token={token} />} />
             <Route path="/patientsolvable" element={<ProtectedRoute element={<PatientSolvable token={token} />} token={token} />} />
-            <Route path="/fichiers" element={<ProtectedRoute element={<Fichier token={token} />} token={token} />} />          
+            <Route path="/fichiers" element={<ProtectedRoute element={<Fichier token={token} />} token={token} />} /> 
+              <Route path="/fichierscro" element={<ProtectedRoute element={<FichierCro token={token} />} token={token} />} />          
             <Route path="/opera" element={<ProtectedRoute element={<Opera token={token} />} token={token} />} />
             <Route path="/solvabilite" element={<ProtectedRoute element={<Solvabilite token={token} />} token={token} />} />
             <Route path="/role" element={<ProtectedRoute element={<Role token={token} />} token={token} />} />
