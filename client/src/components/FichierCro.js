@@ -27,7 +27,9 @@ const Opera = ({ patients }) => {
     chirurgiens: '',
     anesthesistes: '',
     diagnos: '',
-    indicationOperatoire: ''
+    indicationOperatoire: '',
+    commentType: 'Normal',
+    customComment: ''
   });
 
   const [cros, setCros] = useState([]);
@@ -39,6 +41,12 @@ const Opera = ({ patients }) => {
   const userService = localStorage.getItem('userService');
   const userRole = localStorage.getItem("userRole");
   const userAccessLevel = localStorage.getItem("userAccessLevel");
+
+  const PREDEFINED_COMMENTS = {
+    Normal: "Commentaire standard",
+    "Mission Canadienne": "Mission Canadienne - Intervention spéciale",
+    "Mission Suisse": "Mission Suisse - Intervention spéciale"
+  };
 
   const validatedPatients = patients.filter(patient => 
     patient.validation === 'Validé' && patient.services === userService
@@ -98,7 +106,9 @@ const Opera = ({ patients }) => {
       chirurgiens: cro.chirurgiens || '',
       anesthesistes: cro.anesthesistes || '',
       diagnos: cro.diagnos || '',
-      indicationOperatoire: cro.indicationOperatoire || ''
+      indicationOperatoire: cro.indicationOperatoire || '',
+      commentType: cro.commentType || 'Normal',
+      customComment: cro.customComment || ''
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -117,21 +127,24 @@ const Opera = ({ patients }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const finalComment = croInfo.commentType === 'Autres' ? croInfo.customComment : PREDEFINED_COMMENTS[croInfo.commentType];
+    
     try {
+      const dataToSubmit = {
+        ...croInfo,
+        comment: finalComment,
+        service: userService
+      };
+
       if (editing) {
-        await updateDoc(doc(db, 'cros', editing), {
-          ...croInfo,
-          service: userService
-        });
-        setCros(cros.map(p => p._id === editing ? {...p, ...croInfo} : p));
+        await updateDoc(doc(db, 'cros', editing), dataToSubmit);
+        setCros(cros.map(p => p._id === editing ? {...p, ...dataToSubmit} : p));
         setEditing(null);
       } else {
-        const docRef = await addDoc(collection(db, 'cros'), {
-          ...croInfo,
-          service: userService
-        });
-        setCros([...cros, { _id: docRef.id, ...croInfo, service: userService }]);
+        const docRef = await addDoc(collection(db, 'cros'), dataToSubmit);
+        setCros([...cros, { _id: docRef.id, ...dataToSubmit }]);
       }
+
       setCroInfo({
         patientId: '',
         datePatient: '',
@@ -140,7 +153,9 @@ const Opera = ({ patients }) => {
         chirurgiens: '',
         anesthesistes: '',
         diagnos: '',
-        indicationOperatoire: ''
+        indicationOperatoire: '',
+        commentType: 'Normal',
+        customComment: ''
       });
       toast.success(editing ? 'Document modifié avec succès' : 'Document ajouté avec succès');
     } catch (error) {
@@ -165,6 +180,7 @@ const Opera = ({ patients }) => {
         'Anesthésistes': cro.anesthesistes,
         'Diagnostic': cro.diagnos,
         'Indication Opératoire': cro.indicationOperatoire,
+        'Commentaire': cro.comment,
         'Âge': patient?.age,
         'Genre': patient?.genre,
         'Groupe sanguin': patient?.groupeSanguin,
@@ -253,7 +269,37 @@ const Opera = ({ patients }) => {
                   />
                 </Form.Group>
 
-              
+                <Form.Group className="mb-3">
+                  <Form.Label>Type de commentaire</Form.Label>
+                  <Form.Select 
+                    value={croInfo.commentType}
+                    onChange={(e) => {
+                      setCroInfo(prev => ({
+                        ...prev, 
+                        commentType: e.target.value,
+                        customComment: e.target.value === 'Autres' ? '' : PREDEFINED_COMMENTS[e.target.value]
+                      }));
+                    }}
+                  >
+                    {Object.keys(PREDEFINED_COMMENTS).map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                    <option value="Autres">Autres</option>
+                  </Form.Select>
+                </Form.Group>
+
+                {croInfo.commentType === 'Autres' && (
+                  <Form.Group className="mb-3">
+                    <Form.Label>Commentaire personnalisé</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={3}
+                      value={croInfo.customComment}
+                      onChange={(e) => setCroInfo(prev => ({...prev, customComment: e.target.value}))}
+                      placeholder="Entrez votre commentaire personnalisé..."
+                    />
+                  </Form.Group>
+                )}
 
                 <Form.Group className="mb-3">
                   <Form.Label>Date</Form.Label>
@@ -328,12 +374,13 @@ const Opera = ({ patients }) => {
                     <Col key={cro._id} md={6} lg={4} className="mb-3">
                       <Card>
                         <Card.Body>
-                          <h5>Dossier N° {patient?.dossierNumber}</h5>
+                        <h5>Dossier N° {patient?.dossierNumber}</h5>
                           <p><strong>Patient:</strong> {patient?.nom}</p>
                           <p><strong>Chirurgiens:</strong> {cro.chirurgiens}</p>
                           <p><strong>Anesthésistes:</strong> {cro.anesthesistes}</p>
                           <p><strong>Diagnostic:</strong> {cro.diagnos}</p>
                           <p><strong>Indication Opératoire:</strong> {cro.indicationOperatoire}</p>
+                          <p><strong>Commentaire:</strong> {cro.comment}</p>
                           <p><strong>Âge:</strong> {patient?.age}</p>
                           <p><strong>Genre:</strong> {patient?.genre}</p>
                           <p><strong>Groupe sanguin:</strong> {patient?.groupeSanguin}</p>
@@ -381,3 +428,4 @@ const Opera = ({ patients }) => {
 };
 
 export default Opera;
+
