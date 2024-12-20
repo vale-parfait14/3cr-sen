@@ -3,7 +3,7 @@ import DropboxChooser from 'react-dropbox-chooser';
 import { useNavigate } from "react-router-dom";
 import { saveAs } from 'file-saver';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import { GlobalWorkerOptions, version } from 'pdfjs-dist';
 
 GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.js`;
@@ -23,9 +23,6 @@ const db = getFirestore(app);
 const Observation = () => {
   const [filesObs, setFilesObs] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showCommentModal, setShowCommentModal] = useState(false);
-  const [currentFile, setCurrentFile] = useState(null);
-  const [tempComment, setTempComment] = useState('');
   const [userRole, setUserRole] = useState(null);
   const [userAccessLevel, setUserAccessLevel] = useState(null);
   const navigate = useNavigate();
@@ -38,14 +35,13 @@ const Observation = () => {
     setUserAccessLevel(accessLevel);
   }, []);
 
-
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "filesObs"), (snapshot) => {
       const filesObsData = snapshot.docs.map(doc => ({
         ...doc.data(),
         id: doc.id
       }));
-      // Sort files by timestamp in descending order
+      // Trier les fichiers par timestamp dans l'ordre décroissant
       const sortedFiles = filesObsData.sort((a, b) => 
         new Date(b.timestamp) - new Date(a.timestamp)
       );
@@ -58,12 +54,9 @@ const Observation = () => {
   const handleDropboxSuccess = async (selectedFilesObs) => {
     try {
       for (const file of selectedFilesObs) {
-        const userComment = prompt(`Ajoutez un commentaire pour le fichier "${file.name}" :`);
-        
         const newFile = {
           name: file.name,
           link: file.link,
-          comment: userComment || '',
           timestamp: new Date().toISOString()
         };
 
@@ -73,17 +66,6 @@ const Observation = () => {
     } catch (error) {
       console.error("Erreur lors de l'ajout:", error);
       alert("Une erreur est survenue lors de l'ajout du fichier.");
-    }
-  };
-
-  const handleUpdateComment = async (id, newComment) => {
-    try {
-      const fileRef = doc(db, "filesObs", id);
-      await updateDoc(fileRef, { comment: newComment });
-      console.log("Commentaire mis à jour avec succès");
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour du commentaire:", error);
-      alert("Une erreur est survenue lors de la mise à jour du commentaire.");
     }
   };
 
@@ -104,10 +86,8 @@ const Observation = () => {
     window.open(link, '_blank');
   };
 
-  const filteredFiles = filesObs
-  .filter(file => 
+  const filteredFiles = filesObs.filter(file => 
     file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (file.comment && file.comment.toLowerCase().includes(searchTerm.toLowerCase())) ||
     new Date(file.timestamp).toLocaleString().toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -138,27 +118,27 @@ const Observation = () => {
         <input
           type="text"
           className="form-control"
-          placeholder="Rechercher par nom, commentaire ou date..."
+          placeholder="Rechercher par nom ou date..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
       <div className="text-center mb-4">
-  {(userRole === 'Médecin' && ['Affichage-Modification', 'Affichage-Modification-Suppression', 'Administrateur'].includes(userAccessLevel)) || 
-   (userRole === 'Admin' && userAccessLevel === 'Administrateur') ? (
-    <DropboxChooser
-      appKey="gmhp5s9h3aup35v"
-      success={handleDropboxSuccess}
-      multiselect={true}
-      extensions={['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt','.gif','.pptx','.svg','.jpeg', '.jpg', '.png']}
-    >
-      <button className="btn btn-primary">
-        Choisir les fichiers
-      </button>
-    </DropboxChooser>
-  ) : null}
-</div>
+        {(userRole === 'Médecin' && ['Affichage-Modification', 'Affichage-Modification-Suppression', 'Administrateur'].includes(userAccessLevel)) || 
+         (userRole === 'Admin' && userAccessLevel === 'Administrateur') ? (
+          <DropboxChooser
+            appKey="gmhp5s9h3aup35v"
+            success={handleDropboxSuccess}
+            multiselect={true}
+            extensions={['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt','.gif','.pptx','.svg','.jpeg', '.jpg', '.png']}
+          >
+            <button className="btn btn-primary">
+              Choisir les fichiers
+            </button>
+          </DropboxChooser>
+        ) : null}
+      </div>
 
       <div className="row">
         {filteredFiles.map(file => (
@@ -167,30 +147,16 @@ const Observation = () => {
               <div className="card-body">
                 <div className="d-flex justify-content-between align-items-start mb-3">
                   <h5 className="card-title mb-0">{file.name}</h5>
-                {((userRole === 'Médecin' && ['Affichage-Modification-Suppression', 'Administrateur'].includes(userAccessLevel)) ||
-  (userRole === 'Admin' && userAccessLevel === 'Administrateur')) && (
-  <button 
-    onClick={() => handleDelete(file.id)} 
-    className="btn btn-danger btn-sm"
-  >
-    Supprimer
-  </button>
-)}
-
-
+                  {((userRole === 'Médecin' && ['Affichage-Modification-Suppression', 'Administrateur'].includes(userAccessLevel)) ||
+                    (userRole === 'Admin' && userAccessLevel === 'Administrateur')) && (
+                      <button 
+                        onClick={() => handleDelete(file.id)} 
+                        className="btn btn-danger btn-sm"
+                      >
+                        Supprimer
+                      </button>
+                    )}
                 </div>
-                {((userRole === 'Médecin' && ['Affichage-Modification', 'Affichage-Modification-Suppression', 'Administrateur'].includes(userAccessLevel)) ||
-  (userRole === 'Admin' && userAccessLevel === 'Administrateur')) && (
-                <div className="mb-3">
-                  
-                  <textarea
-                    className="form-control mt-2"
-                    value={file.comment || ''}
-                    onChange={(e) => handleUpdateComment(file.id, e.target.value)}
-                    placeholder="Ajouter/modifier le commentaire"
-                  />
-                </div>
-                )}
                 <div className="text-muted small mb-3">
                   Date: {new Date(file.timestamp).toLocaleString()}
                 </div>
