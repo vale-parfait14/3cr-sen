@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+ import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
@@ -21,15 +21,14 @@ const db = getFirestore(app);
 const Opera = ({ patients }) => {
   const [croInfo, setCroInfo] = useState({
     patientId: '',
-    ordre: '', // Commentaire prédéfini ou personnalisé
+    ordre: '',
     datePatient: '',
     statut: 'Validé',
     dropboxLinks: [],
     chirurgiens: '',
     anesthesistes: '',
     diagnos: '',
-    indicationOperatoire: '',
-    backgroundColor: '#ffffff' // couleur de fond par défaut
+    indicationOperatoire: ''
   });
 
   const [cros, setCros] = useState([]);
@@ -38,12 +37,10 @@ const Opera = ({ patients }) => {
   const [filteredCros, setFilteredCros] = useState([]);
   const [fileVisibility, setFileVisibility] = useState({});
 
-  // Récupération des données de l'utilisateur depuis localStorage
   const userService = localStorage.getItem('userService');
-  const [userRole, setUserRole] = useState(localStorage.getItem("userRole"));
-  const [userAccessLevel, setUserAccessLevel] = useState(localStorage.getItem("userAccessLevel"));
+  const userRole = localStorage.getItem("userRole");
+  const userAccessLevel = localStorage.getItem("userAccessLevel");
 
-  // Filtrer les patients validés et correspondant au service de l'utilisateur
   const validatedPatients = patients.filter(patient => 
     patient.validation === 'Validé' && patient.services === userService
   );
@@ -77,7 +74,7 @@ const Opera = ({ patients }) => {
 
     const searchResults = cros.filter(cro => {
       const patient = patients.find(p => p._id === cro.patientId);
-      const searchString = `${patient?.dossierNumber.toLowerCase()} ${cro.ordre.toLowerCase()} ${patient?.nom.toLowerCase()} ${patient?.diagnostic.toLowerCase()} ${formatDate(cro.datePatient).toLowerCase()}`;
+      const searchString = ${patient?.dossierNumber.toLowerCase()} ${cro.ordre.toLowerCase()} ${patient?.nom.toLowerCase()} ${patient?.diagnostic.toLowerCase()} ${formatDate(cro.datePatient).toLowerCase()};
       return searchString.includes(searchTerm.toLowerCase());
     });
     setFilteredCros(searchResults);
@@ -103,8 +100,7 @@ const Opera = ({ patients }) => {
       chirurgiens: cro.chirurgiens || '',
       anesthesistes: cro.anesthesistes || '',
       diagnos: cro.diagnos || '',
-      indicationOperatoire: cro.indicationOperatoire || '',
-      backgroundColor: cro.backgroundColor || '#ffffff'
+      indicationOperatoire: cro.indicationOperatoire || ''
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -140,15 +136,14 @@ const Opera = ({ patients }) => {
       }
       setCroInfo({
         patientId: '',
-        ordre: '', // Commentaire prédéfini ou personnalisé
+        ordre: '',
         datePatient: '',
         statut: 'Validé',
         dropboxLinks: [],
         chirurgiens: '',
         anesthesistes: '',
         diagnos: '',
-        indicationOperatoire: '',
-        backgroundColor: '#ffffff'
+        indicationOperatoire: ''
       });
       toast.success(editing ? 'Document modifié avec succès' : 'Document ajouté avec succès');
     } catch (error) {
@@ -204,7 +199,7 @@ const Opera = ({ patients }) => {
     <Container fluid className="p-4">
       <Row className="mb-4">
         <Col md={8} className="mx-auto">
-          <Card style={{ backgroundColor: croInfo.backgroundColor }}>
+          <Card>
             <Card.Body>
               <h3 className="text-center mb-4">
                 {editing ? 'Modifier un document' : 'Ajouter un document'}
@@ -228,8 +223,8 @@ const Opera = ({ patients }) => {
 
                 <Form.Group className="mb-3">
                   <Form.Label>Chirurgiens</Form.Label>
-                  <Form.Control 
-                    type="text" 
+                  <Form.Control
+                    type="text"
                     value={croInfo.chirurgiens}
                     onChange={(e) => setCroInfo(prev => ({...prev, chirurgiens: e.target.value}))}
                   />
@@ -237,40 +232,17 @@ const Opera = ({ patients }) => {
 
                 <Form.Group className="mb-3">
                   <Form.Label>Anesthésistes</Form.Label>
-                  <Form.Control 
-                    type="text" 
+                  <Form.Control
+                    type="text"
                     value={croInfo.anesthesistes}
                     onChange={(e) => setCroInfo(prev => ({...prev, anesthesistes: e.target.value}))}
                   />
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Ordre</Form.Label>
-                  <Form.Select 
-                    value={croInfo.ordre}
-                    onChange={(e) => setCroInfo(prev => ({...prev, ordre: e.target.value}))}
-                  >
-                    <option value="Normal">Normal</option>
-                    <option value="Mission Canadienne">Mission Canadienne</option>
-                    <option value="Mission Suisse">Mission Suisse</option>
-                    <option value="Autres">Autres</option>
-                  </Form.Select>
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Date</Form.Label>
-                  <Form.Control 
-                    type="date" 
-                    value={croInfo.datePatient}
-                    onChange={(e) => setCroInfo(prev => ({...prev, datePatient: e.target.value}))}
-                    required
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
                   <Form.Label>Diagnostic</Form.Label>
-                  <Form.Control 
-                    type="text" 
+                  <Form.Control
+                    type="text"
                     value={croInfo.diagnos}
                     onChange={(e) => setCroInfo(prev => ({...prev, diagnos: e.target.value}))}
                   />
@@ -278,17 +250,141 @@ const Opera = ({ patients }) => {
 
                 <Form.Group className="mb-3">
                   <Form.Label>Indication Opératoire</Form.Label>
-                  <Form.Control 
-                    type="text" 
+                  <Form.Control
+                    type="text"
                     value={croInfo.indicationOperatoire}
                     onChange={(e) => setCroInfo(prev => ({...prev, indicationOperatoire: e.target.value}))}
                   />
                 </Form.Group>
 
-                <Button variant="primary" type="submit">
-                  {editing ? 'Mettre à jour' : 'Ajouter'}
+                <Form.Group className="mb-3">
+                  <Form.Label>Résumé</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={croInfo.ordre}
+                    onChange={(e) => setCroInfo(prev => ({...prev, ordre: e.target.value}))}
+                    required
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Date</Form.Label>
+                  <Form.Control
+                    type="date"
+                    value={croInfo.datePatient}
+                    onChange={(e) => setCroInfo(prev => ({...prev, datePatient: e.target.value}))}
+                    required
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Fichiers Dropbox</Form.Label>
+                  <DropboxChooser
+                    appKey="gmhp5s9h3aup35v"
+                    success={handleDropboxSuccess}
+                    cancel={() => toast.info('Sélection de fichiers annulée')}
+                    multiselect={true}
+                  >
+                    <Button variant="outline-primary" className="w-100">
+                      Choisir plusieurs fichiers
+                    </Button>
+                  </DropboxChooser>
+                  {croInfo.dropboxLinks.length > 0 && (
+                    <div className="mt-2">
+                      {croInfo.dropboxLinks.map((link, index) => (
+                        <div key={index} className="mb-2 d-flex justify-content-between align-items-center">
+                          <a href={link} target="_blank" rel="noopener noreferrer">
+                            {link.split('/').pop()}
+                          </a>
+                          <Button variant="danger" size="sm" onClick={() => handleRemoveFile(link)}>
+                            Supprimer
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Form.Group>
+
+                <Button variant="primary" type="submit" className="w-100">
+                  {editing ? 'Mettre à jour' : 'Enregistrer'}
                 </Button>
               </Form>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      <Row>
+        <Col>
+          <Card>
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h3 className="mb-0">Liste des Documents</h3>
+                <Button variant="success" onClick={exportToExcel}>
+                  Exporter en Excel
+                </Button>
+              </div>
+
+              <Form.Control
+                type="text"
+                placeholder="Rechercher..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="mb-4"
+              />
+
+              <Row>
+                {filteredCros.map(cro => {
+                  const patient = patients.find(p => p._id === cro.patientId);
+                  return (
+                    <Col key={cro._id} md={6} lg={4} className="mb-3">
+                      <Card>
+                        <Card.Body>
+                          <h5>Dossier N° {patient?.dossierNumber}</h5>
+                          <p><strong>Patient:</strong> {patient?.nom}</p>
+                          <p><strong>Chirurgiens:</strong> {cro.chirurgiens}</p>
+                          <p><strong>Anesthésistes:</strong> {cro.anesthesistes}</p>
+                          <p><strong>Diagnostic:</strong> {cro.diagnos}</p>
+                          <p><strong>Indication Opératoire:</strong> {cro.indicationOperatoire}</p>
+                          <p><strong>Résumé:</strong> {cro.ordre}</p>
+                          <p><strong>Âge:</strong> {patient?.age}</p>
+                          <p><strong>Genre:</strong> {patient?.genre}</p>
+                          <p><strong>Groupe sanguin:</strong> {patient?.groupeSanguin}</p>
+                          <p><strong>Numéro de téléphone:</strong> {patient?.numeroDeTelephone}</p>
+                          <p><strong>Adresse domicile:</strong> {patient?.addressDomicile}</p>
+                          <p><strong>Date:</strong> {formatDate(cro.datePatient)}</p>
+
+                          <Button
+                            variant="info"
+                            size="sm"
+                            onClick={() => toggleFileList(cro._id)}
+                            className="mb-2"
+                          >
+                            Documents ({cro.dropboxLinks?.length || 0})
+                          </Button>
+
+                                                    {fileVisibility[cro._id] && cro.dropboxLinks?.map((link, index) => (
+                            <div key={index} className="mb-2">
+                              <a href={link} target="_blank" rel="noopener noreferrer">
+                                {link.split('/').pop()}
+                              </a>
+                            </div>
+                          ))}
+
+                          <div className="d-flex justify-content-between mt-3">
+                            <Button variant="warning" size="sm" onClick={() => handleEdit(cro)}>
+                              Modifier
+                            </Button>
+                            <Button variant="danger" size="sm" onClick={() => handleDelete(cro._id)}>
+                              Supprimer
+                            </Button>
+                          </div>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                  );
+                })}
+              </Row>
             </Card.Body>
           </Card>
         </Col>
