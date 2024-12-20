@@ -1,4 +1,4 @@
- import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
@@ -163,7 +163,7 @@ const Opera = ({ patients }) => {
       const patient = patients.find(p => p._id === cro.patientId);
       return {
         'Numéro de dossier': patient?.dossierNumber,
-        'Résumé': cro.ordre,
+        'Commentaire': cro.Commentaire,
         'Patient': patient?.nom,
         'Chirurgiens': cro.chirurgiens,
         'Anesthésistes': cro.anesthesistes,
@@ -258,7 +258,7 @@ const Opera = ({ patients }) => {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Résumé</Form.Label>
+                  <Form.Label>Commentaire</Form.Label>
                   <Form.Control
                     type="text"
                     value={croInfo.ordre}
@@ -346,7 +346,7 @@ const Opera = ({ patients }) => {
                           <p><strong>Anesthésistes:</strong> {cro.anesthesistes}</p>
                           <p><strong>Diagnostic:</strong> {cro.diagnos}</p>
                           <p><strong>Indication Opératoire:</strong> {cro.indicationOperatoire}</p>
-                          <p><strong>Résumé:</strong> {cro.ordre}</p>
+                          <p><strong>Commentaire:</strong> {cro.ordre}</p>
                           <p><strong>Âge:</strong> {patient?.age}</p>
                           <p><strong>Genre:</strong> {patient?.genre}</p>
                           <p><strong>Groupe sanguin:</strong> {patient?.groupeSanguin}</p>
