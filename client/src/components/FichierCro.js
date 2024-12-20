@@ -253,7 +253,7 @@ const Opera = ({ patients }) => {
                 <Form.Group className="mb-3">
                   <Form.Label>Fichiers Dropbox</Form.Label>
                   <DropboxChooser
-                    appKey="wv5zaxkx76k5tcd"
+                    appKey="gmhp5s9h3aup35v"
                     success={handleDropboxSuccess}
                     cancel={() => toast.info('Sélection de fichiers annulée')}
                     multiselect={true}
