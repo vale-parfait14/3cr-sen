@@ -222,7 +222,7 @@ const Opera = ({ patients }) => {
                   <Form.Select 
                     value={croInfo.patientId}
                     onChange={(e) => setCroInfo(prev => ({...prev, patientId: e.target.value}))}
-                    required
+                   
                   >
                     <option value="">Sélectionner un patient</option>
                     {validatedPatients.map(patient => (
