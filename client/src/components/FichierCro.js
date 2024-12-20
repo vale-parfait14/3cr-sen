@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+ import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
@@ -22,7 +22,6 @@ const Opera = ({ patients }) => {
   const [croInfo, setCroInfo] = useState({
     patientId: '',
     comment: '',
-    customComment: '',  // Ajout de customComment
     datePatient: '',
     statut: 'Validé',
     dropboxLinks: [],
@@ -75,7 +74,7 @@ const Opera = ({ patients }) => {
 
     const searchResults = cros.filter(cro => {
       const patient = patients.find(p => p._id === cro.patientId);
-      const searchString = `${patient?.dossierNumber.toLowerCase()} ${cro.comment.toLowerCase()} ${patient?.nom.toLowerCase()} ${patient?.diagnostic.toLowerCase()} ${formatDate(cro.datePatient).toLowerCase()}`;
+      const searchString = ${patient?.dossierNumber.toLowerCase()} ${cro.comment.toLowerCase()} ${patient?.nom.toLowerCase()} ${patient?.diagnostic.toLowerCase()} ${formatDate(cro.datePatient).toLowerCase()};
       return searchString.includes(searchTerm.toLowerCase());
     });
     setFilteredCros(searchResults);
@@ -95,7 +94,6 @@ const Opera = ({ patients }) => {
     setCroInfo({
       patientId: cro.patientId,
       comment: cro.comment,
-      customComment: cro.customComment || '', // Réinitialisation de customComment
       datePatient: cro.datePatient,
       statut: cro.statut,
       dropboxLinks: cro.dropboxLinks || [],
@@ -121,13 +119,10 @@ const Opera = ({ patients }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const finalComment = croInfo.comment === 'Autres' ? croInfo.customComment : croInfo.comment;
-  
     try {
       if (editing) {
         await updateDoc(doc(db, 'cros', editing), {
           ...croInfo,
-          comment: finalComment, // Utilisation du commentaire final
           service: userService
         });
         setCros(cros.map(p => p._id === editing ? {...p, ...croInfo} : p));
@@ -135,7 +130,6 @@ const Opera = ({ patients }) => {
       } else {
         const docRef = await addDoc(collection(db, 'cros'), {
           ...croInfo,
-          comment: finalComment, // Utilisation du commentaire final
           service: userService
         });
         setCros([...cros, { _id: docRef.id, ...croInfo, service: userService }]);
@@ -143,7 +137,6 @@ const Opera = ({ patients }) => {
       setCroInfo({
         patientId: '',
         comment: '',
-        customComment: '',  // Réinitialisation du commentaire personnalisé
         datePatient: '',
         statut: 'Validé',
         dropboxLinks: [],
@@ -234,7 +227,6 @@ const Opera = ({ patients }) => {
                     type="text"
                     value={croInfo.chirurgiens}
                     onChange={(e) => setCroInfo(prev => ({...prev, chirurgiens: e.target.value}))}
-                    required
                   />
                 </Form.Group>
 
@@ -248,27 +240,31 @@ const Opera = ({ patients }) => {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
+                  <Form.Label>Diagnostic</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={croInfo.diagnos}
+                    onChange={(e) => setCroInfo(prev => ({...prev, diagnos: e.target.value}))}
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Indication Opératoire</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={croInfo.indicationOperatoire}
+                    onChange={(e) => setCroInfo(prev => ({...prev, indicationOperatoire: e.target.value}))}
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
                   <Form.Label>Commentaire</Form.Label>
-                  <Form.Select
+                  <Form.Control
+                    type="text"
                     value={croInfo.comment}
                     onChange={(e) => setCroInfo(prev => ({...prev, comment: e.target.value}))}
                     required
-                  >
-                    <option value="">Sélectionner un commentaire</option>
-                    <option value="Normal">Normal</option>
-                    <option value="Mission Canadienne">Mission Canadienne</option>
-                    <option value="Mission Suisse">Mission Suisse</option>
-                    <option value="Autres">Autres</option>
-                  </Form.Select>
-
-                  {croInfo.comment === 'Autres' && (
-                    <Form.Control
-                      type="text"
-                      placeholder="Entrez un commentaire personnalisé"
-                      value={croInfo.customComment}
-                      onChange={(e) => setCroInfo(prev => ({...prev, customComment: e.target.value}))}
-                    />
-                  )}
+                  />
                 </Form.Group>
 
                 <Form.Group className="mb-3">
@@ -281,8 +277,36 @@ const Opera = ({ patients }) => {
                   />
                 </Form.Group>
 
-                <Button type="submit" variant="primary">
-                  {editing ? 'Modifier' : 'Ajouter'}
+                <Form.Group className="mb-3">
+                  <Form.Label>Fichiers Dropbox</Form.Label>
+                  <DropboxChooser
+                    appKey="gmhp5s9h3aup35v"
+                    success={handleDropboxSuccess}
+                    cancel={() => toast.info('Sélection de fichiers annulée')}
+                    multiselect={true}
+                  >
+                    <Button variant="outline-primary" className="w-100">
+                      Choisir plusieurs fichiers
+                    </Button>
+                  </DropboxChooser>
+                  {croInfo.dropboxLinks.length > 0 && (
+                    <div className="mt-2">
+                      {croInfo.dropboxLinks.map((link, index) => (
+                        <div key={index} className="mb-2 d-flex justify-content-between align-items-center">
+                          <a href={link} target="_blank" rel="noopener noreferrer">
+                            {link.split('/').pop()}
+                          </a>
+                          <Button variant="danger" size="sm" onClick={() => handleRemoveFile(link)}>
+                            Supprimer
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Form.Group>
+
+                <Button variant="primary" type="submit" className="w-100">
+                  {editing ? 'Mettre à jour' : 'Enregistrer'}
                 </Button>
               </Form>
             </Card.Body>
@@ -290,46 +314,81 @@ const Opera = ({ patients }) => {
         </Col>
       </Row>
 
-      {/* Liste des documents existants */}
       <Row>
         <Col>
-          <h4>Documents</h4>
-          {filteredCros.length === 0 ? (
-            <p>Aucun document trouvé</p>
-          ) : (
-            <div className="list-group">
-              {filteredCros.map(cro => {
-                const patient = patients.find(p => p._id === cro.patientId);
-                return (
-                  <div key={cro._id} className="list-group-item">
-                    <h5>{patient?.nom} - {patient?.dossierNumber}</h5>
-                    <p>Commentaire: {cro.comment}</p>
-                    <p><strong>Chirurgien(s):</strong> {cro.chirurgiens}</p>
-                    <Button variant="secondary" onClick={() => handleEdit(cro)}>Éditer</Button>
-                    <Button variant="danger" onClick={() => handleDelete(cro._id)}>Supprimer</Button>
-                    <Button variant="info" onClick={() => toggleFileList(cro._id)}>Voir fichiers</Button>
-                    {fileVisibility[cro._id] && (
-                      <div>
-                        <h6>Fichiers Dropbox:</h6>
-                        <ul>
-                          {cro.dropboxLinks.map(link => (
-                            <li key={link}>
-                              <a href={link} target="_blank" rel="noopener noreferrer">{link}</a>
-                              <Button variant="danger" onClick={() => handleRemoveFile(link)}>Supprimer</Button>
-                            </li>
+          <Card>
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h3 className="mb-0">Liste des Documents</h3>
+                <Button variant="success" onClick={exportToExcel}>
+                  Exporter en Excel
+                </Button>
+              </div>
+
+              <Form.Control
+                type="text"
+                placeholder="Rechercher..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="mb-4"
+              />
+
+              <Row>
+                {filteredCros.map(cro => {
+                  const patient = patients.find(p => p._id === cro.patientId);
+                  return (
+                    <Col key={cro._id} md={6} lg={4} className="mb-3">
+                      <Card>
+                        <Card.Body>
+                          <h5>Dossier N° {patient?.dossierNumber}</h5>
+                          <p><strong>Patient:</strong> {patient?.nom}</p>
+                          <p><strong>Chirurgiens:</strong> {cro.chirurgiens}</p>
+                          <p><strong>Anesthésistes:</strong> {cro.anesthesistes}</p>
+                          <p><strong>Diagnostic:</strong> {cro.diagnos}</p>
+                          <p><strong>Indication Opératoire:</strong> {cro.indicationOperatoire}</p>
+                          <p><strong>Commentaire:</strong> {cro.comment}</p>
+                          <p><strong>Âge:</strong> {patient?.age}</p>
+                          <p><strong>Genre:</strong> {patient?.genre}</p>
+                          <p><strong>Groupe sanguin:</strong> {patient?.groupeSanguin}</p>
+                          <p><strong>Numéro de téléphone:</strong> {patient?.numeroDeTelephone}</p>
+                          <p><strong>Adresse domicile:</strong> {patient?.addressDomicile}</p>
+                          <p><strong>Date:</strong> {formatDate(cro.datePatient)}</p>
+
+                          <Button
+                            variant="info"
+                            size="sm"
+                            onClick={() => toggleFileList(cro._id)}
+                            className="mb-2"
+                          >
+                            Documents ({cro.dropboxLinks?.length || 0})
+                          </Button>
+
+                          {fileVisibility[cro._id] && cro.dropboxLinks?.map((link, index) => (
+                            <div key={index} className="mb-2">
+                              <a href={link} target="_blank" rel="noopener noreferrer">
+                                {link.split('/').pop()}
+                              </a>
+                            </div>
                           ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+
+                          <div className="d-flex justify-content-between mt-3">
+                            <Button variant="warning" size="sm" onClick={() => handleEdit(cro)}>
+                              Modifier
+                            </Button>
+                            <Button variant="danger" size="sm" onClick={() => handleDelete(cro._id)}>
+                              Supprimer
+                            </Button>
+                          </div>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                  );
+                })}
+              </Row>
+            </Card.Body>
+          </Card>
         </Col>
       </Row>
-
-      <Button variant="success" onClick={exportToExcel}>Exporter en Excel</Button>
     </Container>
   );
 };
