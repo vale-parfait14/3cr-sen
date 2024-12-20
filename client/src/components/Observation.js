@@ -241,7 +241,7 @@ const Observation = () => {
                   <h5 className="card-title mb-0">{file.name}</h5>
                   <div className="d-flex gap-2">
                     {((userRole === 'Médecin' && ['Affichage-Modification', 'Affichage-Modification-Suppression', 'Administrateur'].includes(userAccessLevel)) ||
-                      (userRole === 'Admin' && userAccessLevel === 'Administrateur')) && (
+                      ) && (
                       <>
                         <button 
                           onClick={() => handleEdit(file)} 
