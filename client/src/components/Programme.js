@@ -24,10 +24,19 @@ const FileManager = () => {
   const [files, setFiles] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortedFiles, setSortedFiles] = useState([]);
+  const [selectedComment, setSelectedComment] = useState('Normal');
+  const [customComment, setCustomComment] = useState('');
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
   const [userAccessLevel, setUserAccessLevel] = useState(null);
+
+  const predefinedComments = [
+    'Normal',
+    'Mission Canadienne',
+    'Mission Suisse',
+    'Autres'
+  ];
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "files"), (snapshot) => {
@@ -38,12 +47,10 @@ const FileManager = () => {
       setFiles(filesData);
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    // Get user role and access level from localStorage
     const role = localStorage.getItem('userRole');
     const accessLevel = localStorage.getItem('userAccessLevel');
     setUserRole(role);
@@ -52,8 +59,6 @@ const FileManager = () => {
 
   useEffect(() => {
     let filtered = [...files];
-    
-    // Filtrer selon le terme de recherche
     if (searchTerm) {
       filtered = filtered.filter(file => 
         file.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -61,7 +66,6 @@ const FileManager = () => {
         new Date(file.timestamp).toLocaleString().includes(searchTerm)
       );
     }
-
     setSortedFiles(filtered);
   }, [files, searchTerm]);
 
@@ -69,7 +73,7 @@ const FileManager = () => {
     const newFiles = selectedFiles.map(file => ({
       name: file.name,
       link: file.link,
-      comment: '',
+      comment: selectedComment === 'Autres' ? customComment : selectedComment,
       timestamp: new Date().toISOString(),
     }));
 
@@ -123,7 +127,6 @@ const FileManager = () => {
   return (
     <div className="container mt-5">
       <h2 className="text-center mb-4">PROGRAMME OPERATOIRE</h2>
-
       <div className="mb-4">
         <input
           type="text"
@@ -139,6 +142,32 @@ const FileManager = () => {
       </button>
 
       <div className="text-center mb-4">
+        <div className="row justify-content-center mb-3">
+          <div className="col-md-6">
+            <select 
+              className="form-select mb-2"
+              value={selectedComment}
+              onChange={(e) => setSelectedComment(e.target.value)}
+            >
+              {predefinedComments.map(comment => (
+                <option key={comment} value={comment}>
+                  {comment}
+                </option>
+              ))}
+            </select>
+
+            {selectedComment === 'Autres' && (
+              <input
+                type="text"
+                className="form-control mb-2"
+                placeholder="Entrez votre commentaire personnalisé"
+                value={customComment}
+                onChange={(e) => setCustomComment(e.target.value)}
+              />
+            )}
+          </div>
+        </div>
+
         <DropboxChooser
           appKey="gmhp5s9h3aup35v"
           success={handleDropboxSuccess}
@@ -168,11 +197,11 @@ const FileManager = () => {
                     )}
                   </div>
                 </div>
-
                 <div className="file-info text-muted small">
                   <p><strong>{file.name}</strong></p>
+                  <p><strong>Commentaire:</strong> {file.comment}</p>
+                  <p><strong>Date:</strong> {new Date(file.timestamp).toLocaleString()}</p>
                 </div>
-
                 <div className="mb-3">
                   <button
                     className="btn btn-info btn-sm"
