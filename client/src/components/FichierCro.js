@@ -1,4 +1,4 @@
- import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
@@ -21,7 +21,6 @@ const db = getFirestore(app);
 const Opera = ({ patients }) => {
   const [croInfo, setCroInfo] = useState({
     patientId: '',
-    comment: '',
     datePatient: '',
     statut: 'Validé',
     dropboxLinks: [],
@@ -74,7 +73,7 @@ const Opera = ({ patients }) => {
 
     const searchResults = cros.filter(cro => {
       const patient = patients.find(p => p._id === cro.patientId);
-      const searchString = ${patient?.dossierNumber.toLowerCase()} ${cro.comment.toLowerCase()} ${patient?.nom.toLowerCase()} ${patient?.diagnostic.toLowerCase()} ${formatDate(cro.datePatient).toLowerCase()};
+      const searchString = `${patient?.dossierNumber.toLowerCase()} ${patient?.nom.toLowerCase()} ${patient?.diagnostic.toLowerCase()} ${formatDate(cro.datePatient).toLowerCase()}`;
       return searchString.includes(searchTerm.toLowerCase());
     });
     setFilteredCros(searchResults);
@@ -93,7 +92,6 @@ const Opera = ({ patients }) => {
     setEditing(cro._id);
     setCroInfo({
       patientId: cro.patientId,
-      comment: cro.comment,
       datePatient: cro.datePatient,
       statut: cro.statut,
       dropboxLinks: cro.dropboxLinks || [],
@@ -136,7 +134,6 @@ const Opera = ({ patients }) => {
       }
       setCroInfo({
         patientId: '',
-        comment: '',
         datePatient: '',
         statut: 'Validé',
         dropboxLinks: [],
@@ -163,7 +160,6 @@ const Opera = ({ patients }) => {
       const patient = patients.find(p => p._id === cro.patientId);
       return {
         'Numéro de dossier': patient?.dossierNumber,
-        'Commentaire': cro.comment,
         'Patient': patient?.nom,
         'Chirurgiens': cro.chirurgiens,
         'Anesthésistes': cro.anesthesistes,
@@ -257,15 +253,7 @@ const Opera = ({ patients }) => {
                   />
                 </Form.Group>
 
-                <Form.Group className="mb-3">
-                  <Form.Label>Commentaire</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={croInfo.comment}
-                    onChange={(e) => setCroInfo(prev => ({...prev, comment: e.target.value}))}
-                    required
-                  />
-                </Form.Group>
+              
 
                 <Form.Group className="mb-3">
                   <Form.Label>Date</Form.Label>
@@ -346,7 +334,6 @@ const Opera = ({ patients }) => {
                           <p><strong>Anesthésistes:</strong> {cro.anesthesistes}</p>
                           <p><strong>Diagnostic:</strong> {cro.diagnos}</p>
                           <p><strong>Indication Opératoire:</strong> {cro.indicationOperatoire}</p>
-                          <p><strong>Commentaire:</strong> {cro.comment}</p>
                           <p><strong>Âge:</strong> {patient?.age}</p>
                           <p><strong>Genre:</strong> {patient?.genre}</p>
                           <p><strong>Groupe sanguin:</strong> {patient?.groupeSanguin}</p>
