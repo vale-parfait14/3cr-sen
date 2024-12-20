@@ -26,6 +26,9 @@ const FileManager = () => {
   const [sortedFiles, setSortedFiles] = useState([]);
   const [selectedComment, setSelectedComment] = useState('Normal');
   const [customComment, setCustomComment] = useState('');
+  const [editingFile, setEditingFile] = useState(null);
+  const [editComment, setEditComment] = useState('');
+  const [editSelectedComment, setEditSelectedComment] = useState('Normal');
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
@@ -82,9 +85,29 @@ const FileManager = () => {
     }
   };
 
-  const handleCommentChange = async (id, newComment) => {
-    const fileRef = doc(db, "files", id);
-    await updateDoc(fileRef, { comment: newComment });
+  const startEditing = (file) => {
+    setEditingFile(file);
+    setEditSelectedComment(file.comment);
+    setEditComment(file.comment);
+  };
+
+  const saveEdit = async () => {
+    if (!editingFile) return;
+
+    const fileRef = doc(db, "files", editingFile.id);
+    const updatedComment = editSelectedComment === 'Autres' ? editComment : editSelectedComment;
+    
+    await updateDoc(fileRef, {
+      comment: updatedComment
+    });
+
+    setEditingFile(null);
+    setEditComment('');
+  };
+
+  const cancelEdit = () => {
+    setEditingFile(null);
+    setEditComment('');
   };
 
   const handleDelete = async (id) => {
@@ -188,20 +211,74 @@ const FileManager = () => {
                 <div className="d-flex justify-content-between mb-3">
                   <div>
                     {(userRole === 'Secrétaire' && userAccessLevel === 'Administrateur') && (
-                      <button
-                        onClick={() => handleDelete(file.id)}
-                        className="btn btn-danger btn-sm"
-                      >
-                        Supprimer
-                      </button>
+                      <>
+                        <button
+                          onClick={() => handleDelete(file.id)}
+                          className="btn btn-danger btn-sm me-2"
+                        >
+                          Supprimer
+                        </button>
+                        <button
+                          onClick={() => startEditing(file)}
+                          className="btn btn-warning btn-sm"
+                        >
+                          Modifier
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
+
                 <div className="file-info text-muted small">
                   <p><strong>{file.name}</strong></p>
-                  <p><strong>Commentaire:</strong> {file.comment}</p>
-                  <p><strong>Date:</strong> {new Date(file.timestamp).toLocaleString()}</p>
+                  
+                  {editingFile?.id === file.id ? (
+                    <div className="edit-form">
+                      <select 
+                        className="form-select mb-2"
+                        value={editSelectedComment}
+                        onChange={(e) => setEditSelectedComment(e.target.value)}
+                      >
+                        {predefinedComments.map(comment => (
+                          <option key={comment} value={comment}>
+                            {comment}
+                          </option>
+                        ))}
+                      </select>
+
+                      {editSelectedComment === 'Autres' && (
+                        <input
+                          type="text"
+                          className="form-control mb-2"
+                          placeholder="Entrez votre commentaire personnalisé"
+                          value={editComment}
+                          onChange={(e) => setEditComment(e.target.value)}
+                        />
+                      )}
+
+                      <div className="mt-2">
+                        <button 
+                          className="btn btn-success btn-sm me-2"
+                          onClick={saveEdit}
+                        >
+                          Enregistrer
+                        </button>
+                        <button 
+                          className="btn btn-secondary btn-sm"
+                          onClick={cancelEdit}
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p><strong>Commentaire:</strong> {file.comment}</p>
+                      <p><strong>Date:</strong> {new Date(file.timestamp).toLocaleString()}</p>
+                    </>
+                  )}
                 </div>
+
                 <div className="mb-3">
                   <button
                     className="btn btn-info btn-sm"
