@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import DropboxChooser from 'react-dropbox-chooser';
 import { useNavigate } from "react-router-dom";
@@ -50,25 +49,18 @@ const FileManager = () => {
     setUserRole(role);
     setUserAccessLevel(accessLevel);
   }, []);
+
   useEffect(() => {
     let filtered = [...files];
     
     // Filtrer selon le terme de recherche
     if (searchTerm) {
       filtered = filtered.filter(file => 
-        file.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         file.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         file.comment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         new Date(file.timestamp).toLocaleString().includes(searchTerm)
       );
     }
-    
-    // Trier uniquement par `order`
-    filtered.sort((a, b) => {
-      const orderA = a.order || 0; // Utiliser 0 si `order` n'est pas défini
-      const orderB = b.order || 0;
-      return orderA - orderB; // Tri croissant basé uniquement sur `order`
-    });
 
     setSortedFiles(filtered);
   }, [files, searchTerm]);
@@ -77,10 +69,8 @@ const FileManager = () => {
     const newFiles = selectedFiles.map(file => ({
       name: file.name,
       link: file.link,
-      title: '',
       comment: '',
       timestamp: new Date().toISOString(),
-      order: 0 // Ajouter l'attribut order
     }));
 
     for (const file of newFiles) {
@@ -88,19 +78,9 @@ const FileManager = () => {
     }
   };
 
-  const handleTitleChange = async (id, newTitle) => {
-    const fileRef = doc(db, "files", id);
-    await updateDoc(fileRef, { title: newTitle });
-  };
-
   const handleCommentChange = async (id, newComment) => {
     const fileRef = doc(db, "files", id);
     await updateDoc(fileRef, { comment: newComment });
-  };
-
-  const handleOrderChange = async (id, newOrder) => {
-    const fileRef = doc(db, "files", id);
-    await updateDoc(fileRef, { order: newOrder });
   };
 
   const handleDelete = async (id) => {
@@ -148,7 +128,7 @@ const FileManager = () => {
         <input
           type="text"
           className="form-control"
-          placeholder="Rechercher par nom, titre, commentaire ou date..."
+          placeholder="Rechercher par nom, commentaire ou date..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -177,49 +157,30 @@ const FileManager = () => {
             <div className="card shadow-sm">
               <div className="card-body">
                 <div className="d-flex justify-content-between mb-3">
-                  <input
-                    type="text"
-                    value={file.title}
-                    onChange={(e) => handleTitleChange(file.id, e.target.value)}
-                    placeholder="Enter title"
-                    className="form-control form-control-sm"
-                  />
                   <div>
-                  {(userRole === 'Secrétaire' && userAccessLevel === 'Administrateur') && (
-  <button
-    onClick={() => handleDelete(file.id)}
-    className="btn btn-danger btn-sm"
-  >
-    Supprimer
-  </button>
-)}
+                    {(userRole === 'Secrétaire' && userAccessLevel === 'Administrateur') && (
+                      <button
+                        onClick={() => handleDelete(file.id)}
+                        className="btn btn-danger btn-sm"
+                      >
+                        Supprimer
+                      </button>
+                    )}
                   </div>
                 </div>
 
                 <div className="file-info text-muted small">
-                  <p><strong> {file.name}</strong> </p>
-                 {/* <p><strong>Date:</strong> {new Date(file.timestamp).toLocaleString()}</p>*/}
+                  <p><strong>{file.name}</strong></p>
                 </div>
 
-                {/* Champ pour saisir l'ordre d'affichage */}
                 <div className="mb-3">
-                Ordre du fichier :
-
-                  <input
-                    type="number"
-                    value={file.order || 0}
-                    onChange={(e) => handleOrderChange(file.id, parseInt(e.target.value, 10))}
-                    placeholder="Ordre d'affichage"
-                    className="form-control form-control-sm w-50"
-                  />
+                  <button
+                    className="btn btn-info btn-sm"
+                    onClick={() => handleOpenLink(file.link)}
+                  >
+                    Programme Opératoire
+                  </button>
                 </div>
-
-                <button
-                  className="btn btn-info btn-sm"
-                  onClick={() => handleOpenLink(file.link)}
-                >
-                  Programme Opératoire
-                </button>
               </div>
             </div>
           </div>
