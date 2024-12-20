@@ -3,7 +3,7 @@ import DropboxChooser from 'react-dropbox-chooser';
 import { useNavigate } from "react-router-dom";
 import { saveAs } from 'file-saver';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { GlobalWorkerOptions, version } from 'pdfjs-dist';
 
 GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.js`;
@@ -27,6 +27,7 @@ const Observation = () => {
   const [userAccessLevel, setUserAccessLevel] = useState(null);
   const [commentType, setCommentType] = useState('Normal');
   const [customComment, setCustomComment] = useState('');
+  const [editingFile, setEditingFile] = useState(null);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
@@ -80,6 +81,35 @@ const Observation = () => {
     } catch (error) {
       console.error("Erreur lors de l'ajout:", error);
       alert("Une erreur est survenue lors de l'ajout du fichier.");
+    }
+  };
+
+  const handleEdit = (file) => {
+    setEditingFile(file);
+    setCommentType(file.commentType || 'Normal');
+    setCustomComment(file.commentType === 'Autres' ? file.comment : '');
+    window.scrollTo(0, 0);
+  };
+
+  const handleUpdate = async () => {
+    try {
+      const finalComment = commentType === 'Autres' ? customComment : PREDEFINED_COMMENTS[commentType];
+      
+      const fileRef = doc(db, "filesObs", editingFile.id);
+      await updateDoc(fileRef, {
+        comment: finalComment,
+        commentType: commentType,
+        timestamp: new Date().toISOString()
+      });
+
+      setEditingFile(null);
+      setCommentType('Normal');
+      setCustomComment('');
+      
+      console.log("Document mis à jour avec succès");
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour:", error);
+      alert("Une erreur est survenue lors de la mise à jour.");
     }
   };
 
@@ -141,6 +171,10 @@ const Observation = () => {
       {(userRole === 'Médecin' && ['Affichage-Modification', 'Affichage-Modification-Suppression', 'Administrateur'].includes(userAccessLevel)) || 
        (userRole === 'Admin' && userAccessLevel === 'Administrateur') ? (
         <div className="mb-4">
+          <h4 className="mb-3">
+            {editingFile ? 'Modifier le document' : 'Ajouter un nouveau document'}
+          </h4>
+          
           <select 
             className="form-select mb-3"
             value={commentType}
@@ -162,18 +196,39 @@ const Observation = () => {
             />
           )}
 
-          <div className="text-center">
-            <DropboxChooser
-              appKey="gmhp5s9h3aup35v"
-              success={handleDropboxSuccess}
-              multiselect={true}
-              extensions={['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt','.gif','.pptx','.svg','.jpeg', '.jpg', '.png']}
-            >
-              <button className="btn btn-primary">
-                Choisir les fichiers
+          {editingFile ? (
+            <div className="d-flex gap-2 mb-3">
+              <button 
+                className="btn btn-success flex-grow-1"
+                onClick={handleUpdate}
+              >
+                Mettre à jour
               </button>
-            </DropboxChooser>
-          </div>
+              <button 
+                className="btn btn-secondary"
+                onClick={() => {
+                  setEditingFile(null);
+                  setCommentType('Normal');
+                  setCustomComment('');
+                }}
+              >
+                Annuler
+              </button>
+            </div>
+          ) : (
+            <div className="text-center">
+              <DropboxChooser
+                appKey="gmhp5s9h3aup35v"
+                success={handleDropboxSuccess}
+                multiselect={true}
+                extensions={['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt','.gif','.pptx','.svg','.jpeg', '.jpg', '.png']}
+              >
+                <button className="btn btn-primary">
+                  Choisir les fichiers
+                </button>
+              </DropboxChooser>
+            </div>
+          )}
         </div>
       ) : null}
 
@@ -184,15 +239,25 @@ const Observation = () => {
               <div className="card-body">
                 <div className="d-flex justify-content-between align-items-start mb-3">
                   <h5 className="card-title mb-0">{file.name}</h5>
-                  {((userRole === 'Médecin' && ['Affichage-Modification-Suppression', 'Administrateur'].includes(userAccessLevel)) ||
-                    (userRole === 'Admin' && userAccessLevel === 'Administrateur')) && (
-                    <button 
-                      onClick={() => handleDelete(file.id)} 
-                      className="btn btn-danger btn-sm"
-                    >
-                      Supprimer
-                    </button>
-                  )}
+                  <div className="d-flex gap-2">
+                    {((userRole === 'Médecin' && ['Affichage-Modification', 'Affichage-Modification-Suppression', 'Administrateur'].includes(userAccessLevel)) ||
+                      (userRole === 'Admin' && userAccessLevel === 'Administrateur')) && (
+                      <>
+                        <button 
+                          onClick={() => handleEdit(file)} 
+                          className="btn btn-warning btn-sm"
+                        >
+                          Modifier
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(file.id)} 
+                          className="btn btn-danger btn-sm"
+                        >
+                          Supprimer
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <div className="text-muted small mb-3">
                   Date: {new Date(file.timestamp).toLocaleString()}
