@@ -214,7 +214,7 @@ const Opera = ({ patients }) => {
           <Card>
             <Card.Body>
               <h3 className="text-center mb-4">
-                {editing ? 'Modifier un document' : 'Ajouter un document'}
+                {editing ? 'Modifier un document' : 'Compte Rendu Opératoire'}
               </h3>
               <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
